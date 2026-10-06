@@ -28,7 +28,9 @@ test_engine = create_engine(
     poolclass=StaticPool,
 )
 enable_sqlite_foreign_keys(test_engine)
-TestingSessionLocal = sessionmaker(bind=test_engine, autoflush=False, expire_on_commit=False)
+TestingSessionLocal = sessionmaker(
+    bind=test_engine, autoflush=False, expire_on_commit=False
+)
 
 
 @pytest.fixture
@@ -62,7 +64,9 @@ def auth_header_for(user: User) -> dict[str, str]:
 def make_user(db):
 
     def _make_user(
-            role: RoleName = RoleName.MEMBER, email: str | None = None, is_active: bool = True
+        role: RoleName = RoleName.MEMBER,
+        email: str | None = None,
+        is_active: bool = True,
     ) -> User:
         role_row = db.scalar(select(Role).where(Role.name == role)) or Role(name=role)
         user = User(
@@ -81,6 +85,20 @@ def make_user(db):
 
 
 @pytest.fixture
+def roles(db):
+    """The 4 roles. Get or create, so it works with make_user in any order."""
+    result = {}
+    for name in RoleName:
+        role = db.scalar(select(Role).where(Role.name == name))
+        if role is None:
+            role = Role(name=name)
+            db.add(role)
+        result[name] = role
+    db.commit()
+    return result
+
+
+@pytest.fixture
 def auth_headers(make_user):
 
     def _auth_headers(role: RoleName = RoleName.MEMBER) -> dict[str, str]:
@@ -93,10 +111,10 @@ def auth_headers(make_user):
 def make_plan(db):
 
     def _make_plan(
-            monthly_price_cents: int = 5900,
-            is_active: bool = True,
-            includes_personal_training: bool = False,
-            name: str | None = None,
+        monthly_price_cents: int = 5900,
+        is_active: bool = True,
+        includes_personal_training: bool = False,
+        name: str | None = None,
     ) -> MembershipPlan:
         plan = MembershipPlan(
             name=name or f"Plan {next(_plan_counter)}",
@@ -115,12 +133,14 @@ def make_plan(db):
 def make_subscription(db):
 
     def _make_subscription(
-            user: User,
-            plan: MembershipPlan,
-            status: SubscriptionStatus = SubscriptionStatus.ACTIVE,
-            start_date: date = date(2026, 9, 1),
+        user: User,
+        plan: MembershipPlan,
+        status: SubscriptionStatus = SubscriptionStatus.ACTIVE,
+        start_date: date = date(2026, 9, 1),
     ) -> Subscription:
-        subscription = Subscription(user_id=user.id, plan=plan, status=status, start_date=start_date)
+        subscription = Subscription(
+            user_id=user.id, plan=plan, status=status, start_date=start_date
+        )
         db.add(subscription)
         db.commit()
         return subscription
