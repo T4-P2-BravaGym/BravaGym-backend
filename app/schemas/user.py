@@ -2,7 +2,7 @@
 
 Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
 """
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TrainerOut(BaseModel):
@@ -23,4 +23,14 @@ class TrainerOut(BaseModel):
     name: str
     specialty: str | None
     bio: str | None
+
     
+class TrainerProfileUpdate(BaseModel):
+    """What a trainer can change in her public profile. Fields left out are not changed."""
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"specialty": "Powerlifting", "bio": "Fuerza desde cero."}}
+    )
+
+    specialty: str | None = Field(default=None, max_length=120)
+    bio: str | None = Field(default=None, max_length=1000)
