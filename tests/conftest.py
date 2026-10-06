@@ -2,6 +2,7 @@ import os
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-production")
 
+from datetime import date
 from functools import cache
 from itertools import count
 
@@ -14,11 +15,12 @@ from sqlalchemy.pool import StaticPool
 from app.core.database import Base, enable_sqlite_foreign_keys, get_db
 from app.core.security import create_access_token, hash_password
 from app.main import app
-from app.models import Role, User
-from app.models.enums import RoleName
+from app.models import MembershipPlan, Role, Subscription, User
+from app.models.enums import RoleName, SubscriptionStatus
 
 TEST_PASSWORD = "Secret123!"
 _email_counter = count(1)
+_plan_counter = count(1)
 
 test_engine = create_engine(
     "sqlite://",
@@ -52,6 +54,10 @@ def _test_password_hash() -> str:
     return hash_password(TEST_PASSWORD)
 
 
+def auth_header_for(user: User) -> dict[str, str]:
+    return {"Authorization": f"Bearer {create_access_token(user.id, user.role.name)}"}
+
+
 @pytest.fixture
 def make_user(db):
 
@@ -78,7 +84,45 @@ def make_user(db):
 def auth_headers(make_user):
 
     def _auth_headers(role: RoleName = RoleName.MEMBER) -> dict[str, str]:
-        user = make_user(role)
-        return {"Authorization": f"Bearer {create_access_token(user.id, user.role.name)}"}
+        return auth_header_for(make_user(role))
 
     return _auth_headers
+
+
+@pytest.fixture
+def make_plan(db):
+
+    def _make_plan(
+            monthly_price_cents: int = 5900,
+            is_active: bool = True,
+            includes_personal_training: bool = False,
+            name: str | None = None,
+    ) -> MembershipPlan:
+        plan = MembershipPlan(
+            name=name or f"Plan {next(_plan_counter)}",
+            monthly_price_cents=monthly_price_cents,
+            is_active=is_active,
+            includes_personal_training=includes_personal_training,
+        )
+        db.add(plan)
+        db.commit()
+        return plan
+
+    return _make_plan
+
+
+@pytest.fixture
+def make_subscription(db):
+
+    def _make_subscription(
+            user: User,
+            plan: MembershipPlan,
+            status: SubscriptionStatus = SubscriptionStatus.ACTIVE,
+            start_date: date = date(2026, 9, 1),
+    ) -> Subscription:
+        subscription = Subscription(user_id=user.id, plan=plan, status=status, start_date=start_date)
+        db.add(subscription)
+        db.commit()
+        return subscription
+
+    return _make_subscription
