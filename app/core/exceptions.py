@@ -40,6 +40,13 @@ class ConflictError(AppError):
     code = "conflict"
 
 
+class ValidationAppError(AppError):
+    """Business/input validation that should surface as HTTP 422."""
+
+    status_code = 422
+    code = "validation_error"
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def handle_app_error(_request: Request, exc: AppError) -> JSONResponse:
