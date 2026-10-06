@@ -1,4 +1,13 @@
-"""TODO(HU-02, HU-03): UserCreate (email, password min 8), LoginResponse (access_token, token_type).
+from typing import Literal
 
-Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
-"""
+from pydantic import BaseModel, ConfigDict
+
+
+class LoginResponse(BaseModel):
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"access_token": "eyJhbGciOi...", "token_type": "bearer"}}
+    )
+
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"

@@ -1,9 +1,3 @@
-"""Domain errors and their translation to HTTP responses.
-
-Services raise these errors (they know nothing about HTTP). The handlers below turn
-them into JSON responses with the right status code. Unexpected errors return a
-generic message; the details go to the log only.
-"""
 import logging
 
 from fastapi import FastAPI, Request
@@ -13,14 +7,21 @@ logger = logging.getLogger(__name__)
 
 
 class AppError(Exception):
-    """Base class for expected errors. Message in Spanish: the user may see it."""
 
     status_code = 400
     code = "bad_request"
+    headers: dict[str, str] | None = None
 
     def __init__(self, detail: str):
         super().__init__(detail)
         self.detail = detail
+
+
+class UnauthorizedError(AppError):
+
+    status_code = 401
+    code = "unauthorized"
+    headers = {"WWW-Authenticate": "Bearer"}
 
 
 class NotFoundError(AppError):
@@ -34,20 +35,29 @@ class PermissionDeniedError(AppError):
 
 
 class ConflictError(AppError):
-    """The request clashes with the current state: capacity, duplicates, 1-hour limit, stock…"""
 
     status_code = 409
     code = "conflict"
 
 
+class ValidationAppError(AppError):
+    """Business/input validation that should surface as HTTP 422."""
+
+    status_code = 422
+    code = "validation_error"
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def handle_app_error(_request: Request, exc: AppError) -> JSONResponse:
-        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail, "code": exc.code})
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail, "code": exc.code},
+            headers=exc.headers,
+        )
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
-        # Full details only in the log, never in the response (fail closed, no stack traces).
         logger.exception("Unexpected error on %s %s", request.method, request.url.path)
         return JSONResponse(
             status_code=500,
