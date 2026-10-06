@@ -1,10 +1,50 @@
-"""Shared FastAPI dependencies: current user and role checks.
+from collections.abc import Callable
+from typing import Annotated
 
-TODO(HU-03):
-- get_current_user: read the Bearer token (OAuth2PasswordBearer with
-  tokenUrl="/api/v1/auth/login" so Swagger's Authorize button works), decode it,
-  load the user from the database and reject inactive users -> 401.
-- require_roles(*roles): returns a dependency that answers 403 when the current
-  user's role is not in `roles`. Use it in routers, never `if` checks in endpoints:
-      @router.post("", dependencies=[Depends(require_roles("trainer", "superadmin"))])
-"""
+import jwt
+from fastapi import Depends
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.core.exceptions import PermissionDeniedError, UnauthorizedError
+from app.core.security import decode_access_token
+from app.models import User
+from app.models.enums import RoleName
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
+
+INVALID_SESSION = "Sesión no válida o caducada. Vuelve a iniciar sesión."
+
+
+def get_current_user(
+        token: Annotated[str | None, Depends(oauth2_scheme)],
+        db: Annotated[Session, Depends(get_db)],
+) -> User:
+    if not token:
+        raise UnauthorizedError(INVALID_SESSION)
+    try:
+        payload = decode_access_token(token)
+        user_id = int(payload["sub"])
+    except (jwt.InvalidTokenError, ValueError):
+        raise UnauthorizedError(INVALID_SESSION) from None
+
+    user = db.get(User, user_id)
+    if user is None or not user.is_active:
+        raise UnauthorizedError(INVALID_SESSION)
+    return user
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def require_roles(*roles: RoleName) -> Callable[[User], User]:
+
+
+    def check_role(current_user: CurrentUser) -> User:
+        if current_user.role.name not in roles:
+            raise PermissionDeniedError("No tienes permiso para realizar esta acción.")
+        return current_user
+
+    return check_role
