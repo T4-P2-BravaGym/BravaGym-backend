@@ -11,7 +11,7 @@ class PlanOut(BaseModel):
 
     id: int
     name: str
-    description: str
+    description: str | None
     monthly_price_cents: int
     includes_personal_training: bool
 

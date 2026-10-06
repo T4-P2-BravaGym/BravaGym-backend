@@ -19,3 +19,16 @@ def test_plan_out_reads_plan_attributes():
     assert result.name == "Strength Plus"
     assert result.monthly_price_cents == 4990
     assert result.includes_personal_training is True
+def test_plan_out_accepts_null_description():
+    sample_plan = SimpleNamespace(
+        id=2,
+        name="Basic",
+        description=None,
+        monthly_price_cents=2990,
+        includes_personal_training=False,
+        is_active=True,
+    )
+
+    result = PlanOut.model_validate(sample_plan)
+
+    assert result.description is None
