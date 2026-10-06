@@ -32,3 +32,17 @@ def test_plan_out_accepts_null_description():
     result = PlanOut.model_validate(sample_plan)
 
     assert result.description is None
+
+def test_plan_out_formats_monthly_price_in_euros():
+    sample_plan = SimpleNamespace(
+        id=1,
+        name="Strength Plus",
+        description=None,
+        monthly_price_cents=4990,
+        includes_personal_training=True,
+        is_active=True,
+    )
+
+    result = PlanOut.model_validate(sample_plan)
+
+    assert result.model_dump()["monthly_price_formatted"] == "49,90 €"
