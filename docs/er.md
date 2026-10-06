@@ -201,5 +201,6 @@ erDiagram
 
 - Activar las claves foráneas en cada conexión (`PRAGMA foreign_keys = ON`); SQLite las ignora por defecto.
 - El dinero en **céntimos enteros** (`*_cents`): SQLite no tiene tipo decimal y los `float` dan errores de redondeo.
-- Los estados como texto con `CHECK (status IN (...))`, o `Enum` de SQLAlchemy, que genera ese `CHECK`.
+- Los estados como `Enum` de SQLAlchemy con `create_constraint=True` (desde la 1.4 no crea el `CHECK (status IN (...))` por defecto). Está centralizado en `db_enum()` de `app/models/common.py`.
+- RN-11 y RN-12 también se garantizan en la BD con índices únicos parciales: una sola suscripción `active` por usuario y una sola baja `pending` por suscripción.
 - Fechas siempre en UTC; la conversión a hora de Madrid se hace en el frontend.
