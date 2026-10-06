@@ -48,3 +48,6 @@ def require_roles(*roles: RoleName) -> Callable[[User], User]:
         return current_user
 
     return check_role
+
+
+CurrentMember = Annotated[User, Depends(require_roles(RoleName.MEMBER))]
