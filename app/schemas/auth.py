@@ -2,14 +2,16 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+NAME_PATTERN = r"^[^\W\d_]+(?:[ '\-][^\W\d_]+)*$"
+
 
 class UserCreate(BaseModel):
     """Body for POST /auth/register. No role or is_active: the server decides them."""
 
     email: EmailStr
     password: str = Field(min_length=8)
-    first_name: str = Field(min_length=1, max_length=80)
-    last_name: str = Field(min_length=1, max_length=80)
+    first_name: str = Field(min_length=1, max_length=80, pattern=NAME_PATTERN)
+    last_name: str = Field(min_length=1, max_length=80, pattern=NAME_PATTERN)
     phone: str | None = Field(default=None, max_length=20)
 
     model_config = ConfigDict(
