@@ -109,6 +109,31 @@ def test_search_treats_wildcards_as_text(client, shop):
     assert response.json()["total"] == 0
 
 
+def test_sort_by_price_ascending(client, shop):
+    response = client.get(PRODUCTS_URL, params={"sort": "price_asc"})
+
+    assert response.status_code == 200
+    assert [item["price_cents"] for item in response.json()["items"]] == [2200, 2290, 3490, 3900]
+
+
+def test_sort_by_price_descending(client, shop):
+    response = client.get(PRODUCTS_URL, params={"sort": "price_desc"})
+
+    assert response.status_code == 200
+    assert [item["price_cents"] for item in response.json()["items"]] == [3900, 3490, 2290, 2200]
+
+
+def test_sort_works_together_with_filters_and_pagination(client, shop):
+    response = client.get(
+        PRODUCTS_URL,
+        params={"sort": "price_desc", "max_price": 3500, "page": 2, "size": 2},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 3
+    assert _names(response) == ["Camiseta Brava"]
+
+
 def test_unknown_category_returns_empty_page(client, shop):
     response = client.get(PRODUCTS_URL, params={"category_id": 9999})
 
@@ -144,6 +169,7 @@ def test_min_price_greater_than_max_price_returns_422(client, shop):
         {"category_id": 0},
         {"min_price": "abc"},
         {"q": "x" * 61},
+        {"sort": "price"},
     ],
 )
 def test_invalid_query_parameters_return_422(client, params):
