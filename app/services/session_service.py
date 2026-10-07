@@ -2,6 +2,8 @@
 
 Free spots are never stored: free_spots = capacity - count(confirmed bookings).
 See docs/er.md. Business rules RN-xx: docs/business-rules.md.
+
+Personal-training slots (HU-14 / RN-08): capacity 1 and 60 minutes.
 """
 
 from __future__ import annotations
@@ -42,6 +44,14 @@ TRAINER_NOT_FOUND = "La entrenadora indicada no existe o no tiene rol de entrena
 CAPACITY_BELOW_CONFIRMED = (
     "El aforo no puede ser menor que el número de reservas confirmadas."
 )
+PT_CLASS_TYPE_NOT_FOUND = "No hay un tipo de clase de entrenamiento personal activo."
+CLASS_TYPE_NOT_PERSONAL_TRAINING = (
+    "Este tipo de clase no es de entrenamiento personal."
+)
+TRAINER_OVERLAP = "Ya tienes una sesión en ese horario."
+
+PERSONAL_TRAINING_DURATION_MINUTES = 60
+PERSONAL_TRAINING_CAPACITY = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -286,6 +296,104 @@ def _confirmed_count(db: Session, class_session_id: int) -> int:
             )
         )
         or 0
+    )
+
+
+def _resolve_personal_training_class_type(
+    db: Session, class_type_id: int | None
+) -> ClassType:
+    if class_type_id is not None:
+        class_type = db.get(ClassType, class_type_id)
+        if class_type is None or not class_type.is_active:
+            raise NotFoundError(CLASS_TYPE_NOT_FOUND)
+        if not class_type.is_personal_training:
+            raise ValidationAppError(CLASS_TYPE_NOT_PERSONAL_TRAINING)
+        return class_type
+
+    class_type = db.scalar(
+        select(ClassType)
+        .where(
+            ClassType.is_personal_training.is_(True),
+            ClassType.is_active.is_(True),
+        )
+        .order_by(ClassType.id)
+    )
+    if class_type is None:
+        raise NotFoundError(PT_CLASS_TYPE_NOT_FOUND)
+    return class_type
+
+
+def _trainer_has_overlap(
+    db: Session,
+    *,
+    trainer_id: int,
+    starts_at: datetime,
+    duration_minutes: int,
+) -> bool:
+    """RN-09: any scheduled session for the trainer that overlaps [start, end)."""
+    ends_at = starts_at + timedelta(minutes=duration_minutes)
+    existing = db.scalars(
+        select(ClassSession).where(
+            ClassSession.trainer_id == trainer_id,
+            ClassSession.status == SessionStatus.SCHEDULED,
+        )
+    ).all()
+    for session in existing:
+        other_start = _as_naive_utc(session.starts_at)
+        other_end = other_start + timedelta(minutes=session.duration_minutes)
+        if other_start < ends_at and starts_at < other_end:
+            return True
+    return False
+
+
+def create_personal_training_slot(
+    db: Session,
+    *,
+    trainer_id: int,
+    starts_at: datetime,
+    class_type_id: int | None = None,
+) -> SessionWithFreeSpots:
+    """Create a 60-minute, capacity-1 personal-training slot for a trainer (RN-08, RN-09)."""
+    class_type = _resolve_personal_training_class_type(db, class_type_id)
+    start = _as_naive_utc(starts_at)
+
+    if _trainer_has_overlap(
+        db,
+        trainer_id=trainer_id,
+        starts_at=start,
+        duration_minutes=PERSONAL_TRAINING_DURATION_MINUTES,
+    ):
+        raise ConflictError(TRAINER_OVERLAP)
+
+    session = ClassSession(
+        class_type_id=class_type.id,
+        trainer_id=trainer_id,
+        starts_at=start,
+        duration_minutes=PERSONAL_TRAINING_DURATION_MINUTES,
+        capacity=PERSONAL_TRAINING_CAPACITY,
+        status=SessionStatus.SCHEDULED,
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    # Reload with class_type for the response schema.
+    session = db.scalar(
+        select(ClassSession)
+        .options(joinedload(ClassSession.class_type))
+        .where(ClassSession.id == session.id)
+    )
+    assert session is not None
+
+    logger.info(
+        "Trainer %s created personal-training session %s at %s",
+        trainer_id,
+        session.id,
+        start.isoformat(),
+    )
+    return SessionWithFreeSpots(
+        session=session,
+        confirmed_count=0,
+        free_spots=PERSONAL_TRAINING_CAPACITY,
     )
 
 

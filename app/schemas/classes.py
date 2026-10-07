@@ -1,4 +1,4 @@
-"""Class type and session schemas (HU-10 schedule, HU-11 trainer management)."""
+"""Class type and session schemas (HU-10 schedule, HU-11 trainer management, HU-14 PT)."""
 
 from datetime import datetime
 
@@ -85,6 +85,29 @@ class SessionOut(BaseModel):
 
 class SessionPage(Page[SessionOut]):
     model_config = ConfigDict(json_schema_extra={"example": SESSION_PAGE_EXAMPLE})
+
+
+class PersonalTrainingSlotCreate(BaseModel):
+    """Body for a trainer to open a one-hour personal-training slot (RN-08)."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "starts_at": "2026-10-08T10:00:00Z",
+                "class_type_id": 4,
+            }
+        }
+    )
+
+    starts_at: datetime
+    class_type_id: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Optional personal-training class type. "
+            "When omitted, the first active PT class type is used."
+        ),
+    )
 
 
 class SessionCreate(BaseModel):
