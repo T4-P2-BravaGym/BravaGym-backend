@@ -1,4 +1,4 @@
-"""TODO(HU-02, HU-04, HU-05, HU-15): UserOut (never password_hash), UserUpdate (no role, no is_active), RoleUpdate, TrainerOut.
+"""TODO(HU-04, HU-05, HU-15): UserUpdate (no role, no is_active), RoleUpdate, TrainerOut.
 
 Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
 """
@@ -34,3 +34,20 @@ class TrainerProfileUpdate(BaseModel):
 
     specialty: str | None = Field(default=None, max_length=120)
     bio: str | None = Field(default=None, max_length=1000)
+from pydantic import AliasPath, BaseModel, ConfigDict, Field
+
+from app.models.enums import RoleName
+
+
+class UserOut(BaseModel):
+    """Public view of a user. Never includes password_hash."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    first_name: str
+    last_name: str
+    phone: str | None
+    is_active: bool
+    role: RoleName = Field(validation_alias=AliasPath("role", "name"))
