@@ -62,3 +62,15 @@ def test_plan_out_rejects_negative_price():
 
     with pytest.raises(ValidationError):
         PlanOut.model_validate(sample_plan)
+def test_plan_out_rejects_name_longer_than_80_characters():
+    sample_plan = SimpleNamespace(
+        id=1,
+        name="A" * 81,
+        description=None,
+        monthly_price_cents=2990,
+        includes_personal_training=False,
+        is_active=True,
+    )
+
+    with pytest.raises(ValidationError):
+        PlanOut.model_validate(sample_plan)

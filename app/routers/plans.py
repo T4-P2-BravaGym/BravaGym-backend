@@ -18,6 +18,24 @@ router = APIRouter(prefix="/plans", tags=["plans"])
     "",
     response_model=list[PlanOut],
     summary="List active membership plans ordered by price",
+    responses={
+        200: {
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": 1,
+                            "name": "Premium",
+                            "description": "Incluye entrenamiento personal",
+                            "monthly_price_cents": 5990,
+                            "includes_personal_training": True,
+                            "monthly_price_formatted": "59,90 €",
+                        }
+                    ]
+                }
+            }
+        }
+    },
 )
 def get_plans(db: Session = Depends(get_db)):
     return list_active_plans(db)

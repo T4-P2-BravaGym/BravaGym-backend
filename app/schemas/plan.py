@@ -3,14 +3,13 @@
 Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
 """
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-from pydantic import BaseModel, ConfigDict, computed_field
+
 
 
 class PlanOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     id: int
-    name: str
+    name: str = Field(max_length=80)
     description: str | None
     monthly_price_cents: int = Field(ge=0)
     includes_personal_training: bool
