@@ -303,3 +303,165 @@ def test_my_bookings_without_token_returns_401(client):
 def test_only_members_list_my_bookings(client, auth_headers, role):
     response = client.get(MY_BOOKINGS_URL, headers=auth_headers(role))
     assert response.status_code == 403
+
+
+# --- HU-13: POST /bookings/{id}/cancel --------------------------------------
+
+CANCEL_URL = "/api/v1/bookings/{booking_id}/cancel"
+
+
+@freeze_time("2026-10-07 12:00:00")
+def test_cancel_confirmed_at_60_minutes_returns_cancelled(
+    client, db, make_user, make_plan, make_subscription
+):
+    member = make_user()
+    make_subscription(member, make_plan())
+    session = _seed_session(
+        db,
+        make_user,
+        starts_at=datetime(2026, 10, 7, 13, 0, tzinfo=timezone.utc),
+        name="Cancel API 60",
+    )
+    booked = client.post(
+        BOOK_URL.format(session_id=session.id),
+        headers=auth_header_for(member),
+    )
+    assert booked.status_code == 201
+    booking_id = booked.json()["id"]
+
+    response = client.post(
+        CANCEL_URL.format(booking_id=booking_id),
+        headers=auth_header_for(member),
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "cancelled"
+    assert body["cancelled_at"] is not None
+    assert body["waitlist_position"] is None
+
+
+@freeze_time("2026-10-07 12:00:00")
+def test_cancel_confirmed_at_59_minutes_returns_409(
+    client, db, make_user, make_plan, make_subscription
+):
+    member = make_user()
+    make_subscription(member, make_plan())
+    session = _seed_session(
+        db,
+        make_user,
+        starts_at=datetime(2026, 10, 7, 12, 59, tzinfo=timezone.utc),
+        name="Cancel API 59",
+    )
+    booked = client.post(
+        BOOK_URL.format(session_id=session.id),
+        headers=auth_header_for(member),
+    )
+    booking_id = booked.json()["id"]
+
+    response = client.post(
+        CANCEL_URL.format(booking_id=booking_id),
+        headers=auth_header_for(member),
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "detail": (
+            "Solo puedes cancelar una reserva confirmada hasta 60 minutos "
+            "antes del inicio."
+        ),
+        "code": "conflict",
+    }
+    assert (
+        db.scalar(select(Booking).where(Booking.id == booking_id)).status.value
+        == "confirmed"
+    )
+
+
+@freeze_time("2026-10-07 12:00:00")
+def test_cancel_promotes_waitlist_via_api(
+    client, db, make_user, make_plan, make_subscription
+):
+    session = _seed_session(
+        db,
+        make_user,
+        capacity=1,
+        starts_at=datetime(2026, 10, 7, 15, 0, tzinfo=timezone.utc),
+        name="Promoción API",
+    )
+    plan = make_plan()
+    first = make_user()
+    second = make_user()
+    make_subscription(first, plan)
+    make_subscription(second, plan)
+
+    first_book = client.post(
+        BOOK_URL.format(session_id=session.id),
+        headers=auth_header_for(first),
+    )
+    second_book = client.post(
+        BOOK_URL.format(session_id=session.id),
+        headers=auth_header_for(second),
+    )
+    assert first_book.json()["status"] == "confirmed"
+    assert second_book.json()["status"] == "waitlisted"
+
+    response = client.post(
+        CANCEL_URL.format(booking_id=first_book.json()["id"]),
+        headers=auth_header_for(first),
+    )
+    assert response.status_code == 200
+
+    promoted = db.scalar(select(Booking).where(Booking.id == second_book.json()["id"]))
+    assert promoted.status.value == "confirmed"
+
+
+def test_cancel_other_members_booking_returns_404(
+    client, db, make_user, make_plan, make_subscription
+):
+    owner = make_user()
+    other = make_user()
+    make_subscription(owner, make_plan())
+    make_subscription(other, make_plan(name="Plan other"))
+    session = _seed_session(db, make_user, name="IDOR cancel")
+    booked = client.post(
+        BOOK_URL.format(session_id=session.id),
+        headers=auth_header_for(owner),
+    )
+
+    response = client.post(
+        CANCEL_URL.format(booking_id=booked.json()["id"]),
+        headers=auth_header_for(other),
+    )
+
+    assert response.status_code == 404
+
+
+def test_cancel_without_token_returns_401(client, db, make_user, make_plan, make_subscription):
+    member = make_user()
+    make_subscription(member, make_plan())
+    session = _seed_session(db, make_user, name="Cancel sin token")
+    booked = client.post(
+        BOOK_URL.format(session_id=session.id),
+        headers=auth_header_for(member),
+    )
+
+    response = client.post(CANCEL_URL.format(booking_id=booked.json()["id"]))
+    assert response.status_code == 401
+
+
+@pytest.mark.parametrize("role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN])
+def test_only_members_can_cancel(client, db, auth_headers, make_user, make_plan, make_subscription, role):
+    member = make_user()
+    make_subscription(member, make_plan())
+    session = _seed_session(db, make_user, name=f"Cancel rol {role}")
+    booked = client.post(
+        BOOK_URL.format(session_id=session.id),
+        headers=auth_header_for(member),
+    )
+
+    response = client.post(
+        CANCEL_URL.format(booking_id=booked.json()["id"]),
+        headers=auth_headers(role),
+    )
+    assert response.status_code == 403

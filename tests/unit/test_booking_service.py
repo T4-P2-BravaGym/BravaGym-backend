@@ -291,3 +291,202 @@ def test_list_my_bookings_only_returns_own(
 
     assert total == 1
     assert items[0].booking.user_id == mine.id
+
+
+# --- HU-13 / RN-05 / RN-06 -------------------------------------------------
+
+
+def _book_confirmed(db, make_user, make_plan, make_subscription, **session_kwargs):
+    member = make_user()
+    make_subscription(member, make_plan())
+    session = _make_session(db, make_user, **session_kwargs)
+    result = booking_service.book_session(
+        db, user_id=member.id, class_session_id=session.id
+    )
+    assert result.booking.status == BookingStatus.CONFIRMED
+    return member, session, result.booking
+
+
+@freeze_time("2026-10-07 12:00:00")
+def test_rn05_cancel_confirmed_at_59_minutes_raises_409(
+    db, make_user, make_plan, make_subscription
+):
+    member, session, booking = _book_confirmed(
+        db,
+        make_user,
+        make_plan,
+        make_subscription,
+        starts_at=datetime(2026, 10, 7, 12, 59, tzinfo=timezone.utc),
+        name="Cancel 59",
+    )
+
+    with pytest.raises(ConflictError, match=booking_service.CANCEL_TOO_LATE):
+        booking_service.cancel_booking(db, user_id=member.id, booking_id=booking.id)
+
+    db.refresh(booking)
+    assert booking.status == BookingStatus.CONFIRMED
+    assert booking.cancelled_at is None
+
+
+@freeze_time("2026-10-07 12:00:00")
+def test_rn05_cancel_confirmed_at_60_minutes_succeeds(
+    db, make_user, make_plan, make_subscription
+):
+    member, session, booking = _book_confirmed(
+        db,
+        make_user,
+        make_plan,
+        make_subscription,
+        starts_at=datetime(2026, 10, 7, 13, 0, tzinfo=timezone.utc),
+        name="Cancel 60",
+    )
+
+    result = booking_service.cancel_booking(
+        db, user_id=member.id, booking_id=booking.id
+    )
+
+    assert result.booking.status == BookingStatus.CANCELLED
+    assert result.booking.cancelled_at is not None
+    assert result.waitlist_position is None
+
+
+@freeze_time("2026-10-07 12:00:00")
+def test_rn05_cancel_confirmed_at_61_minutes_succeeds(
+    db, make_user, make_plan, make_subscription
+):
+    member, _session, booking = _book_confirmed(
+        db,
+        make_user,
+        make_plan,
+        make_subscription,
+        starts_at=datetime(2026, 10, 7, 13, 1, tzinfo=timezone.utc),
+        name="Cancel 61",
+    )
+
+    result = booking_service.cancel_booking(
+        db, user_id=member.id, booking_id=booking.id
+    )
+
+    assert result.booking.status == BookingStatus.CANCELLED
+
+
+@freeze_time("2026-10-07 12:30:00")
+def test_rn05_leave_waitlist_always_allowed_under_one_hour(
+    db, make_user, make_plan, make_subscription
+):
+    session = _make_session(
+        db,
+        make_user,
+        capacity=1,
+        starts_at=datetime(2026, 10, 7, 13, 0, tzinfo=timezone.utc),
+        name="Salir espera",
+    )
+    plan = make_plan()
+
+    first = make_user()
+    make_subscription(first, plan)
+    booking_service.book_session(db, user_id=first.id, class_session_id=session.id)
+
+    waitlisted_member = make_user()
+    make_subscription(waitlisted_member, plan)
+    waitlisted = booking_service.book_session(
+        db, user_id=waitlisted_member.id, class_session_id=session.id
+    )
+    assert waitlisted.booking.status == BookingStatus.WAITLISTED
+
+    result = booking_service.cancel_booking(
+        db, user_id=waitlisted_member.id, booking_id=waitlisted.booking.id
+    )
+
+    assert result.booking.status == BookingStatus.CANCELLED
+    first_booking = db.scalar(
+        select(Booking).where(
+            Booking.user_id == first.id, Booking.class_session_id == session.id
+        )
+    )
+    assert first_booking.status == BookingStatus.CONFIRMED
+
+
+@freeze_time("2026-10-07 12:00:00")
+def test_rn06_cancel_confirmed_promotes_oldest_waitlisted(
+    db, make_user, make_plan, make_subscription
+):
+    session = _make_session(
+        db,
+        make_user,
+        capacity=1,
+        starts_at=datetime(2026, 10, 7, 14, 0, tzinfo=timezone.utc),
+        name="Promoción",
+        extra_price_cents=900,
+    )
+    plan = make_plan()
+
+    confirmed_member = make_user()
+    make_subscription(confirmed_member, plan)
+    confirmed = booking_service.book_session(
+        db, user_id=confirmed_member.id, class_session_id=session.id
+    )
+
+    first_wait = make_user()
+    make_subscription(first_wait, plan)
+    first_wait_result = booking_service.book_session(
+        db, user_id=first_wait.id, class_session_id=session.id
+    )
+    assert first_wait_result.booking.status == BookingStatus.WAITLISTED
+
+    second_wait = make_user()
+    make_subscription(second_wait, plan)
+    second_wait_result = booking_service.book_session(
+        db, user_id=second_wait.id, class_session_id=session.id
+    )
+    assert second_wait_result.waitlist_position == 2
+
+    result = booking_service.cancel_booking(
+        db, user_id=confirmed_member.id, booking_id=confirmed.booking.id
+    )
+
+    assert result.booking.status == BookingStatus.CANCELLED
+    db.refresh(first_wait_result.booking)
+    db.refresh(second_wait_result.booking)
+    assert first_wait_result.booking.status == BookingStatus.CONFIRMED
+    assert second_wait_result.booking.status == BookingStatus.WAITLISTED
+
+    payment = db.scalar(
+        select(Payment).where(Payment.booking_id == first_wait_result.booking.id)
+    )
+    assert payment is not None
+    assert payment.status == PaymentStatus.PENDING
+    assert payment.base_amount_cents == 900
+
+
+def test_cancel_other_members_booking_raises_404(
+    db, make_user, make_plan, make_subscription
+):
+    owner, _session, booking = _book_confirmed(
+        db, make_user, make_plan, make_subscription, name="Ajena"
+    )
+    other = make_user()
+    make_subscription(other, make_plan(name="Otro plan"))
+
+    with pytest.raises(NotFoundError, match=booking_service.BOOKING_NOT_FOUND):
+        booking_service.cancel_booking(db, user_id=other.id, booking_id=booking.id)
+
+    db.refresh(booking)
+    assert booking.status == BookingStatus.CONFIRMED
+
+
+def test_cancel_already_cancelled_raises_409(
+    db, make_user, make_plan, make_subscription
+):
+    member, _session, booking = _book_confirmed(
+        db,
+        make_user,
+        make_plan,
+        make_subscription,
+        starts_at=datetime.now(timezone.utc) + timedelta(days=2),
+        name="Ya cancelada",
+    )
+    booking_service.cancel_booking(db, user_id=member.id, booking_id=booking.id)
+
+    with pytest.raises(ConflictError, match=booking_service.BOOKING_ALREADY_CANCELLED):
+        booking_service.cancel_booking(db, user_id=member.id, booking_id=booking.id)
