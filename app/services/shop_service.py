@@ -1,3 +1,5 @@
+from enum import StrEnum
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
@@ -5,6 +7,20 @@ from app.core.exceptions import ValidationAppError
 from app.models import Product, ProductCategory
 
 INVALID_PRICE_RANGE = "El precio mínimo no puede ser mayor que el precio máximo."
+
+
+class ProductSort(StrEnum):
+
+    NAME = "name"
+    PRICE_ASC = "price_asc"
+    PRICE_DESC = "price_desc"
+
+
+_ORDER_BY = {
+    ProductSort.NAME: (Product.name, Product.id),
+    ProductSort.PRICE_ASC: (Product.price_cents, Product.name, Product.id),
+    ProductSort.PRICE_DESC: (Product.price_cents.desc(), Product.name, Product.id),
+}
 
 
 def list_categories(db: Session) -> list[ProductCategory]:
@@ -19,6 +35,7 @@ def list_products(
         min_price: int | None = None,
         max_price: int | None = None,
         q: str | None = None,
+        sort: ProductSort = ProductSort.NAME,
         page: int = 1,
         size: int = 20,
 ) -> tuple[list[Product], int]:
@@ -43,7 +60,7 @@ def list_products(
         select(Product)
         .options(joinedload(Product.category))
         .where(*conditions)
-        .order_by(Product.name, Product.id)
+        .order_by(*_ORDER_BY[sort])
         .offset((page - 1) * size)
         .limit(size)
     )

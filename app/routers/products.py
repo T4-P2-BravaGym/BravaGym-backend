@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.shop import CategoryOut, ProductOut, ProductPage
 from app.services import shop_service
+from app.services.shop_service import ProductSort
 
 router = APIRouter(prefix="/products", tags=["shop"])
 categories_router = APIRouter(prefix="/product-categories", tags=["shop"])
@@ -20,9 +21,9 @@ MAX_PRICE_CENTS = 1_000_000
     response_model=ProductPage,
     summary="List shop products",
     description=(
-            "Public list of active products, ordered by name. Filters: category, "
-            "price range in cents (both limits inclusive) and a search in the name. "
-            "Sold-out products are included with in_stock=false."
+            "Public list of active products. Filters: category, price range in cents "
+            "(both limits inclusive) and a search in the name. Sort by name (default) "
+            "or price. Sold-out products are included with in_stock=false."
     ),
     responses={
         422: {"description": "min_price greater than max_price, or invalid query parameters"},
@@ -43,6 +44,7 @@ def list_products(
             str | None,
             Query(max_length=60, description="Case-insensitive search in the product name"),
         ] = None,
+        sort: Annotated[ProductSort, Query(description="Order of the results")] = ProductSort.NAME,
         page: Annotated[int, Query(ge=1)] = 1,
         size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> ProductPage:
@@ -52,6 +54,7 @@ def list_products(
         min_price=min_price,
         max_price=max_price,
         q=q,
+        sort=sort,
         page=page,
         size=size,
     )
