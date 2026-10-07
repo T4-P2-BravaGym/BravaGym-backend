@@ -1,6 +1,6 @@
 """Controller for sessions: receives the request, checks permissions, calls the service, returns a schema.
 
-TODO(HU-11, HU-12): POST/PATCH /sessions, POST /sessions/{id}/cancel, GET/POST /sessions/{id}/bookings
+TODO(HU-11): POST/PATCH /sessions, POST /sessions/{id}/cancel, GET /sessions/{id}/bookings
 Keep endpoints thin: no business rules and no complex queries here.
 Every endpoint: response_model, summary, and require_roles(...) when it is not public.
 """
@@ -8,12 +8,14 @@ Every endpoint: response_model, summary, and require_roles(...) when it is not p
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.deps import CurrentMember
+from app.schemas.booking import BookingOut
 from app.schemas.classes import SessionClassTypeOut, SessionOut, SessionPage
-from app.services import session_service
+from app.services import booking_service, session_service
 from app.services.session_service import SessionWithFreeSpots
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -33,6 +35,8 @@ def _to_session_out(row: SessionWithFreeSpots) -> SessionOut:
         free_spots=row.free_spots,
         class_type=SessionClassTypeOut.model_validate(session.class_type),
     )
+
+
 
 
 @router.get(
@@ -83,3 +87,39 @@ def list_sessions(
         page=page,
         size=size,
     )
+
+
+@router.post(
+    "/{session_id}/bookings",
+    response_model=BookingOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Book a class session",
+    description=(
+        "Reserves a spot for the authenticated member (RN-01–04, RN-07). "
+        "Confirmed when there is capacity; otherwise waitlisted with a computed position. "
+        "Classes with an extra price create a pending payment on confirm."
+    ),
+    responses={
+        401: {"description": "Missing, invalid or expired token"},
+        403: {
+            "description": "Only members can book, or the member has no active subscription (RN-01)"
+        },
+        404: {"description": "The session does not exist"},
+        409: {
+            "description": (
+                "Duplicate booking (RN-03), or the session is past / cancelled (RN-04)"
+            )
+        },
+    },
+)
+def book_session(
+    session_id: int,
+    member: CurrentMember,
+    db: DbSession,
+) -> BookingOut:
+    row = booking_service.book_session(
+        db, user_id=member.id, class_session_id=session_id
+    )
+    return BookingOut.from_booking(row.booking, row.waitlist_position)
+
+
