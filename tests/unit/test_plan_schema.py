@@ -1,3 +1,5 @@
+import pytest
+from pydantic import ValidationError
 from types import SimpleNamespace
 
 from app.schemas.plan import PlanOut
@@ -46,3 +48,17 @@ def test_plan_out_formats_monthly_price_in_euros():
     result = PlanOut.model_validate(sample_plan)
 
     assert result.model_dump()["monthly_price_formatted"] == "49,90 €"
+
+
+def test_plan_out_rejects_negative_price():
+    sample_plan = SimpleNamespace(
+        id=1,
+        name="Basic",
+        description=None,
+        monthly_price_cents=-100,
+        includes_personal_training=False,
+        is_active=True,
+    )
+
+    with pytest.raises(ValidationError):
+        PlanOut.model_validate(sample_plan)
