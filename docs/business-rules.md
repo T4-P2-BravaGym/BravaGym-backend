@@ -12,8 +12,8 @@ Cada regla tiene un código (RN-xx) para enlazarla desde las historias y nombrar
 - **RN-06** Al cancelarse una reserva `confirmed`, la reserva en espera más antigua (`created_at`) pasa a `confirmed` en la misma transacción, y se emite un evento por websocket.
 - **RN-07** Si la clase tiene `extra_price_cents > 0`, al confirmarse la reserva se crea un pago `pending` asociado (también cuando sube desde la lista de espera).
 - **RN-08** Entrenamiento personal: sesión de un tipo con `is_personal_training = true`, `capacity = 1` y 60 minutos. Solo la reservan socias cuyo plan tiene `includes_personal_training` → si no, 403.
-- **RN-09** Un entrenador no puede tener dos sesiones solapadas → 409.
-- **RN-10** Solo el entrenador de la sesión o el superadmin la editan o cancelan. Cancelar una sesión cancela sus reservas y deja los pagos de clases extra como `refunded`.
+- **RN-09** Un entrenador no puede tener dos sesiones **programadas** solapadas (intervalos `[starts_at, starts_at + duration)`). Si se solapan → 409. Las sesiones `cancelled` no cuentan.
+- **RN-10** Solo el entrenador de la sesión o el superadmin la editan o cancelan → si no, 403. Cancelar una sesión la deja `cancelled`, pasa sus reservas `confirmed`/`waitlisted` a `cancelled` y deja los pagos de clases extra (`pending` o `paid`) como `refunded`.
 
 ### Suscripciones y bajas
 

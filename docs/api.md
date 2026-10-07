@@ -42,12 +42,12 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | POST / PATCH / DELETE | `/plans`, `/plans/{id}` | Admin, superadmin | DELETE = desactivar |
 | POST | `/subscriptions` | Member | RN-11; crea el pago `pending` de la cuota |
 | GET | `/subscriptions/me` | Member | Suscripción actual e historial |
-| GET | `/class-types` | Público | Incluye `extra_price_cents` |
-| POST / PATCH / DELETE | `/class-types`, `/class-types/{id}` | Trainer, superadmin | DELETE = desactivar |
+| GET | `/class-types` | Público | Página `{items,total,page,size}`; por defecto solo activos; incluye `extra_price_cents` |
+| POST / PATCH / DELETE | `/class-types`, `/class-types/{id}` | Trainer, superadmin | DELETE = desactivar (`is_active=false`) |
 | GET | `/sessions` | Público | Filtros `from`, `to`, `class_type_id`, `trainer_id`, `only_available`; incluye plazas libres |
-| POST / PATCH | `/sessions`, `/sessions/{id}` | Trainer, superadmin | RN-09, RN-10 |
-| POST | `/sessions/{id}/cancel` | Trainer (propia), superadmin | RN-10 |
-| GET | `/sessions/{id}/bookings` | Trainer (propia), admin, superadmin | Confirmadas y lista de espera |
+| POST / PATCH | `/sessions`, `/sessions/{id}` | Trainer, superadmin | RN-09, RN-10; el trainer es dueña; superadmin pasa `trainer_id` al crear |
+| POST | `/sessions/{id}/cancel` | Trainer (propia), superadmin | RN-10; cancela reservas y marca pagos de clase extra como `refunded` |
+| GET | `/sessions/{id}/bookings` | Trainer (propia), admin, superadmin | Confirmadas y lista de espera (con datos de la socia) |
 | POST | `/sessions/{id}/bookings` | Member | RN-01 a RN-04, RN-07, RN-08 |
 | GET | `/bookings/me` | Member | Filtro `status`, próximas o pasadas |
 | POST | `/bookings/{id}/cancel` | Member (propia) | RN-05, RN-06 |
