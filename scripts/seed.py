@@ -224,6 +224,7 @@ def seed(db: Session) -> None:
                 category=accessories, name="Cinturón de levantamiento", price_cents=4500, stock=10
             ),
             Product(category=accessories, name="Magnesio en bloque", price_cents=690, stock=40),
+            Product(category=accessories, name="Straps de agarre", price_cents=1490, stock=0),
         ]
     )
 
