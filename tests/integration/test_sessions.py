@@ -178,3 +178,84 @@ def test_get_sessions_still_works_with_auth_header(client, db, make_user):
 
     assert response.status_code == 200
     assert response.json()["total"] >= 1
+
+
+# --- HU-14: personal training slots -----------------------------------------
+
+PT_SLOT_URL = "/api/v1/sessions/personal-training"
+BOOK_URL = "/api/v1/sessions/{session_id}/bookings"
+
+
+def test_trainer_creates_personal_training_slot(client, db, make_user):
+    trainer = make_user(RoleName.TRAINER)
+    pt_type = ClassType(
+        name="Entrenamiento personal API",
+        description="Individual.",
+        is_personal_training=True,
+    )
+    db.add(pt_type)
+    db.commit()
+
+    response = client.post(
+        PT_SLOT_URL,
+        headers=auth_header_for(trainer),
+        json={"starts_at": "2026-10-12T10:00:00Z"},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["capacity"] == 1
+    assert body["duration_minutes"] == 60
+    assert body["free_spots"] == 1
+    assert body["trainer_id"] == trainer.id
+    assert body["class_type"]["is_personal_training"] is True
+
+
+def test_member_cannot_create_pt_slot(client, db, make_user):
+    member = make_user()
+    db.add(
+        ClassType(
+            name="PT member block",
+            is_personal_training=True,
+        )
+    )
+    db.commit()
+
+    response = client.post(
+        PT_SLOT_URL,
+        headers=auth_header_for(member),
+        json={"starts_at": "2026-10-12T11:00:00Z"},
+    )
+    assert response.status_code == 403
+
+
+def test_rn08_book_pt_without_plan_returns_403_api(
+    client, db, make_user, make_plan, make_subscription
+):
+    trainer = make_user(RoleName.TRAINER)
+    pt_type = ClassType(name="PT sin plan", is_personal_training=True)
+    db.add(pt_type)
+    db.flush()
+    session = ClassSession(
+        class_type=pt_type,
+        trainer=trainer,
+        starts_at=datetime(2026, 10, 12, 15, 0, tzinfo=timezone.utc),
+        duration_minutes=60,
+        capacity=1,
+    )
+    db.add(session)
+    db.commit()
+
+    member = make_user()
+    make_subscription(member, make_plan(includes_personal_training=False))
+
+    response = client.post(
+        BOOK_URL.format(session_id=session.id),
+        headers=auth_header_for(member),
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "detail": "Tu plan no incluye entrenamiento personal.",
+        "code": "forbidden",
+    }
