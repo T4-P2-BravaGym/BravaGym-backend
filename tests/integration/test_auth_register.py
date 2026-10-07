@@ -76,3 +76,15 @@ def test_register_invalid_email_returns_422(client, roles):
     response = client.post(URL, json=valid_payload(email="no-es-un-email"))
 
     assert response.status_code == 422
+
+def test_register_name_with_digits_returns_422(client):
+    body = {
+        "email": "nueva@example.com",
+        "password": "BravaDemo2026!",
+        "first_name": "Ana3",
+        "last_name": "Torres",
+    }
+
+    response = client.post("/api/v1/auth/register", json=body)
+
+    assert response.status_code == 422
