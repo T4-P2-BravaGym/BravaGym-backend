@@ -1,6 +1,8 @@
+
+from types import SimpleNamespace
+
 import pytest
 from pydantic import ValidationError
-from types import SimpleNamespace
 
 from app.schemas.plan import PlanOut
 

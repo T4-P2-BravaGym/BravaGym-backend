@@ -1,7 +1,9 @@
-"""Membership plans; delete = deactivate.
+"""Membership plan queries.
 
-TODO(HU-07, HU-08). Business rules RN-xx: docs/business-rules.md.
+TODO(HU-08): create, update and deactivate plans.
 """
+
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 

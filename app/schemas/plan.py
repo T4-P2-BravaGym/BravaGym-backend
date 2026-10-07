@@ -1,10 +1,11 @@
-"""TODO(HU-07, HU-08): PlanOut, PlanCreate, PlanUpdate. (SubscriptionOut lives in subscription.py.)
+"""Plan response schema.
 
-Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
+TODO(HU-08): PlanCreate, PlanUpdate.
+SubscriptionOut lives in subscription.py.
 """
+
+
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-
-
 
 class PlanOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
