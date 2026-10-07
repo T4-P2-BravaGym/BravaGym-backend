@@ -1,6 +1,5 @@
 """Controller for bookings: receives the request, checks permissions, calls the service, returns a schema.
 
-TODO(HU-13): POST /bookings/{id}/cancel
 Keep endpoints thin: no business rules and no complex queries here.
 Every endpoint: response_model, summary, and require_roles(...) when it is not public.
 """
@@ -72,3 +71,34 @@ def list_my_bookings(
         page=page,
         size=size,
     )
+
+
+@router.post(
+    "/{booking_id}/cancel",
+    response_model=BookingOut,
+    summary="Cancel my booking",
+    description=(
+        "Cancels the authenticated member's booking (RN-05, RN-06). "
+        "Confirmed bookings need at least 60 minutes before starts_at; "
+        "leaving the waitlist is always allowed. Cancelling a confirmed spot "
+        "promotes the oldest waitlisted booking in the same transaction."
+    ),
+    responses={
+        **AUTH_RESPONSES,
+        404: {"description": "The booking does not exist or is not yours"},
+        409: {
+            "description": (
+                "Already cancelled, or confirmed cancel within 60 minutes of start (RN-05)"
+            )
+        },
+    },
+)
+def cancel_booking(
+    booking_id: int,
+    member: CurrentMember,
+    db: DbSession,
+) -> BookingOut:
+    row = booking_service.cancel_booking(
+        db, user_id=member.id, booking_id=booking_id
+    )
+    return BookingOut.from_booking(row.booking, row.waitlist_position)
