@@ -2,7 +2,9 @@
 
 Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
 """
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasPath, BaseModel, ConfigDict, EmailStr, Field
+
+from app.models.enums import RoleName
 
 
 class TrainerOut(BaseModel):
@@ -34,9 +36,6 @@ class TrainerProfileUpdate(BaseModel):
 
     specialty: str | None = Field(default=None, max_length=120)
     bio: str | None = Field(default=None, max_length=1000)
-from pydantic import AliasPath, BaseModel, ConfigDict, Field
-
-from app.models.enums import RoleName
 
 
 class UserOut(BaseModel):
@@ -51,3 +50,19 @@ class UserOut(BaseModel):
     phone: str | None
     is_active: bool
     role: RoleName = Field(validation_alias=AliasPath("role", "name"))
+
+
+class UserUpdate(BaseModel):
+    """What a user can change in her own profile. Never role or is_active."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"first_name": "Lucía", "last_name": "García", "phone": "600123456", "email": "lucia@example.com"}
+        }
+    )
+
+    # Names can be left out, but never sent as null: the database requires them
+    first_name: str = Field(default=None, min_length=1, max_length=80)
+    last_name: str = Field(default=None, min_length=1, max_length=80)
+    phone: str | None = Field(default=None, max_length=20)
+    email: EmailStr = Field(default=None, max_length=255)
