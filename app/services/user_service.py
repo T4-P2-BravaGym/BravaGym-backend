@@ -1,14 +1,17 @@
 """Profile, user list with filters and role changes (RN-18, RN-19).
 
-TODO(HU-04, HU-05, HU-06). Business rules RN-xx: docs/business-rules.md.
+TODO(HU-05). role changes. Business rules RN-xx: docs/business-rules.md.
 """
+
 import logging
 
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ConflictError
-from app.models import User
+from app.models import Role, User
+from app.models.enums import RoleName
 from app.schemas.user import UserUpdate
 from app.services.auth_service import get_user_by_email, normalize_email
 
@@ -36,3 +39,43 @@ def update_me(db: Session, user: User, changes: UserUpdate) -> User:
 
     logger.info("User %s updated her profile", user.id)
     return user
+
+
+def list_users(
+    db: Session,
+    *,
+    role: RoleName | None = None,
+    is_active: bool | None = None,
+    q: str | None = None,
+    page: int = 1,
+    size: int = 20,
+) -> tuple[list[User], int]:
+    """Users for administration, filtered and paginated. Returns (users of this page, total)."""
+    conditions = []
+    if role is not None:
+# The role name lives in the roles table, so filter through the relationship
+        conditions.append(User.role.has(Role.name == role))
+    if is_active is not None:
+        conditions.append(User.is_active == is_active)
+
+    search = q.strip() if q else ""
+    if search:
+        conditions.append(
+            or_(
+                User.first_name.icontains(search, autoescape=True),
+                User.last_name.icontains(search, autoescape=True),
+                User.email.icontains(search, autoescape=True),
+            )
+        )
+
+    total = db.scalar(select(func.count(User.id)).where(*conditions)) or 0
+
+    stmt = (
+        select(User)
+        .where(*conditions)
+# id breaks ties so pagination is stable
+        .order_by(User.last_name, User.first_name, User.id)
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+    return list(db.scalars(stmt).all()), int(total)
