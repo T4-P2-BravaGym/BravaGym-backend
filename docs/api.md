@@ -61,7 +61,7 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | GET | `/cancellation-requests/me` | Member | Estado de su solicitud |
 | GET | `/cancellation-requests` | Admin, superadmin | Filtro `status` |
 | POST | `/cancellation-requests/{id}/approve`, `/reject` | Admin, superadmin | RN-13 |
-| GET | `/products`, `/product-categories` | Público | Filtros `category_id`, `min_price`, `max_price`, `q` |
+| GET | `/products`, `/product-categories` | Público | Filtros `category_id`, `min_price`, `max_price` (en céntimos, límites incluidos) y `q`; orden `sort`: `name` (por defecto), `price_asc` o `price_desc` |
 | POST / PATCH / DELETE | `/products[/{id}]`, `/product-categories[/{id}]` | Admin, superadmin | DELETE de producto = desactivar |
 | POST | `/orders` | Member | RN-17; crea el pago `pending` |
 | GET | `/orders/me` | Member | Con sus líneas |
