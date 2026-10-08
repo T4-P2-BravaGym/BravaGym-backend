@@ -62,7 +62,8 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | GET | `/cancellation-requests` | Admin, superadmin | Filtro `status` |
 | POST | `/cancellation-requests/{id}/approve`, `/reject` | Admin, superadmin | RN-13 |
 | GET | `/products`, `/product-categories` | Público | Filtros `category_id`, `min_price`, `max_price` (en céntimos, límites incluidos) y `q`; orden `sort`: `name` (por defecto), `price_asc` o `price_desc` |
-| POST / PATCH / DELETE | `/products[/{id}]`, `/product-categories[/{id}]` | Admin, superadmin | DELETE de producto = desactivar |
+| GET | `/products/admin` | Admin, superadmin | Listado del panel: incluye inactivos (siempre al final) y `is_active`; filtros `category_id`, `q`, `status` (`active`, `inactive`, `out_of_stock`) y `sort`|
+| POST / PATCH / DELETE | `/products[/{id}]`, `/product-categories[/{id}]` | Admin, superadmin | DELETE de producto = desactivar siempre (PATCH `is_active=true` lo reactiva); DELETE de categoría con productos → 409 |
 | POST | `/orders` | Member | RN-17; crea el pago `pending` |
 | GET | `/orders/me` | Member | Con sus líneas |
 | POST | `/orders/{id}/cancel` | Member (propio, `pending`) | Repone stock |

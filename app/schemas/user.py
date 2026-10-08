@@ -1,4 +1,4 @@
-"""User schemas: profile, trainer profile and the admin user list (HU-04, HU-06, HU-15)
+"""User schemas: profile, trainer profile, the admin user list and role changes (HU-04, HU-05, HU-06, HU-15)
 
 Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
 """
@@ -85,3 +85,11 @@ class UserUpdate(BaseModel):
     last_name: str = Field(default=None, min_length=1, max_length=80)
     phone: str | None = Field(default=None, max_length=20)
     email: EmailStr = Field(default=None, max_length=255)
+
+
+class RoleUpdate(BaseModel):
+    """Body for PATCH /users/{id}/role."""
+
+    model_config = ConfigDict(json_schema_extra={"example": {"role": "trainer"}})
+
+    role: RoleName    
