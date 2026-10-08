@@ -3,6 +3,7 @@
 HU-10: GET /sessions (public schedule).
 HU-11: POST/PATCH /sessions, POST /sessions/{id}/cancel, GET /sessions/{id}/bookings.
 HU-12: POST /sessions/{id}/bookings (member booking).
+HU-14: POST /sessions/personal-training (trainer PT slots).
 Keep endpoints thin: no business rules and no complex queries here.
 """
 
@@ -18,6 +19,7 @@ from app.models import User
 from app.models.enums import RoleName
 from app.schemas.booking import BookingOut
 from app.schemas.classes import (
+    PersonalTrainingSlotCreate,
     SessionBookingOut,
     SessionBookingUserOut,
     SessionClassTypeOut,
@@ -32,6 +34,7 @@ from app.services.session_service import SessionWithFreeSpots
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 DbSession = Annotated[Session, Depends(get_db)]
+CurrentTrainer = Annotated[User, Depends(require_roles(RoleName.TRAINER))]
 TrainerOrSuperadmin = Annotated[
     User, Depends(require_roles(RoleName.TRAINER, RoleName.SUPERADMIN))
 ]
@@ -103,6 +106,37 @@ def list_sessions(
         page=page,
         size=size,
     )
+
+
+@router.post(
+    "/personal-training",
+    response_model=SessionOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a personal-training slot",
+    description=(
+        "Trainer opens a 60-minute, capacity-1 personal-training session (RN-08). "
+        "Overlapping sessions for the same trainer are rejected (RN-09)."
+    ),
+    responses={
+        401: {"description": "Missing, invalid or expired token"},
+        403: {"description": "Only trainers can create personal-training slots"},
+        404: {"description": "No active personal-training class type"},
+        409: {"description": "Overlapping session for this trainer (RN-09)"},
+        422: {"description": "class_type_id is not personal training"},
+    },
+)
+def create_personal_training_slot(
+    body: PersonalTrainingSlotCreate,
+    trainer: CurrentTrainer,
+    db: DbSession,
+) -> SessionOut:
+    row = session_service.create_personal_training_slot(
+        db,
+        trainer_id=trainer.id,
+        starts_at=body.starts_at,
+        class_type_id=body.class_type_id,
+    )
+    return _to_session_out(row)
 
 
 @router.post(
@@ -221,14 +255,18 @@ def list_session_bookings(
     status_code=status.HTTP_201_CREATED,
     summary="Book a class session",
     description=(
-        "Reserves a spot for the authenticated member (RN-01–04, RN-07). "
+        "Reserves a spot for the authenticated member (RN-01–04, RN-07, RN-08). "
         "Confirmed when there is capacity; otherwise waitlisted with a computed position. "
+        "Personal training requires a plan with includes_personal_training. "
         "Classes with an extra price create a pending payment on confirm."
     ),
     responses={
         401: {"description": "Missing, invalid or expired token"},
         403: {
-            "description": "Only members can book, or the member has no active subscription (RN-01)"
+            "description": (
+                "Only members can book, no active subscription (RN-01), "
+                "or plan without personal training (RN-08)"
+            )
         },
         404: {"description": "The session does not exist"},
         409: {

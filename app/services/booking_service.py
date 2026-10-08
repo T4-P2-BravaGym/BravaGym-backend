@@ -23,6 +23,7 @@ from app.services import subscription_service
 logger = logging.getLogger(__name__)
 
 NO_ACTIVE_SUBSCRIPTION = "Necesitas una suscripción activa para reservar."
+NO_PERSONAL_TRAINING_PLAN = "Tu plan no incluye entrenamiento personal."
 SESSION_NOT_FOUND = "Esta clase no existe."
 SESSION_NOT_BOOKABLE = "No se puede reservar esta clase: ya ha pasado o está cancelada."
 ALREADY_BOOKED = "Ya tienes una reserva en esta clase."
@@ -177,8 +178,9 @@ def _promote_oldest_waitlisted(
 
 
 def book_session(db: Session, *, user_id: int, class_session_id: int) -> BookingWithPosition:
-    """Create or reactivate a booking for a member (RN-01–04, RN-07)."""
-    if subscription_service.get_active_subscription(db, user_id) is None:
+    """Create or reactivate a booking for a member (RN-01–04, RN-07, RN-08)."""
+    subscription = subscription_service.get_active_subscription(db, user_id)
+    if subscription is None:
         raise PermissionDeniedError(NO_ACTIVE_SUBSCRIPTION)
 
     session = db.scalar(
@@ -189,6 +191,12 @@ def book_session(db: Session, *, user_id: int, class_session_id: int) -> Booking
     )
     if session is None:
         raise NotFoundError(SESSION_NOT_FOUND)
+
+    # RN-08: personal training only for plans that include it.
+    if session.class_type.is_personal_training and not (
+        subscription.plan.includes_personal_training
+    ):
+        raise PermissionDeniedError(NO_PERSONAL_TRAINING_PLAN)
 
     if session.status != SessionStatus.SCHEDULED or _is_past_session(session.starts_at):
         raise ConflictError(SESSION_NOT_BOOKABLE)
