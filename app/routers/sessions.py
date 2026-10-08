@@ -1,8 +1,9 @@
-"""Controller for sessions: receives the request, checks permissions, calls the service, returns a schema.
+"""Controller for sessions: receives the request, checks permissions, calls the service.
 
-TODO(HU-11): POST/PATCH /sessions, POST /sessions/{id}/cancel, GET /sessions/{id}/bookings
+HU-10: GET /sessions (public schedule).
+HU-11: POST/PATCH /sessions, POST /sessions/{id}/cancel, GET /sessions/{id}/bookings.
+HU-12: POST /sessions/{id}/bookings (member booking).
 Keep endpoints thin: no business rules and no complex queries here.
-Every endpoint: response_model, summary, and require_roles(...) when it is not public.
 """
 
 from datetime import datetime
@@ -12,15 +13,32 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import CurrentMember
+from app.core.deps import CurrentMember, require_roles
+from app.models import User
+from app.models.enums import RoleName
 from app.schemas.booking import BookingOut
-from app.schemas.classes import SessionClassTypeOut, SessionOut, SessionPage
+from app.schemas.classes import (
+    SessionBookingOut,
+    SessionBookingUserOut,
+    SessionClassTypeOut,
+    SessionCreate,
+    SessionOut,
+    SessionPage,
+    SessionUpdate,
+)
 from app.services import booking_service, session_service
 from app.services.session_service import SessionWithFreeSpots
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 DbSession = Annotated[Session, Depends(get_db)]
+TrainerOrSuperadmin = Annotated[
+    User, Depends(require_roles(RoleName.TRAINER, RoleName.SUPERADMIN))
+]
+TrainerAdminOrSuperadmin = Annotated[
+    User,
+    Depends(require_roles(RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN)),
+]
 
 
 def _to_session_out(row: SessionWithFreeSpots) -> SessionOut:
@@ -35,8 +53,6 @@ def _to_session_out(row: SessionWithFreeSpots) -> SessionOut:
         free_spots=row.free_spots,
         class_type=SessionClassTypeOut.model_validate(session.class_type),
     )
-
-
 
 
 @router.get(
@@ -90,6 +106,116 @@ def list_sessions(
 
 
 @router.post(
+    "",
+    response_model=SessionOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a class session",
+    description=(
+        "Trainer creates a session for herself; superadmin must pass trainer_id. "
+        "Overlapping sessions for the same trainer return 409 (RN-09)."
+    ),
+    responses={
+        401: {"description": "Missing, invalid or expired token"},
+        403: {"description": "Caller is not a trainer or superadmin"},
+        404: {"description": "Class type not found"},
+        409: {"description": "Overlap with another session of the same trainer (RN-09)"},
+        422: {"description": "Invalid body or missing trainer_id for superadmin"},
+    },
+)
+def create_session(
+    body: SessionCreate,
+    actor: TrainerOrSuperadmin,
+    db: DbSession,
+) -> SessionOut:
+    return _to_session_out(session_service.create_session(db, actor, body))
+
+
+@router.patch(
+    "/{session_id}",
+    response_model=SessionOut,
+    summary="Update a class session",
+    description=(
+        "Only the session trainer or superadmin may edit (RN-10). "
+        "Overlaps with another of the trainer's sessions return 409 (RN-09)."
+    ),
+    responses={
+        401: {"description": "Missing, invalid or expired token"},
+        403: {"description": "Not the session trainer (RN-10)"},
+        404: {"description": "Session not found"},
+        409: {
+            "description": "Overlap (RN-09), cancelled session, or capacity below confirmed"
+        },
+    },
+)
+def update_session(
+    session_id: int,
+    body: SessionUpdate,
+    actor: TrainerOrSuperadmin,
+    db: DbSession,
+) -> SessionOut:
+    return _to_session_out(
+        session_service.update_session(db, actor, session_id, body)
+    )
+
+
+@router.post(
+    "/{session_id}/cancel",
+    response_model=SessionOut,
+    summary="Cancel a class session",
+    description=(
+        "Only the session trainer or superadmin may cancel (RN-10). "
+        "Confirmed and waitlisted bookings become cancelled; related extra-class "
+        "payments become refunded."
+    ),
+    responses={
+        401: {"description": "Missing, invalid or expired token"},
+        403: {"description": "Not the session trainer (RN-10)"},
+        404: {"description": "Session not found"},
+        409: {"description": "Session already cancelled"},
+    },
+)
+def cancel_session(
+    session_id: int,
+    actor: TrainerOrSuperadmin,
+    db: DbSession,
+) -> SessionOut:
+    return _to_session_out(session_service.cancel_session(db, actor, session_id))
+
+
+@router.get(
+    "/{session_id}/bookings",
+    response_model=list[SessionBookingOut],
+    summary="List bookings for a session",
+    description=(
+        "Confirmed and waitlisted bookings for a session. "
+        "Allowed for the session trainer, admin and superadmin."
+    ),
+    responses={
+        401: {"description": "Missing, invalid or expired token"},
+        403: {"description": "Not allowed to view this session's bookings"},
+        404: {"description": "Session not found"},
+    },
+)
+def list_session_bookings(
+    session_id: int,
+    actor: TrainerAdminOrSuperadmin,
+    db: DbSession,
+) -> list[SessionBookingOut]:
+    rows = session_service.list_session_bookings(db, actor, session_id)
+    return [
+        SessionBookingOut(
+            id=booking.id,
+            status=booking.status,
+            waitlist_position=position,
+            created_at=booking.created_at,
+            cancelled_at=booking.cancelled_at,
+            user=SessionBookingUserOut.model_validate(booking.user),
+        )
+        for booking, position in rows
+    ]
+
+
+@router.post(
     "/{session_id}/bookings",
     response_model=BookingOut,
     status_code=status.HTTP_201_CREATED,
@@ -121,5 +247,3 @@ def book_session(
         db, user_id=member.id, class_session_id=session_id
     )
     return BookingOut.from_booking(row.booking, row.waitlist_position)
-
-

@@ -1,17 +1,22 @@
-"""HU-10.1 free-spots formula and HU-10.3 filter / pagination checks."""
+"""HU-10 free-spots / filters and HU-11 overlap (RN-09) + ownership (RN-10)."""
 
 from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from app.core.exceptions import ValidationAppError
-from app.models import Booking, ClassSession, ClassType
-from app.models.enums import BookingStatus, RoleName, SessionStatus
+from app.core.exceptions import ConflictError, PermissionDeniedError, ValidationAppError
+from app.models import Booking, ClassSession, ClassType, Payment
+from app.models.enums import BookingStatus, PaymentStatus, RoleName, SessionStatus
+from app.schemas.classes import ClassTypeCreate, SessionCreate, SessionUpdate
+from app.services import session_service
 from app.services.session_service import (
     INVALID_DATE_RANGE,
+    SESSION_NOT_OWNED,
+    SESSION_OVERLAP,
     free_spots_from_capacity,
     list_sessions,
     list_sessions_with_free_spots,
+    sessions_overlap,
 )
 
 
@@ -220,3 +225,230 @@ def test_list_sessions_rejects_inverted_date_range(db, make_user):
         )
     assert exc.value.detail == INVALID_DATE_RANGE
     assert exc.value.status_code == 422
+
+
+# --- HU-11.2 / HU-11.4: overlap (RN-09) and ownership (RN-10) -----------------
+
+
+def _make_class_type(db, name: str = "Fuerza HU-11") -> ClassType:
+    class_type = ClassType(name=name, description="Tipo de prueba.")
+    db.add(class_type)
+    db.flush()
+    return class_type
+
+
+def test_sessions_overlap_half_open_intervals():
+    start = datetime(2026, 10, 8, 10, 0, tzinfo=timezone.utc)
+    assert sessions_overlap(
+        starts_a=start,
+        duration_a=60,
+        starts_b=start + timedelta(minutes=30),
+        duration_b=60,
+    )
+    assert not sessions_overlap(
+        starts_a=start,
+        duration_a=60,
+        starts_b=start + timedelta(minutes=60),
+        duration_b=60,
+    )
+
+
+def test_rn09_create_overlapping_session_raises_409(db, make_user):
+    trainer = make_user(RoleName.TRAINER)
+    class_type = _make_class_type(db)
+    db.commit()
+    starts = datetime(2026, 10, 8, 17, 0, tzinfo=timezone.utc)
+
+    session_service.create_session(
+        db,
+        trainer,
+        SessionCreate(
+            class_type_id=class_type.id,
+            starts_at=starts,
+            duration_minutes=60,
+            capacity=12,
+        ),
+    )
+
+    with pytest.raises(ConflictError) as exc:
+        session_service.create_session(
+            db,
+            trainer,
+            SessionCreate(
+                class_type_id=class_type.id,
+                starts_at=starts + timedelta(minutes=30),
+                duration_minutes=60,
+                capacity=8,
+            ),
+        )
+    assert exc.value.detail == SESSION_OVERLAP
+    assert exc.value.status_code == 409
+
+
+def test_rn09_adjacent_sessions_do_not_overlap(db, make_user):
+    trainer = make_user(RoleName.TRAINER)
+    class_type = _make_class_type(db, name="Adyacente")
+    db.commit()
+    starts = datetime(2026, 10, 8, 9, 0, tzinfo=timezone.utc)
+
+    first = session_service.create_session(
+        db,
+        trainer,
+        SessionCreate(
+            class_type_id=class_type.id,
+            starts_at=starts,
+            duration_minutes=60,
+            capacity=10,
+        ),
+    )
+    second = session_service.create_session(
+        db,
+        trainer,
+        SessionCreate(
+            class_type_id=class_type.id,
+            starts_at=starts + timedelta(minutes=60),
+            duration_minutes=60,
+            capacity=10,
+        ),
+    )
+    assert first.session.id != second.session.id
+
+
+def test_rn09_cancelled_session_does_not_block_overlap(db, make_user):
+    trainer = make_user(RoleName.TRAINER)
+    class_type = _make_class_type(db, name="Tras cancelar")
+    db.commit()
+    starts = datetime(2026, 10, 8, 11, 0, tzinfo=timezone.utc)
+
+    created = session_service.create_session(
+        db,
+        trainer,
+        SessionCreate(
+            class_type_id=class_type.id,
+            starts_at=starts,
+            duration_minutes=60,
+            capacity=10,
+        ),
+    )
+    session_service.cancel_session(db, trainer, created.session.id)
+
+    replacement = session_service.create_session(
+        db,
+        trainer,
+        SessionCreate(
+            class_type_id=class_type.id,
+            starts_at=starts,
+            duration_minutes=60,
+            capacity=10,
+        ),
+    )
+    assert replacement.session.status == SessionStatus.SCHEDULED
+
+
+def test_rn10_other_trainer_cannot_update_raises_403(db, make_user):
+    owner = make_user(RoleName.TRAINER)
+    other = make_user(RoleName.TRAINER)
+    class_type = _make_class_type(db, name="Propiedad")
+    db.commit()
+
+    created = session_service.create_session(
+        db,
+        owner,
+        SessionCreate(
+            class_type_id=class_type.id,
+            starts_at=datetime(2026, 10, 9, 10, 0, tzinfo=timezone.utc),
+            duration_minutes=60,
+            capacity=8,
+        ),
+    )
+
+    with pytest.raises(PermissionDeniedError) as exc:
+        session_service.update_session(
+            db,
+            other,
+            created.session.id,
+            SessionUpdate(capacity=6),
+        )
+    assert exc.value.detail == SESSION_NOT_OWNED
+    assert exc.value.status_code == 403
+
+
+def test_rn10_superadmin_can_update_other_trainer_session(db, make_user):
+    owner = make_user(RoleName.TRAINER)
+    superadmin = make_user(RoleName.SUPERADMIN)
+    class_type = _make_class_type(db, name="Superadmin edita")
+    db.commit()
+
+    created = session_service.create_session(
+        db,
+        owner,
+        SessionCreate(
+            class_type_id=class_type.id,
+            starts_at=datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc),
+            duration_minutes=60,
+            capacity=8,
+        ),
+    )
+    updated = session_service.update_session(
+        db,
+        superadmin,
+        created.session.id,
+        SessionUpdate(capacity=6),
+    )
+    assert updated.session.capacity == 6
+
+
+def test_rn10_cancel_cancels_bookings_and_refunds_payments(db, make_user):
+    trainer = make_user(RoleName.TRAINER)
+    member = make_user(RoleName.MEMBER)
+    class_type = ClassType(
+        name="Extra con pago",
+        description="Clase con precio extra.",
+        extra_price_cents=1500,
+    )
+    db.add(class_type)
+    db.flush()
+    session = ClassSession(
+        class_type=class_type,
+        trainer=trainer,
+        starts_at=datetime(2026, 10, 10, 18, 0, tzinfo=timezone.utc),
+        capacity=4,
+    )
+    db.add(session)
+    db.flush()
+    booking = Booking(
+        user=member,
+        class_session=session,
+        status=BookingStatus.CONFIRMED,
+    )
+    db.add(booking)
+    db.flush()
+    payment = Payment(
+        user_id=member.id,
+        booking_id=booking.id,
+        base_amount_cents=1500,
+        final_amount_cents=1500,
+        status=PaymentStatus.PENDING,
+    )
+    db.add(payment)
+    db.commit()
+
+    result = session_service.cancel_session(db, trainer, session.id)
+
+    db.refresh(session)
+    db.refresh(booking)
+    db.refresh(payment)
+    assert result.session.status == SessionStatus.CANCELLED
+    assert booking.status == BookingStatus.CANCELLED
+    assert booking.cancelled_at is not None
+    assert payment.status == PaymentStatus.REFUNDED
+
+
+def test_create_class_type_and_deactivate(db):
+    created = session_service.create_class_type(
+        db,
+        ClassTypeCreate(name="Nuevo tipo", description="Desc", extra_price_cents=0),
+    )
+    assert created.is_active is True
+    deactivated = session_service.deactivate_class_type(db, created.id)
+    assert deactivated.is_active is False
