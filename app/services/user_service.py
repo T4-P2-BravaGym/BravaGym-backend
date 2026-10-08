@@ -1,6 +1,6 @@
-"""Profile, user list with filters and role changes (RN-18, RN-19).
+"""Profile, user list with filters and role changes (HU-04, HU-05, HU-06).
 
-TODO(HU-05). role changes. Business rules RN-xx: docs/business-rules.md.
+Business rules RN-18, RN-19: docs/business-rules.md.
 """
 
 import logging
@@ -9,8 +9,8 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ConflictError
-from app.models import Role, User
+from app.core.exceptions import ConflictError, NotFoundError, PermissionDeniedError
+from app.models import Role, TrainerProfile, User
 from app.models.enums import RoleName
 from app.schemas.user import UserUpdate
 from app.services.auth_service import get_user_by_email, normalize_email
@@ -79,3 +79,38 @@ def list_users(
         .limit(size)
     )
     return list(db.scalars(stmt).all()), int(total)
+
+
+STAFF_ROLES = {RoleName.ADMIN, RoleName.SUPERADMIN}
+
+
+def change_role(db: Session, actor: User, user_id: int, new_role: RoleName) -> User:
+    """Change another user's role following RN-18 and RN-19."""
+    user = db.get(User, user_id)
+    if user is None:
+        raise NotFoundError("No existe ese usuario.")
+
+    old_role = user.role.name
+    # RN-19: nobody changes her own role
+    if user.id == actor.id:
+        raise ConflictError("No puedes cambiar tu propio rol.")
+    # RN-18: only the superadmin gives or removes admin and superadmin
+    if actor.role.name != RoleName.SUPERADMIN and (old_role in STAFF_ROLES or new_role in STAFF_ROLES):
+        raise PermissionDeniedError("Solo la superadmin puede dar o quitar los roles de administración.")
+    # RN-19: there is always at least one superadmin
+    if old_role == RoleName.SUPERADMIN and new_role != RoleName.SUPERADMIN and _count_superadmins(db) == 1:
+        raise ConflictError("Tiene que quedar al menos una superadmin.")
+
+    role = db.scalar(select(Role).where(Role.name == new_role))
+    if role is None:
+        raise RuntimeError(f"Role '{new_role}' not found. Run scripts/seed.py first.")
+    user.role = role
+    if new_role == RoleName.TRAINER and user.trainer_profile is None:
+        user.trainer_profile = TrainerProfile()
+    db.commit()
+    logger.info("User %s changed the role of user %s from %s to %s", actor.id, user.id, old_role, new_role)
+    return user
+
+
+def _count_superadmins(db: Session) -> int:
+    return db.scalar(select(func.count(User.id)).join(User.role).where(Role.name == RoleName.SUPERADMIN))
