@@ -1,10 +1,21 @@
-"""TODO(HU-04, HU-05, HU-15): UserUpdate (no role, no is_active), RoleUpdate, TrainerOut.
+"""User schemas: profile, trainer profile and the admin user list (HU-04, HU-06, HU-15)
 
 Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
 """
 from pydantic import AliasPath, BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.enums import RoleName
+from app.schemas.common import Page
+
+USER_EXAMPLE = {
+    "id": 7,
+    "email": "lucia@example.com",
+    "first_name": "Lucía",
+    "last_name": "García",
+    "phone": "600123456",
+    "is_active": True,
+    "role": "member",
+}
 
 
 class TrainerOut(BaseModel):
@@ -41,7 +52,7 @@ class TrainerProfileUpdate(BaseModel):
 class UserOut(BaseModel):
     """Public view of a user. Never includes password_hash."""
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, json_schema_extra={"example": USER_EXAMPLE})
 
     id: int
     email: str
@@ -50,6 +61,14 @@ class UserOut(BaseModel):
     phone: str | None
     is_active: bool
     role: RoleName = Field(validation_alias=AliasPath("role", "name"))
+
+
+class UserPage(Page[UserOut]):
+    """Paginated user list for administration."""
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"items": [USER_EXAMPLE], "total": 1, "page": 1, "size": 20}}
+    )
 
 
 class UserUpdate(BaseModel):
