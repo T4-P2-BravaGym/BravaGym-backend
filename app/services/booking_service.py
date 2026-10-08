@@ -149,6 +149,12 @@ def _emit_session_updated(class_session_id: int) -> None:
     logger.info("Session %s updated after booking change", class_session_id)
 
 
+def notify_sessions_updated(session_ids: list[int]) -> None:
+    """Public hook for callers that cancel bookings inside a larger transaction."""
+    for session_id in session_ids:
+        _emit_session_updated(session_id)
+
+
 def _promote_oldest_waitlisted(
     db: Session, *, class_session_id: int, class_type: ClassType
 ) -> Booking | None:
@@ -266,6 +272,45 @@ def book_session(db: Session, *, user_id: int, class_session_id: int) -> Booking
     return BookingWithPosition(booking=booking, waitlist_position=position)
 
 
+def _cancel_one_booking_applying_rn06(
+    db: Session,
+    *,
+    booking: Booking,
+    session: ClassSession,
+    cancelled_at: datetime,
+    enforce_deadline: bool,
+    now: datetime | None,
+) -> int | None:
+    """Mark one booking cancelled and promote waitlist when it was confirmed (RN-06).
+
+    Does not commit. Returns the promoted booking id when a waitlisted booking
+    took the freed spot, otherwise None.
+    """
+    if booking.status == BookingStatus.CANCELLED:
+        raise ConflictError(BOOKING_ALREADY_CANCELLED)
+
+    previous_status = booking.status
+    if previous_status == BookingStatus.CONFIRMED and enforce_deadline:
+        minutes_left = _minutes_until_start(session.starts_at, now=now)
+        if minutes_left < CANCEL_DEADLINE_MINUTES:
+            raise ConflictError(CANCEL_TOO_LATE)
+
+    booking.status = BookingStatus.CANCELLED
+    booking.cancelled_at = cancelled_at
+    db.flush()
+
+    if previous_status != BookingStatus.CONFIRMED:
+        return None
+
+    promoted = _promote_oldest_waitlisted(
+        db, class_session_id=session.id, class_type=session.class_type
+    )
+    if promoted is None:
+        return None
+    db.flush()
+    return promoted.id
+
+
 def cancel_booking(
     db: Session,
     *,
@@ -286,9 +331,6 @@ def cancel_booking(
     if booking is None:
         raise NotFoundError(BOOKING_NOT_FOUND)
 
-    if booking.status == BookingStatus.CANCELLED:
-        raise ConflictError(BOOKING_ALREADY_CANCELLED)
-
     session = db.scalar(
         select(ClassSession)
         .options(joinedload(ClassSession.class_type))
@@ -298,26 +340,18 @@ def cancel_booking(
     assert session is not None
 
     previous_status = booking.status
-    if previous_status == BookingStatus.CONFIRMED:
-        minutes_left = _minutes_until_start(session.starts_at, now=now)
-        if minutes_left < CANCEL_DEADLINE_MINUTES:
-            raise ConflictError(CANCEL_TOO_LATE)
-
-    booking.status = BookingStatus.CANCELLED
-    booking.cancelled_at = _as_naive_utc(now if now is not None else utc_now())
-    db.flush()
-
-    promoted: Booking | None = None
-    if previous_status == BookingStatus.CONFIRMED:
-        promoted = _promote_oldest_waitlisted(
-            db, class_session_id=session.id, class_type=session.class_type
-        )
-        if promoted is not None:
-            db.flush()
+    cancelled_at = _as_naive_utc(now if now is not None else utc_now())
+    promoted_id = _cancel_one_booking_applying_rn06(
+        db,
+        booking=booking,
+        session=session,
+        cancelled_at=cancelled_at,
+        enforce_deadline=True,
+        now=now,
+    )
 
     cancelled_id = booking.id
     session_id = session.id
-    promoted_id = promoted.id if promoted is not None else None
     db.commit()
 
     booking = _load_booking_with_session(db, cancelled_id)
@@ -330,6 +364,72 @@ def cancel_booking(
         f"; promoted booking {promoted_id}" if promoted_id is not None else "",
     )
     return BookingWithPosition(booking=booking, waitlist_position=None)
+
+
+def cancel_future_bookings_for_user(
+    db: Session,
+    *,
+    user_id: int,
+    now: datetime | None = None,
+) -> list[int]:
+    """Cancel a member's future confirmed/waitlisted bookings (RN-13 / HU-20).
+
+    Skips the RN-05 one-hour deadline (membership exit). Applies RN-06 waitlist
+    promotion for each freed confirmed spot. Does not commit — the caller owns
+    the surrounding transaction. Returns distinct session ids that changed.
+    """
+    current = _as_naive_utc(now if now is not None else utc_now())
+    bookings = list(
+        db.scalars(
+            select(Booking)
+            .join(ClassSession, Booking.class_session_id == ClassSession.id)
+            .where(
+                Booking.user_id == user_id,
+                Booking.status.in_(
+                    (BookingStatus.CONFIRMED, BookingStatus.WAITLISTED)
+                ),
+                ClassSession.starts_at >= current,
+            )
+            .order_by(ClassSession.starts_at, Booking.id)
+            .with_for_update()
+        ).all()
+    )
+
+    affected_session_ids: list[int] = []
+    for booking in bookings:
+        session = db.scalar(
+            select(ClassSession)
+            .options(joinedload(ClassSession.class_type))
+            .where(ClassSession.id == booking.class_session_id)
+            .with_for_update()
+        )
+        assert session is not None
+        previous_status = booking.status
+        promoted_id = _cancel_one_booking_applying_rn06(
+            db,
+            booking=booking,
+            session=session,
+            cancelled_at=current,
+            enforce_deadline=False,
+            now=now,
+        )
+        affected_session_ids.append(session.id)
+        logger.info(
+            "Membership-exit cancelled booking %s for user %s (was %s)%s",
+            booking.id,
+            user_id,
+            previous_status.value,
+            f"; promoted booking {promoted_id}" if promoted_id is not None else "",
+        )
+
+    # Preserve order while dropping duplicates (same session twice is unlikely).
+    seen: set[int] = set()
+    unique_session_ids: list[int] = []
+    for session_id in affected_session_ids:
+        if session_id not in seen:
+            seen.add(session_id)
+            unique_session_ids.append(session_id)
+    return unique_session_ids
 
 
 def _my_bookings_stmt(
