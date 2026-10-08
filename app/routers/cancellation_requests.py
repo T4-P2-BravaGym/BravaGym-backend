@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Body, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -10,6 +10,7 @@ from app.core.deps import CurrentMember, require_roles
 from app.models.enums import CancellationStatus, RoleName
 from app.models.user import User
 from app.schemas.cancellation import (
+    CancellationApprove,
     CancellationReject,
     CancellationRequestCreate,
     CancellationRequestOut,
@@ -59,7 +60,7 @@ def create_cancellation_request(
     request = cancellation_service.create_cancellation_request(
         db, user=member, reason=data.reason
     )
-    return CancellationRequestOut.model_validate(request)
+    return CancellationRequestOut.from_request(request)
 
 
 @router.get(
@@ -74,7 +75,7 @@ def create_cancellation_request(
 )
 def read_my_cancellation_request(member: CurrentMember, db: DbSession) -> CancellationRequestOut:
     request = cancellation_service.get_my_cancellation_request(db, user_id=member.id)
-    return CancellationRequestOut.model_validate(request)
+    return CancellationRequestOut.from_request(request)
 
 
 @router.get(
@@ -83,6 +84,7 @@ def read_my_cancellation_request(member: CurrentMember, db: DbSession) -> Cancel
     summary="List cancellation requests",
     description=(
         "Paginated admin inbox of cancellation requests, newest first. "
+        "Each item includes `member_name`, `member_email` and `plan_name` for the bandeja. "
         "Optional filter by status (pending, approved, rejected)."
     ),
     responses={
@@ -105,7 +107,7 @@ def list_cancellation_requests(
         db, status=status_filter, page=page, size=size
     )
     return CancellationRequestPage(
-        items=[CancellationRequestOut.model_validate(item) for item in items],
+        items=[CancellationRequestOut.from_request(item) for item in items],
         total=total,
         page=page,
         size=size,
@@ -119,7 +121,8 @@ def list_cancellation_requests(
     description=(
         "Approves a pending request in one transaction (RN-13): subscription becomes "
         "`cancelled`, the member is deactivated (`is_active=false`, `deactivated_at` set) "
-        "and their future bookings are cancelled with waitlist promotion (RN-06)."
+        "and their future bookings are cancelled with waitlist promotion (RN-06). "
+        "Optional body `{admin_notes}` is stored on the request."
     ),
     responses={
         **ADMIN_AUTH_RESPONSES,
@@ -131,11 +134,15 @@ def approve_cancellation_request(
         request_id: int,
         admin: CurrentAdmin,
         db: DbSession,
+        data: Annotated[CancellationApprove | None, Body()] = None,
 ) -> CancellationRequestOut:
+    notes = data.admin_notes if data is not None else None
+    if notes is not None:
+        notes = notes.strip() or None
     request = cancellation_service.approve_cancellation_request(
-        db, request_id=request_id, admin=admin
+        db, request_id=request_id, admin=admin, admin_notes=notes
     )
-    return CancellationRequestOut.model_validate(request)
+    return CancellationRequestOut.from_request(request)
 
 
 @router.post(
@@ -162,4 +169,4 @@ def reject_cancellation_request(
     request = cancellation_service.reject_cancellation_request(
         db, request_id=request_id, admin=admin, admin_notes=data.admin_notes
     )
-    return CancellationRequestOut.model_validate(request)
+    return CancellationRequestOut.from_request(request)

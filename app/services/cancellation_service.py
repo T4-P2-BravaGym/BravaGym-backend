@@ -6,7 +6,7 @@ import logging
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
 from app.models import CancellationRequest, Subscription, User
@@ -14,6 +14,11 @@ from app.models.enums import CancellationStatus, SubscriptionStatus
 from app.models.types import utc_now
 from app.services import booking_service
 from app.services.subscription_service import get_active_subscription
+
+_REQUEST_WITH_MEMBER_PLAN = (
+    joinedload(CancellationRequest.subscription).joinedload(Subscription.user),
+    joinedload(CancellationRequest.subscription).joinedload(Subscription.plan),
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +39,24 @@ def get_pending_for_subscription(db: Session, subscription_id: int) -> Cancellat
     )
 
 
+def get_request_with_member_plan(
+    db: Session, request_id: int
+) -> CancellationRequest | None:
+    """Load a request with subscription → user/plan for the admin inbox DTO."""
+    return db.scalar(
+        select(CancellationRequest)
+        .where(CancellationRequest.id == request_id)
+        .options(*_REQUEST_WITH_MEMBER_PLAN)
+    )
+
+
 def get_my_cancellation_request(db: Session, user_id: int) -> CancellationRequest:
     """Return the member's most recent cancellation request, or 404 if none."""
     request = db.scalar(
         select(CancellationRequest)
         .join(Subscription, CancellationRequest.subscription_id == Subscription.id)
         .where(Subscription.user_id == user_id)
+        .options(*_REQUEST_WITH_MEMBER_PLAN)
         .order_by(CancellationRequest.requested_at.desc(), CancellationRequest.id.desc())
     )
     if request is None:
@@ -76,23 +93,23 @@ def create_cancellation_request(db: Session, user: User, reason: str) -> Cancell
         )
         raise ConflictError(ALREADY_PENDING) from None
 
-    db.refresh(request)
     db.refresh(user)
-
+    loaded = get_request_with_member_plan(db, request.id)
+    assert loaded is not None
     assert user.is_active is True
     assert subscription.status == SubscriptionStatus.ACTIVE
 
     logger.info(
         "User %s created cancellation request %s for subscription %s",
         user.id,
-        request.id,
+        loaded.id,
         subscription.id,
     )
-    return request
+    return loaded
 
 
 def _list_stmt(*, status: CancellationStatus | None = None) -> Select:
-    stmt = select(CancellationRequest)
+    stmt = select(CancellationRequest).options(*_REQUEST_WITH_MEMBER_PLAN)
     if status is not None:
         stmt = stmt.where(CancellationRequest.status == status)
     return stmt.order_by(
@@ -109,11 +126,14 @@ def list_cancellation_requests(
 ) -> tuple[list[CancellationRequest], int]:
     """Paginated admin list, newest first. Optional status filter."""
     stmt = _list_stmt(status=status)
+    count_stmt = select(CancellationRequest)
+    if status is not None:
+        count_stmt = count_stmt.where(CancellationRequest.status == status)
     total = int(
-        db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+        db.scalar(select(func.count()).select_from(count_stmt.subquery())) or 0
     )
     offset = (page - 1) * size
-    items = list(db.scalars(stmt.offset(offset).limit(size)).all())
+    items = list(db.scalars(stmt.offset(offset).limit(size)).unique().all())
     return items, total
 
 
@@ -178,20 +198,22 @@ def approve_cancellation_request(
         request.admin_notes = admin_notes
 
     db.commit()
-    db.refresh(request)
 
     booking_service.notify_sessions_updated(affected_sessions)
+
+    loaded = get_request_with_member_plan(db, request.id)
+    assert loaded is not None
 
     logger.info(
         "Admin %s approved cancellation request %s "
         "(user %s, subscription %s, %s sessions updated)",
         admin.id,
-        request.id,
+        loaded.id,
         member.id,
         subscription.id,
         len(affected_sessions),
     )
-    return request
+    return loaded
 
 
 def reject_cancellation_request(
@@ -221,17 +243,19 @@ def reject_cancellation_request(
         db.rollback()
         raise ValidationAppError(ADMIN_NOTES_REQUIRED) from None
 
-    db.refresh(request)
     db.refresh(member)
     db.refresh(subscription)
 
     assert member.is_active is True
     assert subscription.status == SubscriptionStatus.ACTIVE
 
+    loaded = get_request_with_member_plan(db, request.id)
+    assert loaded is not None
+
     logger.info(
         "Admin %s rejected cancellation request %s (user %s)",
         admin.id,
-        request.id,
+        loaded.id,
         member.id,
     )
-    return request
+    return loaded
