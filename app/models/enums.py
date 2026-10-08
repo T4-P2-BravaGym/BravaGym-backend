@@ -42,6 +42,7 @@ class PaymentStatus(StrEnum):
     PAID = "paid"
     FAILED = "failed"
     REFUNDED = "refunded"
+    CANCELLED = "cancelled"
 
 
 class PaymentMethod(StrEnum):
