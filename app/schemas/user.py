@@ -1,4 +1,4 @@
-"""User schemas: profile, trainer profile and the admin user list and role changes (HU-04,HU-5, HU-06, HU-15)
+"""User schemas: profile, trainer profile, the admin user list and role changes (HU-04, HU-05, HU-06, HU-15)
 
 Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
 """

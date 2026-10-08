@@ -1,6 +1,4 @@
-"""Controller for users: receives the request, checks permissions, calls the service, returns a schema.
-
-TODO(HU-05): PATCH /users/{id}/role
+"""Controller for users: receives the request, checks permissions, calls the service, returns a schema (HU-04, HU-05, HU-06).
 """
 from typing import Annotated
 
@@ -11,7 +9,7 @@ from app.core.database import get_db
 from app.core.deps import CurrentUser, require_roles
 from app.models.enums import RoleName
 from app.models.user import User
-from app.schemas.user import UserOut, UserPage, UserUpdate
+from app.schemas.user import RoleUpdate, UserOut, UserPage, UserUpdate
 from app.services import user_service
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -82,3 +80,18 @@ def update_me(
         db: DbSession,
 ) -> UserOut:
     return user_service.update_me(db, current_user, changes)
+
+
+@router.patch(
+    "/{user_id}/role",
+    response_model=UserOut,
+    summary="Change a user's role (RN-18, RN-19)",
+    responses={
+        401: {"description": "Not logged in"},
+        403: {"description": "Not admin, or an admin trying to give or remove admin/superadmin"},
+        404: {"description": "The user does not exist"},
+        409: {"description": "Changing your own role, or removing the last superadmin"},
+    },
+)
+def change_role(user_id: int, data: RoleUpdate, actor: CurrentAdmin, db: DbSession) -> UserOut:
+    return user_service.change_role(db, actor, user_id, data.role)
