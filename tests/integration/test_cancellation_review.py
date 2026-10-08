@@ -76,6 +76,7 @@ def test_rn13_admin_approves_pending_request_chain_effect(
 
     response = client.post(
         f"{CANCEL_URL}/{created['id']}/approve",
+        json={"admin_notes": "Baja confirmada tras la revisión."},
         headers=auth_header_for(admin),
     )
 
@@ -83,6 +84,10 @@ def test_rn13_admin_approves_pending_request_chain_effect(
     body = response.json()
     assert body["status"] == "approved"
     assert body["reviewed_at"] is not None
+    assert body["admin_notes"] == "Baja confirmada tras la revisión."
+    assert body["member_name"] == f"{member.first_name} {member.last_name}".strip()
+    assert body["member_email"] == member.email
+    assert body["plan_name"] == plan.name
 
     db.refresh(member)
     request_row = db.get(CancellationRequest, created["id"])
@@ -184,7 +189,11 @@ def test_list_cancellation_requests_filters_and_paginates(
     assert all_resp.json()["total"] == 2
     assert pending_resp.status_code == 200
     assert pending_resp.json()["total"] == 1
-    assert pending_resp.json()["items"][0]["id"] == second["id"]
+    pending_item = pending_resp.json()["items"][0]
+    assert pending_item["id"] == second["id"]
+    assert pending_item["member_name"] == f"{member.first_name} {member.last_name}".strip()
+    assert pending_item["member_email"] == member.email
+    assert pending_item["plan_name"]
     assert page_resp.json()["size"] == 1
     assert len(page_resp.json()["items"]) == 1
 
