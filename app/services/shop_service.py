@@ -18,6 +18,18 @@ UNKNOWN_CATEGORY = "La categoría elegida no existe."
 CATEGORY_NAME_TAKEN = "Ya existe una categoría con ese nombre."
 CATEGORY_HAS_PRODUCTS = "No se puede borrar: esta categoría tiene productos."
 
+class ProductStatus(StrEnum):
+
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    OUT_OF_STOCK = "out_of_stock"
+
+
+_STATUS_CONDITION = {
+    ProductStatus.ACTIVE: Product.is_active.is_(True),
+    ProductStatus.INACTIVE: Product.is_active.is_(False),
+    ProductStatus.OUT_OF_STOCK: Product.stock == 0,
+}
 
 class ProductSort(StrEnum):
 
@@ -49,6 +61,7 @@ def list_products(
         page: int = 1,
         size: int = 20,
         include_inactive: bool = False,
+        status: ProductStatus | None = None,
 ) -> tuple[list[Product], int]:
     if min_price is not None and max_price is not None and min_price > max_price:
         raise ValidationAppError(INVALID_PRICE_RANGE)
@@ -60,6 +73,8 @@ def list_products(
         conditions.append(Product.price_cents >= min_price)
     if max_price is not None:
         conditions.append(Product.price_cents <= max_price)
+    if status is not None:
+        conditions.append(_STATUS_CONDITION[status])
 
     search = q.strip() if q else ""
     if search:
@@ -67,11 +82,15 @@ def list_products(
 
     total = db.scalar(select(func.count(Product.id)).where(*conditions)) or 0
 
+    order_by = _ORDER_BY[sort]
+    if include_inactive:
+        order_by = (Product.is_active.desc(), *order_by)
+
     stmt = (
         select(Product)
         .options(joinedload(Product.category))
         .where(*conditions)
-        .order_by(*_ORDER_BY[sort])
+        .order_by(*order_by)
         .offset((page - 1) * size)
         .limit(size)
     )

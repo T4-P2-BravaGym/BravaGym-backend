@@ -285,6 +285,56 @@ def test_admin_list_keeps_filters_and_pagination(client, admin_headers, make_pro
     assert [item["name"] for item in response.json()["items"]] == ["Leggings Brava"]
 
 
+def test_admin_list_puts_deactivated_products_last(client, admin_headers, make_product, category):
+    make_product(category, "Abrigo", is_active=False)
+    make_product(category, "Camiseta Brava")
+    make_product(category, "Zapatillas")
+
+    response = client.get(ADMIN_PRODUCTS_URL, headers=admin_headers)
+
+    assert response.status_code == 200
+    assert [item["name"] for item in response.json()["items"]] == ["Camiseta Brava", "Zapatillas", "Abrigo"]
+
+
+def test_admin_list_puts_deactivated_last_also_when_sorting_by_price(
+        client, admin_headers, make_product, category
+):
+    make_product(category, "Barata", 500, is_active=False)
+    make_product(category, "Cara", 5000)
+    make_product(category, "Media", 2000)
+
+    response = client.get(ADMIN_PRODUCTS_URL, headers=admin_headers, params={"sort": "price_asc"})
+
+    assert response.status_code == 200
+    assert [item["name"] for item in response.json()["items"]] == ["Media", "Cara", "Barata"]
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        ("active", ["Camiseta Brava", "Creatina"]),
+        ("inactive", ["Sudadera antigua"]),
+        ("out_of_stock", ["Creatina", "Sudadera antigua"]),
+    ],
+)
+def test_admin_list_filters_by_status(client, admin_headers, make_product, category, status, expected):
+    make_product(category, "Camiseta Brava", stock=5)
+    make_product(category, "Creatina", stock=0)
+    make_product(category, "Sudadera antigua", stock=0, is_active=False)
+
+    response = client.get(ADMIN_PRODUCTS_URL, headers=admin_headers, params={"status": status})
+
+    assert response.status_code == 200
+    assert response.json()["total"] == len(expected)
+    assert [item["name"] for item in response.json()["items"]] == expected
+
+
+def test_admin_list_rejects_unknown_status(client, admin_headers):
+    response = client.get(ADMIN_PRODUCTS_URL, headers=admin_headers, params={"status": "archived"})
+
+    assert response.status_code == 422
+
+
 def test_admin_creates_a_category(client, admin_headers):
     response = client.post(CATEGORIES_URL, headers=admin_headers, json={"name": "  Accesorios "})
 

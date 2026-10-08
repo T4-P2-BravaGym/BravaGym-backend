@@ -19,7 +19,7 @@ from app.schemas.shop import (
     ProductUpdate,
 )
 from app.services import shop_service
-from app.services.shop_service import ProductSort
+from app.services.shop_service import ProductSort, ProductStatus
 
 router = APIRouter(prefix="/products", tags=["shop"])
 categories_router = APIRouter(prefix="/product-categories", tags=["shop"])
@@ -98,8 +98,9 @@ def list_categories(db: DbSession) -> list[CategoryOut]:
     response_model=ProductAdminPage,
     summary="List all products for the admin panel",
     description=(
-            "Same filters as the public list, but inactive products are included "
-            "and every item has is_active."
+            "Same filters as the public list, but inactive products are included, "
+            "every item has is_active and deactivated products always go last. "
+            "Extra filter: status (active, inactive or out_of_stock)."
     ),
     responses=AUTH_ERRORS,
 )
@@ -110,6 +111,10 @@ def list_products_for_admin(
         q: Annotated[
             str | None,
             Query(max_length=60, description="Case-insensitive search in the product name"),
+        ] = None,
+        status: Annotated[
+            ProductStatus | None,
+            Query(description="active, inactive or out_of_stock (stock 0, active or not)"),
         ] = None,
         sort: Annotated[ProductSort, Query(description="Order of the results")] = ProductSort.NAME,
         page: Annotated[int, Query(ge=1)] = 1,
@@ -123,6 +128,7 @@ def list_products_for_admin(
         page=page,
         size=size,
         include_inactive=True,
+        status=status,
     )
     return ProductAdminPage(
         items=[ProductAdminOut.from_product(product) for product in products],
