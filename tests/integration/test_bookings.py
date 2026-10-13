@@ -1,6 +1,4 @@
-"""Integration tests for POST /sessions/{id}/bookings and GET /bookings/me (HU-12)."""
-
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from freezegun import freeze_time
@@ -8,6 +6,7 @@ from sqlalchemy import func, select
 
 from app.models import Booking, ClassSession, ClassType, Payment
 from app.models.enums import PaymentStatus, RoleName, SessionStatus
+from app.models.types import utc_now
 from tests.conftest import auth_header_for
 
 BOOK_URL = "/api/v1/sessions/{session_id}/bookings"
@@ -32,10 +31,15 @@ def _seed_session(
     )
     db.add(class_type)
     db.flush()
+
+    default_start = (utc_now() + timedelta(days=7)).replace(
+        hour=17, minute=30, second=0, microsecond=0, tzinfo=timezone.utc
+    )
+
     session = ClassSession(
         class_type=class_type,
         trainer=trainer,
-        starts_at=starts_at or (datetime(2026, 10, 10, 17, 30, tzinfo=timezone.utc)),
+        starts_at=starts_at or default_start,
         capacity=capacity,
         status=status,
     )
@@ -304,8 +308,6 @@ def test_only_members_list_my_bookings(client, auth_headers, role):
     response = client.get(MY_BOOKINGS_URL, headers=auth_headers(role))
     assert response.status_code == 403
 
-
-# --- HU-13: POST /bookings/{id}/cancel --------------------------------------
 
 CANCEL_URL = "/api/v1/bookings/{booking_id}/cancel"
 
