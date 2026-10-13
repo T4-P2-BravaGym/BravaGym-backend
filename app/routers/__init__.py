@@ -9,6 +9,7 @@ from app.routers import (
     payments,
     plans,
     products,
+    realtime,
     routines,
     sessions,
     subscriptions,
@@ -33,4 +34,5 @@ api_routers = [
     orders.router,
     discount_codes.router,
     payments.router,
+    realtime.router,
 ]

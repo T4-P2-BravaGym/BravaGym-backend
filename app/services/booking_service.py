@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, contains_eager, joinedload
 
 from app.core.exceptions import ConflictError, NotFoundError, PermissionDeniedError
+from app.core.realtime import session_updates
 from app.models import Booking, ClassSession, ClassType, Payment
 from app.models.enums import BookingStatus, PaymentStatus, SessionStatus
 from app.models.types import utc_now
@@ -142,12 +143,9 @@ def _load_booking_with_session(db: Session, booking_id: int) -> Booking:
 
 
 def _emit_session_updated(class_session_id: int) -> None:
-    """RN-06: notify listeners when free spots / waitlist change.
-
-    Websocket delivery (WS /ws/sessions/{id}) will hook here when that channel exists.
-    """
+    """RN-06: notify listeners when free spots / waitlist change (HU-16, WS /ws/sessions/{id})."""
     logger.info("Session %s updated after booking change", class_session_id)
-
+    session_updates.notify_from_sync(class_session_id)
 
 def notify_sessions_updated(session_ids: list[int]) -> None:
     """Public hook for callers that cancel bookings inside a larger transaction."""
@@ -258,6 +256,8 @@ def book_session(db: Session, *, user_id: int, class_session_id: int) -> Booking
             class_session_id,
         )
         raise ConflictError(ALREADY_BOOKED) from None
+
+    _emit_session_updated(class_session_id)
 
     booking = _load_booking_with_session(db, booking_id)
     position = waitlist_position_for(db, booking)
