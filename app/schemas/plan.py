@@ -5,10 +5,21 @@ Rules: limits on every field (max_length, ge, le); output schemas list only safe
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 from app.schemas.common import Page
 
+PLAN_EXAMPLE = {
+    "id": 1,
+    "name": "Strength",
+    "description": "Hasta 3 clases a la semana.",
+    "monthly_price_cents": 4500,
+    "includes_personal_training": False,
+    "monthly_price_formatted": "45,00 €",
+}
 
 
 class PlanOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={"example": PLAN_EXAMPLE},
+    )
     id: int
     name: str = Field(max_length=80)
     description: str | None
@@ -23,6 +34,10 @@ class PlanOut(BaseModel):
     
 
 class AdminPlanOut(PlanOut):
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={"example": {**PLAN_EXAMPLE, "is_active": False}},
+    )
     is_active: bool
 
 
