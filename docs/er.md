@@ -1,6 +1,6 @@
 ## Modelo de datos
 
-El esquema tiene **18 tablas en tercera forma normal (3FN)**: 11 entran en el sprint 1 (núcleo) y 7 en el sprint 2 (bajas, tienda y pagos). El bloque Mermaid se puede pegar tal cual en el README de GitHub, que lo renderiza como diagrama ER.
+El esquema tiene **19 tablas en tercera forma normal (3FN)**: 11 entran en el sprint 1 (núcleo) y 8 en el sprint 2 (bajas, tienda y pagos). El bloque Mermaid se puede pegar tal cual en el README de GitHub, que lo renderiza como diagrama ER.
 
 ```mermaid
 erDiagram
