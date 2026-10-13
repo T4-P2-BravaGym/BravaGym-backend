@@ -171,7 +171,7 @@ erDiagram
         int discount_code_id FK "nullable"
         int base_amount_cents
         int final_amount_cents
-        string status "pending | paid | failed | refunded"
+        string status "pending | paid | failed | refunded | cancelled"
         string method "simulated | stripe"
         string provider_ref "nullable"
         datetime created_at
