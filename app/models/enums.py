@@ -48,3 +48,11 @@ class PaymentStatus(StrEnum):
 class PaymentMethod(StrEnum):
     SIMULATED = "simulated"
     STRIPE = "stripe"
+
+
+class ProductSize(StrEnum):
+    XS = "XS"
+    S = "S"
+    M = "M"
+    L = "L"
+    XL = "XL"
