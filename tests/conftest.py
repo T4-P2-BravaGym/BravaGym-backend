@@ -15,8 +15,8 @@ from sqlalchemy.pool import StaticPool
 from app.core.database import Base, enable_sqlite_foreign_keys, get_db
 from app.core.security import create_access_token, hash_password
 from app.main import app
-from app.models import MembershipPlan, Product, ProductCategory, Role, Subscription, User
-from app.models.enums import RoleName, SubscriptionStatus
+from app.models import MembershipPlan, Product, ProductCategory, ProductVariant, Role, Subscription, User
+from app.models.enums import ProductSize, RoleName, SubscriptionStatus
 
 TEST_PASSWORD = "Secret123!"
 _email_counter = count(1)
@@ -170,14 +170,19 @@ def make_product(db, make_category):
             price_cents: int = 1000,
             stock: int = 10,
             is_active: bool = True,
+            sizes: dict[str, int] | None = None,
     ) -> Product:
         product = Product(
             category=category or make_category(),
             name=name or f"Product {next(_product_counter)}",
             price_cents=price_cents,
-            stock=stock,
+            stock=0 if sizes else stock,
             is_active=is_active,
         )
+        if sizes:
+            product.variants = [
+                ProductVariant(size=ProductSize(size), stock=units) for size, units in sizes.items()
+            ]
         db.add(product)
         db.commit()
         return product

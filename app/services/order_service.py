@@ -6,10 +6,10 @@ from dataclasses import dataclass
 from sqlalchemy import Select, func, select, update
 from sqlalchemy.orm import Session, selectinload
 
-from app.core.exceptions import ConflictError, NotFoundError
-from app.models import Order, OrderItem, Payment, Product
-from app.models.enums import OrderStatus, PaymentStatus
-from app.schemas.order import OrderCreate
+from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
+from app.models import Order, OrderItem, Payment, Product, ProductVariant
+from app.models.enums import OrderStatus, PaymentStatus, ProductSize
+from app.schemas.order import OrderCreate, OrderLineIn
 
 logger = logging.getLogger(__name__)
 
@@ -19,26 +19,50 @@ PRODUCT_NOT_AVAILABLE = (
 ORDER_NOT_FOUND = "Este pedido no existe."
 ORDER_NOT_CANCELLABLE = "Solo puedes cancelar un pedido que aún no has pagado."
 
+_SIZE_ORDER = list(ProductSize)
+
 
 @dataclass(frozen=True, slots=True)
 class OrderWithPayment:
-
     order: Order
     payment: Payment | None
 
 
-def not_enough_stock_message(product_name: str, available: int) -> str:
+@dataclass(frozen=True, slots=True)
+class _Line:
+    product: Product
+    variant: ProductVariant | None
+    quantity: int
+
+    @property
+    def label(self) -> str:
+        if self.variant is None:
+            return f"«{self.product.name}»"
+        return f"«{self.product.name}» en talla {self.variant.size}"
+
+    @property
+    def sort_key(self) -> tuple[int, int]:
+        return self.product.id, _SIZE_ORDER.index(self.variant.size) if self.variant else -1
+
+
+def not_enough_stock_message(label: str, available: int) -> str:
     if available <= 0:
-        return f"«{product_name}» se ha agotado. Quítalo del carrito para continuar."
+        return f"{label} se ha agotado. Quítalo del carrito para continuar."
     if available == 1:
-        return f"Solo queda 1 unidad de «{product_name}»."
-    return f"Solo quedan {available} unidades de «{product_name}»."
+        return f"Solo queda 1 unidad de {label}."
+    return f"Solo quedan {available} unidades de {label}."
 
 
-def _change_stock(db: Session, product_id: int, delta: int) -> bool:
-    stmt = update(Product).where(Product.id == product_id).values(stock=Product.stock + delta)
+def _update_stock(
+        db: Session, model: type[Product] | type[ProductVariant], row_id: int, delta: int, *conditions
+) -> bool:
+    stmt = (
+        update(model)
+        .where(model.id == row_id, *conditions)
+        .values(stock=model.stock + delta)
+    )
     if delta < 0:
-        stmt = stmt.where(Product.stock >= -delta)
+        stmt = stmt.where(model.stock >= -delta)
     result = db.execute(stmt.execution_options(synchronize_session=False))
     return result.rowcount == 1
 
@@ -51,6 +75,66 @@ def _set_status(db: Session, model: type[Order] | type[Payment], row_id: int, cu
         .execution_options(synchronize_session=False)
     )
     return result.rowcount == 1
+
+
+def _variant_for(product: Product, size: ProductSize | None) -> ProductVariant | None:
+    if not product.has_sizes:
+        if size is not None:
+            raise ValidationAppError(f"«{product.name}» no tiene tallas.")
+        return None
+    if size is None:
+        raise ValidationAppError(f"Elige una talla de «{product.name}».")
+    variant = next((v for v in product.active_variants if v.size == size), None)
+    if variant is None:
+        raise ValidationAppError(f"«{product.name}» no tiene la talla {size}.")
+    return variant
+
+
+def _check_lines(db: Session, lines: list[OrderLineIn]) -> list[_Line]:
+    product_ids = {line.product_id for line in lines}
+    products = {
+        product.id: product
+        for product in db.scalars(
+            select(Product)
+            .options(selectinload(Product.variants))
+            .where(Product.id.in_(product_ids))
+        )
+    }
+    if len(products) != len(product_ids) or not all(p.is_active for p in products.values()):
+        raise ConflictError(PRODUCT_NOT_AVAILABLE)
+
+    checked = [
+        _Line(
+            product=products[line.product_id],
+            variant=_variant_for(products[line.product_id], line.size),
+            quantity=line.quantity,
+        )
+        for line in lines
+    ]
+    return sorted(checked, key=lambda line: line.sort_key)
+
+
+def _take_stock(db: Session, line: _Line) -> bool:
+    if line.variant is None:
+        return _update_stock(db, Product, line.product.id, -line.quantity)
+    return _update_stock(
+        db, ProductVariant, line.variant.id, -line.quantity, ProductVariant.is_active.is_(True)
+    )
+
+
+def _stock_left(db: Session, line: _Line) -> int:
+    if line.variant is None:
+        return db.scalar(select(Product.stock).where(Product.id == line.product.id)) or 0
+    return db.scalar(select(ProductVariant.stock).where(ProductVariant.id == line.variant.id)) or 0
+
+
+def _restore_stock(db: Session, item: OrderItem) -> None:
+    if item.variant_id is None:
+        _update_stock(db, Product, item.product_id, item.quantity)
+    else:
+        _update_stock(
+            db, ProductVariant, item.variant_id, item.quantity, ProductVariant.is_active.is_(True)
+        )
 
 
 def _orders_stmt() -> Select:
@@ -77,36 +161,29 @@ def _get_my_order(db: Session, user_id: int, order_id: int) -> OrderWithPayment:
 
 
 def place_order(db: Session, *, user_id: int, data: OrderCreate) -> OrderWithPayment:
-    quantities = {line.product_id: line.quantity for line in data.items}
-    product_ids = sorted(quantities)
-    products = {
-        product.id: product
-        for product in db.scalars(select(Product).where(Product.id.in_(product_ids)))
-    }
-    if len(products) != len(product_ids) or not all(p.is_active for p in products.values()):
-        raise ConflictError(PRODUCT_NOT_AVAILABLE)
+    lines = _check_lines(db, data.items)
 
     order = Order(user_id=user_id, status=OrderStatus.PENDING)
-    for product_id in product_ids:
-        product = products[product_id]
-        quantity = quantities[product_id]
-        if not _change_stock(db, product_id, -quantity):
-            available = db.scalar(select(Product.stock).where(Product.id == product_id)) or 0
-            product_name = product.name
+    for line in lines:
+        label = line.label
+        if not _take_stock(db, line):
+            available = _stock_left(db, line)
             db.rollback()
             logger.info(
-                "Blocked order for user %s: product %s has %s left, %s requested",
+                "Blocked order for user %s: %s has %s left, %s requested",
                 user_id,
-                product_id,
+                label,
                 available,
-                quantity,
+                line.quantity,
             )
-            raise ConflictError(not_enough_stock_message(product_name, available))
+            raise ConflictError(not_enough_stock_message(label, available))
         order.items.append(
             OrderItem(
-                product_id=product_id,
-                quantity=quantity,
-                unit_price_cents=product.price_cents,
+                product_id=line.product.id,
+                variant_id=line.variant.id if line.variant else None,
+                size=line.variant.size if line.variant else None,
+                quantity=line.quantity,
+                unit_price_cents=line.product.price_cents,
             )
         )
 
@@ -127,7 +204,7 @@ def place_order(db: Session, *, user_id: int, data: OrderCreate) -> OrderWithPay
         "User %s placed order %s (%s lines, %s cents, pending payment %s)",
         user_id,
         order_id,
-        len(product_ids),
+        len(lines),
         total_cents,
         payment_id,
     )
@@ -168,9 +245,12 @@ def cancel_order(db: Session, *, user_id: int, order_id: int) -> OrderWithPaymen
         logger.info("Blocked cancel of order %s for user %s: no longer pending", order_id, user_id)
         raise ConflictError(ORDER_NOT_CANCELLABLE)
 
-    restored = [(item.product_id, item.quantity) for item in order.items]
-    for product_id, quantity in restored:
-        _change_stock(db, product_id, quantity)
+    restored = [
+        f"product {item.product_id}{f' {item.size}' if item.size else ''} +{item.quantity}"
+        for item in order.items
+    ]
+    for item in order.items:
+        _restore_stock(db, item)
     db.commit()
 
     db.expire_all()
@@ -178,7 +258,7 @@ def cancel_order(db: Session, *, user_id: int, order_id: int) -> OrderWithPaymen
         "User %s cancelled order %s (stock restored: %s; payment %s cancelled)",
         user_id,
         order_id,
-        ", ".join(f"product {pid} +{qty}" for pid, qty in restored),
+        ", ".join(restored),
         payment.id if payment is not None else "none",
     )
     return _get_my_order(db, user_id, order_id)
