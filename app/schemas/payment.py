@@ -16,6 +16,7 @@ PaymentConcept = Literal["subscription", "booking", "order"]
 
 PAYMENT_EXAMPLE = {
     "id": 12,
+    "user_id": 3,
     "concept": "subscription",
     "subscription_id": 7,
     "booking_id": None,
@@ -129,6 +130,7 @@ class PaymentOut(BaseModel):
     )
 
     id: int
+    user_id: int
     concept: PaymentConcept
     subscription_id: int | None
     booking_id: int | None
@@ -155,6 +157,7 @@ class PaymentOut(BaseModel):
         code_text = payment.discount_code.code if payment.discount_code is not None else None
         return cls(
             id=payment.id,
+            user_id=payment.user_id,
             concept=concept,
             subscription_id=payment.subscription_id,
             booking_id=payment.booking_id,
