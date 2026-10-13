@@ -5,8 +5,8 @@ import pytest
 from freezegun import freeze_time
 from sqlalchemy import select
 
-from app.models import DiscountCode, MembershipPlan, Payment, Subscription
-from app.models.enums import PaymentStatus, RoleName
+from app.models import DiscountCode, MembershipPlan, Order, Payment, Subscription
+from app.models.enums import OrderStatus, PaymentStatus, RoleName
 from tests.conftest import auth_header_for
 
 PAYMENTS_ME_URL = "/api/v1/payments/me"
@@ -51,6 +51,31 @@ def add_pending_payment(db, user, *, base_cents=5000, subscription=None):
     db.commit()
     db.refresh(payment)
     return payment
+
+
+def add_order_payment(
+    db,
+    user,
+    *,
+    base_cents=2500,
+    order_status=OrderStatus.PENDING,
+    payment_status=PaymentStatus.PENDING,
+):
+    order = Order(user_id=user.id, status=order_status)
+    db.add(order)
+    db.flush()
+    payment = Payment(
+        user_id=user.id,
+        order_id=order.id,
+        base_amount_cents=base_cents,
+        final_amount_cents=base_cents,
+        status=payment_status,
+    )
+    db.add(payment)
+    db.commit()
+    db.refresh(payment)
+    db.refresh(order)
+    return payment, order
 
 
 @freeze_time(TODAY)
@@ -128,6 +153,46 @@ def test_rn16_pay_already_paid_returns_409(client, db, make_user):
 
     assert second.status_code == 409
     assert second.json()["code"] == "conflict"
+
+
+@freeze_time(TODAY)
+def test_rn16_pay_cancelled_payment_returns_409(client, db, make_user):
+    member = make_user(RoleName.MEMBER)
+    payment, order = add_order_payment(
+        db,
+        member,
+        payment_status=PaymentStatus.CANCELLED,
+        order_status=OrderStatus.CANCELLED,
+    )
+
+    response = client.post(pay_url(payment.id), json={}, headers=auth_header_for(member))
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "conflict"
+    db.refresh(payment)
+    db.refresh(order)
+    assert payment.status == PaymentStatus.CANCELLED
+    assert order.status == OrderStatus.CANCELLED
+
+
+@freeze_time(TODAY)
+def test_rn16_pay_order_payment_marks_order_paid(client, db, make_user):
+    member = make_user(RoleName.MEMBER)
+    payment, order = add_order_payment(db, member, base_cents=3490)
+
+    response = client.post(pay_url(payment.id), json={}, headers=auth_header_for(member))
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "paid"
+    assert body["concept"] == "order"
+    assert body["order_id"] == order.id
+    assert body["final_amount_cents"] == 3490
+
+    db.refresh(payment)
+    db.refresh(order)
+    assert payment.status == PaymentStatus.PAID
+    assert order.status == OrderStatus.PAID
 
 
 def test_list_my_payments_only_own_and_filter_by_status(client, db, make_user):
