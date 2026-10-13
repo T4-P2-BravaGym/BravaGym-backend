@@ -8,7 +8,7 @@ from freezegun import freeze_time
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
 from app.models import DiscountCode, MembershipPlan, Order, Payment, Subscription
-from app.models.enums import PaymentStatus, RoleName
+from app.models.enums import OrderStatus, PaymentStatus, RoleName
 from app.services import payment_service
 
 TODAY = "2026-10-08"
@@ -41,6 +41,38 @@ def _add_subscription_payment(
     db.commit()
     db.refresh(payment)
     return payment
+
+
+def _add_order_payment(
+    db,
+    user,
+    *,
+    base_cents=2500,
+    status=None,
+    payment_status=None,
+    order_status=OrderStatus.PENDING,
+    paid_at=None,
+):
+    """Shop order + linked payment (exactly one concept FK). Returns (payment, order)."""
+    resolved_status = payment_status if payment_status is not None else (
+        status if status is not None else PaymentStatus.PENDING
+    )
+    order = Order(user_id=user.id, status=order_status)
+    db.add(order)
+    db.flush()
+    payment = Payment(
+        user_id=user.id,
+        order_id=order.id,
+        base_amount_cents=base_cents,
+        final_amount_cents=base_cents,
+        status=resolved_status,
+        paid_at=paid_at,
+    )
+    db.add(payment)
+    db.commit()
+    db.refresh(payment)
+    db.refresh(order)
+    return payment, order
 
 
 def _add_code(db, admin, **changes):
@@ -166,6 +198,44 @@ def test_rn16_pay_already_paid_returns_409(db, make_user):
         payment_service.pay_payment(db, member, payment.id)
 
 
+@freeze_time(TODAY)
+def test_rn16_pay_cancelled_payment_returns_409(db, make_user):
+    """Cancelled payments cannot be paid (same 409 as any non-pending)."""
+    member = make_user(RoleName.MEMBER)
+    payment, order = _add_order_payment(
+        db,
+        member,
+        payment_status=PaymentStatus.CANCELLED,
+        order_status=OrderStatus.CANCELLED,
+    )
+
+    with pytest.raises(ConflictError, match="pendiente"):
+        payment_service.pay_payment(db, member, payment.id)
+
+    db.refresh(payment)
+    db.refresh(order)
+    assert payment.status == PaymentStatus.CANCELLED
+    assert payment.paid_at is None
+    assert order.status == OrderStatus.CANCELLED
+
+
+@freeze_time(TODAY)
+def test_rn16_pay_order_payment_marks_order_paid_same_transaction(db, make_user):
+    """Paying an order-linked payment sets the order to paid before commit."""
+    member = make_user(RoleName.MEMBER)
+    payment, order = _add_order_payment(db, member, base_cents=3490)
+
+    result = payment_service.pay_payment(db, member, payment.id)
+
+    assert result.status == PaymentStatus.PAID
+    assert result.order_id == order.id
+    assert result.final_amount_cents == 3490
+    assert result.paid_at == datetime(2026, 10, 8)
+
+    db.refresh(order)
+    assert order.status == OrderStatus.PAID
+
+
 def test_pay_unknown_or_foreign_payment_returns_404(db, make_user):
     owner = make_user(RoleName.MEMBER)
     other = make_user(RoleName.MEMBER)
@@ -203,24 +273,6 @@ def test_list_my_payments_filters_by_status_and_excludes_others(db, make_user):
     assert only_pending[0].id == pending.id
 
 
-def _add_order_payment(db, user, *, base_cents=2500, status=PaymentStatus.PENDING, paid_at=None):
-    order = Order(user_id=user.id)
-    db.add(order)
-    db.flush()
-    payment = Payment(
-        user_id=user.id,
-        order_id=order.id,
-        base_amount_cents=base_cents,
-        final_amount_cents=base_cents,
-        status=status,
-        paid_at=paid_at,
-    )
-    db.add(payment)
-    db.commit()
-    db.refresh(payment)
-    return payment
-
-
 def test_list_payments_filters_status_dates_user_and_concept(db, make_user):
     member_a = make_user(RoleName.MEMBER)
     member_b = make_user(RoleName.MEMBER)
@@ -235,7 +287,7 @@ def test_list_payments_filters_status_dates_user_and_concept(db, make_user):
         subscription=early.subscription,
     )
     mid.created_at = datetime(2026, 10, 5, 12, 0, 0)
-    other = _add_order_payment(db, member_b, base_cents=1200)
+    other, _ = _add_order_payment(db, member_b, base_cents=1200)
     other.created_at = datetime(2026, 10, 5, 15, 0, 0)
     db.commit()
 
