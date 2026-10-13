@@ -1,13 +1,13 @@
 import logging
 from enum import StrEnum
 
-from sqlalchemy import exists, func, select
+from sqlalchemy import and_, case, exists, func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
-from app.models import Product, ProductCategory
-from app.schemas.shop import CategoryIn, ProductCreate, ProductUpdate
+from app.models import Product, ProductCategory, ProductVariant
+from app.schemas.shop import CategoryIn, ProductCreate, ProductUpdate, SizeIn
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +17,15 @@ CATEGORY_NOT_FOUND = "Categoría no encontrada."
 UNKNOWN_CATEGORY = "La categoría elegida no existe."
 CATEGORY_NAME_TAKEN = "Ya existe una categoría con ese nombre."
 CATEGORY_HAS_PRODUCTS = "No se puede borrar: esta categoría tiene productos."
+STOCK_IS_PER_SIZE = "Este producto tiene tallas: el stock se pone en cada talla."
+
+_ACTIVE_SIZE = and_(ProductVariant.product_id == Product.id, ProductVariant.is_active.is_(True))
+_HAS_SIZES = exists().where(_ACTIVE_SIZE)
+_SIZES_STOCK = (
+    select(func.coalesce(func.sum(ProductVariant.stock), 0)).where(_ACTIVE_SIZE).scalar_subquery()
+)
+AVAILABLE_STOCK = case((_HAS_SIZES, _SIZES_STOCK), else_=Product.stock)
+
 
 class ProductStatus(StrEnum):
 
@@ -28,7 +37,7 @@ class ProductStatus(StrEnum):
 _STATUS_CONDITION = {
     ProductStatus.ACTIVE: Product.is_active.is_(True),
     ProductStatus.INACTIVE: Product.is_active.is_(False),
-    ProductStatus.OUT_OF_STOCK: Product.stock == 0,
+    ProductStatus.OUT_OF_STOCK: AVAILABLE_STOCK == 0,
 }
 
 class ProductSort(StrEnum):
@@ -88,7 +97,7 @@ def list_products(
 
     stmt = (
         select(Product)
-        .options(joinedload(Product.category))
+        .options(joinedload(Product.category), selectinload(Product.variants))
         .where(*conditions)
         .order_by(*order_by)
         .offset((page - 1) * size)
@@ -111,22 +120,50 @@ def _category_for_product(db: Session, category_id: int) -> ProductCategory:
     return category
 
 
+def _apply_sizes(product: Product, sizes: list[SizeIn]) -> None:
+    wanted = {item.size: item.stock for item in sizes}
+    existing = {variant.size: variant for variant in product.variants}
+    for size, stock in wanted.items():
+        variant = existing.get(size)
+        if variant is None:
+            product.variants.append(ProductVariant(size=size, stock=stock, is_active=True))
+        else:
+            variant.stock = stock
+            variant.is_active = True
+    for size, variant in existing.items():
+        if size not in wanted and variant.is_active:
+            variant.stock = 0
+            variant.is_active = False
+    if wanted:
+        product.stock = 0
+
+
 def create_product(db: Session, data: ProductCreate) -> Product:
-    fields = data.model_dump()
+    fields = data.model_dump(exclude={"sizes"})
     category = _category_for_product(db, fields.pop("category_id"))
     product = Product(**fields, category=category, is_active=True)
+    if data.sizes:
+        _apply_sizes(product, data.sizes)
     db.add(product)
     db.commit()
     db.refresh(product)
-    logger.info("Created product %s in category %s", product.id, category.id)
+    logger.info(
+        "Created product %s in category %s (%s sizes)", product.id, category.id, len(data.sizes)
+    )
     return product
 
 
 def update_product(db: Session, product_id: int, data: ProductUpdate) -> Product:
     product = get_product(db, product_id)
-    changes = data.model_dump(exclude_unset=True)
+    changes = data.model_dump(exclude_unset=True, exclude={"sizes"})
+    sizes_sent = "sizes" in data.model_fields_set
+    will_have_sizes = bool(data.sizes) if sizes_sent else product.has_sizes
+    if "stock" in changes and will_have_sizes:
+        raise ValidationAppError(STOCK_IS_PER_SIZE)
+
+    if sizes_sent:
+        _apply_sizes(product, data.sizes)
     if "category_id" in changes:
-        # Set the relationship, not only the id, so product.category is never stale.
         product.category = _category_for_product(db, changes.pop("category_id"))
     for field, value in changes.items():
         setattr(product, field, value)
