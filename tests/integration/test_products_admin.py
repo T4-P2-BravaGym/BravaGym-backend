@@ -110,6 +110,7 @@ def test_admin_and_superadmin_create_a_product(client, auth_headers, category, r
         "name": "Straps de agarre",
         "description": "Algodón.",
         "price_cents": 1290,
+        "sizes": [],
         "stock": 5,
         "in_stock": True,
         "is_active": True,

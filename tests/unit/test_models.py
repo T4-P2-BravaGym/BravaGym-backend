@@ -22,6 +22,7 @@ EXPECTED_TABLES = {
     "routine_exercises",
     "product_categories",
     "products",
+    "product_variants",
     "orders",
     "order_items",
     "discount_codes",
@@ -42,7 +43,7 @@ def make_member(db) -> User:
     return member
 
 
-def test_schema_has_the_18_tables(db):
+def test_schema_has_the_19_tables(db):
     assert set(inspect(db.get_bind()).get_table_names()) == EXPECTED_TABLES
 
 
