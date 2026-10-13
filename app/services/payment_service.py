@@ -13,8 +13,8 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import ColumnElement
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
-from app.models import Payment, User
-from app.models.enums import PaymentStatus
+from app.models import Order, Payment, User
+from app.models.enums import OrderStatus, PaymentStatus
 from app.models.types import utc_now
 from app.schemas.payment import PaymentConcept
 from app.services import discount_service
@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 PAYMENT_NOT_FOUND = "No existe ese pago."
 PAYMENT_NOT_PENDING = "Este pago ya no está pendiente."
 PAYMENT_NOT_PAID = "Solo se puede reembolsar un pago que esté pagado."
+ORDER_NOT_FOUND = "No existe el pedido de este pago."
 INVALID_DATE_RANGE = (
     "El rango de fechas no es válido: 'from' debe ser anterior o igual a 'to'."
 )
@@ -242,9 +243,14 @@ def pay_payment(
     payment_id: int,
     discount_code_text: str | None = None,
 ) -> Payment:
-    """RN-16: pending → paid. Optional discount via discount_service.get_valid_code (RN-14, RN-15)."""
+    """RN-16: pending → paid. Optional discount via discount_service.get_valid_code (RN-14, RN-15).
+
+    Cancelled (and any non-pending) payments → 409. Order-linked payments also mark the
+    order as paid in the same transaction.
+    """
     payment = _get_own_payment_or_404(db, member.id, payment_id)
 
+    # Includes cancelled, paid, failed, refunded — same 409 as any non-pending.
     if payment.status != PaymentStatus.PENDING:
         raise ConflictError(PAYMENT_NOT_PENDING)
 
@@ -260,17 +266,25 @@ def pay_payment(
 
     payment.status = PaymentStatus.PAID
     payment.paid_at = utc_now()
+
+    if payment.order_id is not None:
+        order = db.get(Order, payment.order_id)
+        if order is None:
+            raise NotFoundError(ORDER_NOT_FOUND)
+        order.status = OrderStatus.PAID
+
     db.commit()
     db.refresh(payment)
 
     # Re-load with relationship for the response schema.
     payment = _get_own_payment_or_404(db, member.id, payment.id)
     logger.info(
-        "User %s paid payment %s (final_amount_cents=%s, discount_code_id=%s)",
+        "User %s paid payment %s (final_amount_cents=%s, discount_code_id=%s, order_id=%s)",
         member.id,
         payment.id,
         payment.final_amount_cents,
         payment.discount_code_id,
+        payment.order_id,
     )
     return payment
 
