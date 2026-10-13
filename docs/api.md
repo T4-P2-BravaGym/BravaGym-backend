@@ -39,6 +39,7 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | GET | `/trainers` | Público | Con perfil y especialidad |
 | PATCH | `/trainers/me/profile` | Trainer | Bio y especialidad |
 | GET | `/plans` | Público | Página de pricing; solo activos |
+| GET | `/plans/admin` | Admin, superadmin | Activos y desactivados, con `is_active`; paginado con `page` y `size` (máximo 100) |
 | POST / PATCH / DELETE | `/plans`, `/plans/{id}` | Admin, superadmin | DELETE = desactivar |
 | POST | `/subscriptions` | Member | RN-11; crea el pago `pending` de la cuota |
 | GET | `/subscriptions/me` | Member | Suscripción actual e historial |

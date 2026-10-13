@@ -4,6 +4,39 @@ from app.models.membership import MembershipPlan
 from app.models.enums import RoleName
 
 
+@pytest.mark.parametrize("role", [RoleName.ADMIN, RoleName.SUPERADMIN])
+def test_admin_list_includes_retired_plans_but_public_list_hides_them(client, auth_headers, make_plan, role):
+    retired = make_plan(name="Retired", is_active=False, monthly_price_cents=100)
+    active = make_plan(name="Current", monthly_price_cents=3900)
+    response = client.get("/api/v1/plans/admin", headers=auth_headers(role))
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 2
+    assert [item["id"] for item in body["items"]] == [active.id, retired.id]
+    assert [item["is_active"] for item in body["items"]] == [True, False]
+    assert [item["id"] for item in client.get("/api/v1/plans").json()] == [active.id]
+
+
+def test_admin_list_requires_login(client):
+    assert client.get("/api/v1/plans/admin").status_code == 401
+
+
+@pytest.mark.parametrize("role", [RoleName.MEMBER, RoleName.TRAINER])
+def test_admin_list_rejects_other_roles(client, auth_headers, role):
+    assert client.get("/api/v1/plans/admin", headers=auth_headers(role)).status_code == 403
+
+
+def test_admin_list_pagination(client, auth_headers, make_plan):
+    make_plan(monthly_price_cents=100)
+    second = make_plan(monthly_price_cents=200)
+    headers = auth_headers(RoleName.ADMIN)
+    response = client.get("/api/v1/plans/admin?page=2&size=1", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["total"] == 2
+    assert response.json()["items"][0]["id"] == second.id
+    assert client.get("/api/v1/plans/admin?size=101", headers=headers).status_code == 422
+
+
 def test_admin_can_create_plan(client, db, auth_headers):
     response = client.post(
         "/api/v1/plans",
@@ -372,3 +405,55 @@ def test_update_plan_can_keep_its_own_name(
     db.refresh(plan)
     assert plan.name == "Basic"
     assert plan.monthly_price_cents == 4500
+
+
+def test_superadmin_can_create_update_and_deactivate_plan(client, db, auth_headers):
+    headers = auth_headers(RoleName.SUPERADMIN)
+    created = client.post(
+        "/api/v1/plans", headers=headers,
+        json={"name": "Superadmin plan", "monthly_price_cents": 4500},
+    )
+    assert created.status_code == 201
+    plan_id = created.json()["id"]
+    updated = client.patch(
+        f"/api/v1/plans/{plan_id}", headers=headers,
+        json={"monthly_price_cents": 5000},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["monthly_price_cents"] == 5000
+    retired = client.delete(f"/api/v1/plans/{plan_id}", headers=headers)
+    assert retired.status_code == 200
+    plan = db.get(MembershipPlan, plan_id)
+    db.refresh(plan)
+    assert plan.is_active is False
+
+
+def test_admin_can_clear_plan_description(client, db, auth_headers, make_plan):
+    plan = make_plan(name="Description test")
+    plan.description = "Original description"
+    db.commit()
+    response = client.patch(
+        f"/api/v1/plans/{plan.id}", headers=auth_headers(RoleName.ADMIN),
+        json={"description": None},
+    )
+    assert response.status_code == 200
+    assert response.json()["description"] is None
+    db.refresh(plan)
+    assert plan.description is None
+    assert plan.name == "Description test"
+
+
+def test_deactivating_retired_plan_preserves_subscription(
+    client, db, auth_headers, make_user, make_plan, make_subscription
+):
+    plan = make_plan(name="Already retired", is_active=False)
+    subscription = make_subscription(user=make_user(), plan=plan)
+    original = (subscription.plan_id, subscription.status, subscription.start_date, subscription.end_date)
+    headers = auth_headers(RoleName.ADMIN)
+    for _ in range(2):
+        response = client.delete(f"/api/v1/plans/{plan.id}", headers=headers)
+        assert response.status_code == 200
+    db.refresh(plan)
+    db.refresh(subscription)
+    assert plan.is_active is False
+    assert (subscription.plan_id, subscription.status, subscription.start_date, subscription.end_date) == original

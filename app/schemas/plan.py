@@ -3,6 +3,7 @@
 Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
 """
 from pydantic import BaseModel, ConfigDict, Field, computed_field
+from app.schemas.common import Page
 
 
 
@@ -20,6 +21,14 @@ class PlanOut(BaseModel):
         euros, cents = divmod(self.monthly_price_cents, 100)
         return f"{euros},{cents:02d} €"
     
+
+class AdminPlanOut(PlanOut):
+    is_active: bool
+
+
+class AdminPlanPage(Page[AdminPlanOut]):
+    pass
+
 
 class PlanCreate(BaseModel):
     model_config = ConfigDict(

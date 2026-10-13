@@ -2,7 +2,7 @@
 
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -21,6 +21,18 @@ def list_active_plans(db: Session) -> list[MembershipPlan]:
     )
 
     return list(db.scalars(query).all())
+
+
+def list_admin_plans(db: Session, *, page: int = 1, size: int = 20):
+    """List active and retired plans, with active plans first."""
+    total = db.scalar(select(func.count(MembershipPlan.id))) or 0
+    query = (
+        select(MembershipPlan)
+        .order_by(MembershipPlan.is_active.desc(), MembershipPlan.monthly_price_cents, MembershipPlan.id)
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+    return list(db.scalars(query).all()), total
 
 
 def create_plan(db: Session, data: PlanCreate) -> MembershipPlan:
