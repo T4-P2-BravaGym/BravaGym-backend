@@ -1,7 +1,6 @@
-from sqlalchemy import select
-
 from app.core.security import verify_password
 from app.models import User
+from sqlalchemy import select
 
 URL = "/api/v1/auth/register"
 
@@ -76,6 +75,7 @@ def test_register_invalid_email_returns_422(client, roles):
     response = client.post(URL, json=valid_payload(email="no-es-un-email"))
 
     assert response.status_code == 422
+
 
 def test_register_name_with_digits_returns_422(client):
     body = {

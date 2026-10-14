@@ -31,11 +31,14 @@ def list_trainers(db: Annotated[Session, Depends(get_db)]) -> list[TrainerOut]:
     "/me/profile",
     response_model=TrainerOut,
     summary="Update my public trainer profile (specialty and bio)",
-    responses={401: {"description": "Not logged in"}, 403: {"description": "Not a trainer"}},
+    responses={
+        401: {"description": "Not logged in"},
+        403: {"description": "Not a trainer"},
+    },
 )
 def update_my_profile(
-        changes: TrainerProfileUpdate,
-        trainer: Annotated[User, Depends(require_roles(RoleName.TRAINER))],
-        db: Annotated[Session, Depends(get_db)],
+    changes: TrainerProfileUpdate,
+    trainer: Annotated[User, Depends(require_roles(RoleName.TRAINER))],
+    db: Annotated[Session, Depends(get_db)],
 ) -> TrainerOut:
     return trainer_service.update_my_profile(db, trainer, changes)

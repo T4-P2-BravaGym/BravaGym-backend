@@ -16,6 +16,7 @@ NAMING_CONVENTION = {
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
+
 def enable_sqlite_foreign_keys(engine: Engine) -> None:
 
     @event.listens_for(engine, "connect")

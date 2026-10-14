@@ -2,6 +2,7 @@
 
 Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
 """
+
 from datetime import date, datetime
 from typing import Literal
 
@@ -67,7 +68,9 @@ class DiscountCodeCreate(BaseModel):
 class DiscountCodeUpdate(BaseModel):
     """What an admin can change in a code. The code text itself never changes."""
 
-    model_config = ConfigDict(json_schema_extra={"example": {"percent_off": 15, "max_uses": 100}})
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"percent_off": 15, "max_uses": 100}}
+    )
 
     percent_off: int = Field(default=None, ge=1, le=100)
     valid_from: date = None
@@ -96,7 +99,9 @@ class DiscountCodePage(Page[DiscountCodeOut]):
 class DiscountValidationOut(BaseModel):
     """What a member gets when her code is valid (RN-14)."""
 
-    model_config = ConfigDict(json_schema_extra={"example": {"code": "VERANO20", "percent_off": 20}})
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"code": "VERANO20", "percent_off": 20}}
+    )
 
     code: str
     percent_off: int
@@ -154,7 +159,9 @@ class PaymentOut(BaseModel):
         else:
             raise ValueError("Payment must reference exactly one concept")
 
-        code_text = payment.discount_code.code if payment.discount_code is not None else None
+        code_text = (
+            payment.discount_code.code if payment.discount_code is not None else None
+        )
         return cls(
             id=payment.id,
             user_id=payment.user_id,

@@ -1,5 +1,5 @@
-"""Controller for users: receives the request, checks permissions, calls the service, returns a schema (HU-04, HU-05, HU-06, HU-31).
-"""
+"""Controller for users: receives the request, checks permissions, calls the service, returns a schema (HU-04, HU-05, HU-06, HU-31)."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
@@ -16,7 +16,9 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 DbSession = Annotated[Session, Depends(get_db)]
 
-CurrentAdmin = Annotated[User, Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN))]
+CurrentAdmin = Annotated[
+    User, Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN))
+]
 
 
 @router.get(
@@ -35,16 +37,18 @@ CurrentAdmin = Annotated[User, Depends(require_roles(RoleName.ADMIN, RoleName.SU
     },
 )
 def list_users(
-        admin: CurrentAdmin,  # only used to check the role
-        db: DbSession,
-        role: Annotated[RoleName | None, Query(description="Filter by role")] = None,
-        is_active: Annotated[bool | None, Query(description="true = active, false = deactivated")] = None,
-        q: Annotated[
-            str | None,
-            Query(max_length=60, description="Search in first name, last name and email"),
-        ] = None,
-        page: Annotated[int, Query(ge=1)] = 1,
-        size: Annotated[int, Query(ge=1, le=100)] = 20,
+    admin: CurrentAdmin,  # only used to check the role
+    db: DbSession,
+    role: Annotated[RoleName | None, Query(description="Filter by role")] = None,
+    is_active: Annotated[
+        bool | None, Query(description="true = active, false = deactivated")
+    ] = None,
+    q: Annotated[
+        str | None,
+        Query(max_length=60, description="Search in first name, last name and email"),
+    ] = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> UserPage:
     users, total = user_service.list_users(
         db, role=role, is_active=is_active, q=q, page=page, size=size
@@ -72,12 +76,15 @@ def get_me(current_user: CurrentUser) -> UserOut:
     "/me",
     response_model=UserOut,
     summary="Update my profile (name, phone and email)",
-    responses={401: {"description": "Not logged in"}, 409: {"description": "Email already in use"}},
+    responses={
+        401: {"description": "Not logged in"},
+        409: {"description": "Email already in use"},
+    },
 )
 def update_me(
-        changes: UserUpdate,
-        current_user: CurrentUser,
-        db: DbSession,
+    changes: UserUpdate,
+    current_user: CurrentUser,
+    db: DbSession,
 ) -> UserOut:
     return user_service.update_me(db, current_user, changes)
 
@@ -88,24 +95,35 @@ def update_me(
     summary="Change a user's role (RN-18, RN-19)",
     responses={
         401: {"description": "Not logged in"},
-        403: {"description": "Not admin, or an admin trying to give or remove admin/superadmin"},
+        403: {
+            "description": "Not admin, or an admin trying to give or remove admin/superadmin"
+        },
         404: {"description": "The user does not exist"},
         409: {"description": "Changing your own role, or removing the last superadmin"},
     },
 )
-def change_role(user_id: int, data: RoleUpdate, actor: CurrentAdmin, db: DbSession) -> UserOut:
+def change_role(
+    user_id: int, data: RoleUpdate, actor: CurrentAdmin, db: DbSession
+) -> UserOut:
     return user_service.change_role(db, actor, user_id, data.role)
 
 
 # The /{user_id} routes go after /me: FastAPI would read "me" as an id otherwise
 ADMIN_ERRORS = {
     401: {"description": "Not logged in"},
-    403: {"description": "Not admin, or an admin trying to manage an admin or superadmin"},
+    403: {
+        "description": "Not admin, or an admin trying to manage an admin or superadmin"
+    },
     404: {"description": "The user does not exist"},
 }
 
 
-@router.get("/{user_id}", response_model=UserOut, summary="Get a user (admin)", responses=ADMIN_ERRORS)
+@router.get(
+    "/{user_id}",
+    response_model=UserOut,
+    summary="Get a user (admin)",
+    responses=ADMIN_ERRORS,
+)
 def get_user(user_id: int, admin: CurrentAdmin, db: DbSession) -> UserOut:
     return user_service.get_user(db, user_id)
 
@@ -116,7 +134,9 @@ def get_user(user_id: int, admin: CurrentAdmin, db: DbSession) -> UserOut:
     summary="Edit a user's name, phone and email (admin)",
     responses={**ADMIN_ERRORS, 409: {"description": "Email already in use"}},
 )
-def update_user(user_id: int, changes: UserAdminUpdate, admin: CurrentAdmin, db: DbSession) -> UserOut:
+def update_user(
+    user_id: int, changes: UserAdminUpdate, admin: CurrentAdmin, db: DbSession
+) -> UserOut:
     return user_service.update_user(db, admin, user_id, changes)
 
 
@@ -128,7 +148,10 @@ def update_user(user_id: int, changes: UserAdminUpdate, admin: CurrentAdmin, db:
         "Sets is_active=false and deactivated_at, cancels her active subscription and future "
         "bookings (as an approved cancellation, HU-20). The row is kept and she can no longer log in."
     ),
-    responses={**ADMIN_ERRORS, 409: {"description": "Deactivating yourself, or the last superadmin"}},
+    responses={
+        **ADMIN_ERRORS,
+        409: {"description": "Deactivating yourself, or the last superadmin"},
+    },
 )
 def deactivate_user(user_id: int, admin: CurrentAdmin, db: DbSession) -> None:
     user_service.deactivate_user(db, admin, user_id)

@@ -3,6 +3,7 @@
 Keep endpoints thin: no business rules and no complex queries here.
 Every endpoint: response_model, summary, and require_roles(...) when it is not public.
 """
+
 from datetime import datetime
 from typing import Annotated
 
@@ -98,7 +99,9 @@ def list_payments(
         datetime | None,
         Query(description="Inclusive end of created_at range (UTC)"),
     ] = None,
-    user_id: Annotated[int | None, Query(ge=1, description="Filter by member user id")] = None,
+    user_id: Annotated[
+        int | None, Query(ge=1, description="Filter by member user id")
+    ] = None,
     concept: Annotated[
         PaymentConcept | None,
         Query(description="Filter by derived concept: subscription, booking or order"),
@@ -156,7 +159,9 @@ def export_payments(
         datetime | None,
         Query(description="Inclusive end of created_at range (UTC)"),
     ] = None,
-    user_id: Annotated[int | None, Query(ge=1, description="Filter by member user id")] = None,
+    user_id: Annotated[
+        int | None, Query(ge=1, description="Filter by member user id")
+    ] = None,
     concept: Annotated[
         PaymentConcept | None,
         Query(description="Filter by derived concept: subscription, booking or order"),
@@ -191,7 +196,9 @@ def export_payments(
         **MEMBER_AUTH_RESPONSES,
         404: {"description": "Payment does not exist or is not yours"},
         409: {"description": "Payment is not pending (already paid or refunded)"},
-        422: {"description": "Discount code unknown, inactive, out of dates or used up"},
+        422: {
+            "description": "Discount code unknown, inactive, out of dates or used up"
+        },
     },
 )
 def pay_payment(

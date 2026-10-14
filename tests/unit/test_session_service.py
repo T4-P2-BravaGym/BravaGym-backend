@@ -1,9 +1,8 @@
 """HU-10 free-spots / filters and HU-11 overlap (RN-09) + ownership (RN-10)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
-
 from app.core.exceptions import ConflictError, PermissionDeniedError, ValidationAppError
 from app.models import Booking, ClassSession, ClassType, Payment
 from app.models.enums import BookingStatus, PaymentStatus, RoleName, SessionStatus
@@ -32,7 +31,7 @@ def test_list_sessions_counts_only_confirmed_bookings(db, make_user):
     db.add(class_type)
     db.flush()
 
-    starts = datetime.now(timezone.utc) + timedelta(days=1)
+    starts = datetime.now(UTC) + timedelta(days=1)
     session = ClassSession(
         class_type=class_type,
         trainer=trainer,
@@ -53,10 +52,18 @@ def test_list_sessions_counts_only_confirmed_bookings(db, make_user):
     members = [make_user(RoleName.MEMBER) for _ in range(4)]
     db.add_all(
         [
-            Booking(user=members[0], class_session=session, status=BookingStatus.CONFIRMED),
-            Booking(user=members[1], class_session=session, status=BookingStatus.CONFIRMED),
-            Booking(user=members[2], class_session=session, status=BookingStatus.WAITLISTED),
-            Booking(user=members[3], class_session=session, status=BookingStatus.CANCELLED),
+            Booking(
+                user=members[0], class_session=session, status=BookingStatus.CONFIRMED
+            ),
+            Booking(
+                user=members[1], class_session=session, status=BookingStatus.CONFIRMED
+            ),
+            Booking(
+                user=members[2], class_session=session, status=BookingStatus.WAITLISTED
+            ),
+            Booking(
+                user=members[3], class_session=session, status=BookingStatus.CANCELLED
+            ),
         ]
     )
     db.commit()
@@ -85,7 +92,7 @@ def _seed_schedule(db, make_user):
     db.add_all([strength, olympic])
     db.flush()
 
-    base = datetime(2026, 10, 6, 8, 0, tzinfo=timezone.utc)
+    base = datetime(2026, 10, 6, 8, 0, tzinfo=UTC)
     open_strength = ClassSession(
         class_type=strength,
         trainer=trainer_a,
@@ -117,14 +124,24 @@ def _seed_schedule(db, make_user):
         starts_at=base + timedelta(days=10),
         capacity=12,
     )
-    db.add_all([open_strength, full_strength, olympic_session, cancelled, outside_range])
+    db.add_all(
+        [open_strength, full_strength, olympic_session, cancelled, outside_range]
+    )
     db.flush()
 
     members = [make_user(RoleName.MEMBER) for _ in range(2)]
     db.add_all(
         [
-            Booking(user=members[0], class_session=full_strength, status=BookingStatus.CONFIRMED),
-            Booking(user=members[1], class_session=full_strength, status=BookingStatus.CONFIRMED),
+            Booking(
+                user=members[0],
+                class_session=full_strength,
+                status=BookingStatus.CONFIRMED,
+            ),
+            Booking(
+                user=members[1],
+                class_session=full_strength,
+                status=BookingStatus.CONFIRMED,
+            ),
         ]
     )
     db.commit()
@@ -206,13 +223,19 @@ def test_list_sessions_paginates(db, make_user):
     data = _seed_schedule(db, make_user)
     base = data["base"]
 
-    page1, total = list_sessions(db, from_=base, to=base + timedelta(days=2), page=1, size=2)
-    page2, total2 = list_sessions(db, from_=base, to=base + timedelta(days=2), page=2, size=2)
+    page1, total = list_sessions(
+        db, from_=base, to=base + timedelta(days=2), page=1, size=2
+    )
+    page2, total2 = list_sessions(
+        db, from_=base, to=base + timedelta(days=2), page=2, size=2
+    )
 
     assert total == total2 == 3
     assert len(page1) == 2
     assert len(page2) == 1
-    assert {row.session.id for row in page1}.isdisjoint({row.session.id for row in page2})
+    assert {row.session.id for row in page1}.isdisjoint(
+        {row.session.id for row in page2}
+    )
 
 
 def test_list_sessions_rejects_inverted_date_range(db, make_user):
@@ -220,8 +243,8 @@ def test_list_sessions_rejects_inverted_date_range(db, make_user):
     with pytest.raises(ValidationAppError) as exc:
         list_sessions(
             db,
-            from_=datetime(2026, 10, 10, tzinfo=timezone.utc),
-            to=datetime(2026, 10, 1, tzinfo=timezone.utc),
+            from_=datetime(2026, 10, 10, tzinfo=UTC),
+            to=datetime(2026, 10, 1, tzinfo=UTC),
         )
     assert exc.value.detail == INVALID_DATE_RANGE
     assert exc.value.status_code == 422
@@ -238,7 +261,7 @@ def _make_class_type(db, name: str = "Fuerza HU-11") -> ClassType:
 
 
 def test_sessions_overlap_half_open_intervals():
-    start = datetime(2026, 10, 8, 10, 0, tzinfo=timezone.utc)
+    start = datetime(2026, 10, 8, 10, 0, tzinfo=UTC)
     assert sessions_overlap(
         starts_a=start,
         duration_a=60,
@@ -257,7 +280,7 @@ def test_rn09_create_overlapping_session_raises_409(db, make_user):
     trainer = make_user(RoleName.TRAINER)
     class_type = _make_class_type(db)
     db.commit()
-    starts = datetime(2026, 10, 8, 17, 0, tzinfo=timezone.utc)
+    starts = datetime(2026, 10, 8, 17, 0, tzinfo=UTC)
 
     session_service.create_session(
         db,
@@ -289,7 +312,7 @@ def test_rn09_adjacent_sessions_do_not_overlap(db, make_user):
     trainer = make_user(RoleName.TRAINER)
     class_type = _make_class_type(db, name="Adyacente")
     db.commit()
-    starts = datetime(2026, 10, 8, 9, 0, tzinfo=timezone.utc)
+    starts = datetime(2026, 10, 8, 9, 0, tzinfo=UTC)
 
     first = session_service.create_session(
         db,
@@ -318,7 +341,7 @@ def test_rn09_cancelled_session_does_not_block_overlap(db, make_user):
     trainer = make_user(RoleName.TRAINER)
     class_type = _make_class_type(db, name="Tras cancelar")
     db.commit()
-    starts = datetime(2026, 10, 8, 11, 0, tzinfo=timezone.utc)
+    starts = datetime(2026, 10, 8, 11, 0, tzinfo=UTC)
 
     created = session_service.create_session(
         db,
@@ -356,7 +379,7 @@ def test_rn10_other_trainer_cannot_update_raises_403(db, make_user):
         owner,
         SessionCreate(
             class_type_id=class_type.id,
-            starts_at=datetime(2026, 10, 9, 10, 0, tzinfo=timezone.utc),
+            starts_at=datetime(2026, 10, 9, 10, 0, tzinfo=UTC),
             duration_minutes=60,
             capacity=8,
         ),
@@ -384,7 +407,7 @@ def test_rn10_superadmin_can_update_other_trainer_session(db, make_user):
         owner,
         SessionCreate(
             class_type_id=class_type.id,
-            starts_at=datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc),
+            starts_at=datetime(2026, 10, 9, 12, 0, tzinfo=UTC),
             duration_minutes=60,
             capacity=8,
         ),
@@ -411,7 +434,7 @@ def test_rn10_cancel_cancels_bookings_and_refunds_payments(db, make_user):
     session = ClassSession(
         class_type=class_type,
         trainer=trainer,
-        starts_at=datetime(2026, 10, 10, 18, 0, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 10, 18, 0, tzinfo=UTC),
         capacity=4,
     )
     db.add(session)

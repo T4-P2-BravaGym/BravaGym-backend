@@ -1,10 +1,8 @@
 """Integration tests for admin cancellation review (HU-20 / RN-13)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy import select
-
 from app.models import Booking, CancellationRequest, ClassSession, ClassType
 from app.models.enums import (
     BookingStatus,
@@ -14,6 +12,8 @@ from app.models.enums import (
     SubscriptionStatus,
 )
 from app.services import booking_service
+from sqlalchemy import select
+
 from tests.conftest import TEST_PASSWORD, auth_header_for
 
 CANCEL_URL = "/api/v1/cancellation-requests"
@@ -47,7 +47,7 @@ def _make_class_session(
     session = ClassSession(
         class_type=class_type,
         trainer=trainer,
-        starts_at=starts_at or (datetime.now(timezone.utc) + timedelta(days=3)),
+        starts_at=starts_at or (datetime.now(UTC) + timedelta(days=3)),
         capacity=capacity,
         status=SessionStatus.SCHEDULED,
     )
@@ -191,7 +191,9 @@ def test_list_cancellation_requests_filters_and_paginates(
     assert pending_resp.json()["total"] == 1
     pending_item = pending_resp.json()["items"][0]
     assert pending_item["id"] == second["id"]
-    assert pending_item["member_name"] == f"{member.first_name} {member.last_name}".strip()
+    assert (
+        pending_item["member_name"] == f"{member.first_name} {member.last_name}".strip()
+    )
     assert pending_item["member_email"] == member.email
     assert pending_item["plan_name"]
     assert page_resp.json()["size"] == 1
@@ -209,27 +211,38 @@ def test_admin_endpoints_forbid_non_admin_roles(
     headers = auth_header_for(actor)
 
     assert client.get(CANCEL_URL, headers=headers).status_code == 403
-    assert client.post(
-        f"{CANCEL_URL}/{created['id']}/approve", headers=headers
-    ).status_code == 403
-    assert client.post(
-        f"{CANCEL_URL}/{created['id']}/reject",
-        json={"admin_notes": "No"},
-        headers=headers,
-    ).status_code == 403
+    assert (
+        client.post(
+            f"{CANCEL_URL}/{created['id']}/approve", headers=headers
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            f"{CANCEL_URL}/{created['id']}/reject",
+            json={"admin_notes": "No"},
+            headers=headers,
+        ).status_code
+        == 403
+    )
 
 
-def test_admin_endpoints_without_token_return_401(client, db, make_user, make_plan, make_subscription):
+def test_admin_endpoints_without_token_return_401(
+    client, db, make_user, make_plan, make_subscription
+):
     member = make_user()
     make_subscription(member, make_plan())
     created = _pending_via_api(client, member)
 
     assert client.get(CANCEL_URL).status_code == 401
     assert client.post(f"{CANCEL_URL}/{created['id']}/approve").status_code == 401
-    assert client.post(
-        f"{CANCEL_URL}/{created['id']}/reject",
-        json={"admin_notes": "No"},
-    ).status_code == 401
+    assert (
+        client.post(
+            f"{CANCEL_URL}/{created['id']}/reject",
+            json={"admin_notes": "No"},
+        ).status_code
+        == 401
+    )
 
 
 def test_approve_unknown_and_non_pending_statuses(
@@ -245,9 +258,7 @@ def test_approve_unknown_and_non_pending_statuses(
         headers=auth_header_for(admin),
     )
 
-    missing = client.post(
-        f"{CANCEL_URL}/99999/approve", headers=auth_header_for(admin)
-    )
+    missing = client.post(f"{CANCEL_URL}/99999/approve", headers=auth_header_for(admin))
     again = client.post(
         f"{CANCEL_URL}/{created['id']}/approve", headers=auth_header_for(admin)
     )

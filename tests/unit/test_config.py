@@ -1,7 +1,6 @@
 import pytest
-from pydantic import ValidationError
-
 from app.core.config import Settings
+from pydantic import ValidationError
 
 
 def test_missing_secret_key_fails_and_names_it(monkeypatch):

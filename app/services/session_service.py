@@ -25,12 +25,19 @@ from app.core.exceptions import (
 from app.models import Booking, ClassSession, ClassType, Payment, User
 from app.models.enums import BookingStatus, PaymentStatus, RoleName, SessionStatus
 from app.models.types import utc_now
-from app.schemas.classes import ClassTypeCreate, ClassTypeUpdate, SessionCreate, SessionUpdate
+from app.schemas.classes import (
+    ClassTypeCreate,
+    ClassTypeUpdate,
+    SessionCreate,
+    SessionUpdate,
+)
 from app.services.booking_service import waitlist_position_for
 
 logger = logging.getLogger(__name__)
 
-INVALID_DATE_RANGE = "El rango de fechas no es válido: 'from' debe ser anterior o igual a 'to'."
+INVALID_DATE_RANGE = (
+    "El rango de fechas no es válido: 'from' debe ser anterior o igual a 'to'."
+)
 CLASS_TYPE_NOT_FOUND = "Este tipo de clase no existe."
 CLASS_TYPE_INACTIVE = "Este tipo de clase no está activo."
 CLASS_TYPE_NAME_TAKEN = "Ya existe un tipo de clase con ese nombre."
@@ -45,9 +52,7 @@ CAPACITY_BELOW_CONFIRMED = (
     "El aforo no puede ser menor que el número de reservas confirmadas."
 )
 PT_CLASS_TYPE_NOT_FOUND = "No hay un tipo de clase de entrenamiento personal activo."
-CLASS_TYPE_NOT_PERSONAL_TRAINING = (
-    "Este tipo de clase no es de entrenamiento personal."
-)
+CLASS_TYPE_NOT_PERSONAL_TRAINING = "Este tipo de clase no es de entrenamiento personal."
 TRAINER_OVERLAP = "Ya tienes una sesión en ese horario."
 
 PERSONAL_TRAINING_DURATION_MINUTES = 60
@@ -151,7 +156,9 @@ def _rows_to_sessions(rows) -> list[SessionWithFreeSpots]:
 
 def list_sessions_with_free_spots(db: Session) -> list[SessionWithFreeSpots]:
     """Load all sessions with confirmed-booking counts and computed free spots."""
-    rows = db.execute(sessions_with_free_spots_stmt(scheduled_only=False)).unique().all()
+    rows = (
+        db.execute(sessions_with_free_spots_stmt(scheduled_only=False)).unique().all()
+    )
     return _rows_to_sessions(rows)
 
 
@@ -484,7 +491,9 @@ def deactivate_class_type(db: Session, class_type_id: int) -> ClassType:
 # --- Sessions (HU-11.2 / HU-11.3) ------------------------------------------
 
 
-def create_session(db: Session, actor: User, data: SessionCreate) -> SessionWithFreeSpots:
+def create_session(
+    db: Session, actor: User, data: SessionCreate
+) -> SessionWithFreeSpots:
     """Create a scheduled session for a trainer (RN-09 overlap)."""
     class_type = _get_active_class_type(db, data.class_type_id)
     trainer_id = _resolve_trainer_id(db, actor, data.trainer_id)
@@ -593,9 +602,7 @@ def cancel_session(db: Session, actor: User, session_id: int) -> SessionWithFree
             select(Booking)
             .where(
                 Booking.class_session_id == session.id,
-                Booking.status.in_(
-                    (BookingStatus.CONFIRMED, BookingStatus.WAITLISTED)
-                ),
+                Booking.status.in_((BookingStatus.CONFIRMED, BookingStatus.WAITLISTED)),
             )
             .with_for_update()
         ).all()
@@ -612,9 +619,7 @@ def cancel_session(db: Session, actor: User, session_id: int) -> SessionWithFree
                 select(Payment)
                 .where(
                     Payment.booking_id.in_(booking_ids),
-                    Payment.status.in_(
-                        (PaymentStatus.PENDING, PaymentStatus.PAID)
-                    ),
+                    Payment.status.in_((PaymentStatus.PENDING, PaymentStatus.PAID)),
                 )
                 .with_for_update()
             ).all()
@@ -652,13 +657,11 @@ def list_session_bookings(
             .options(joinedload(Booking.user))
             .where(
                 Booking.class_session_id == session_id,
-                Booking.status.in_(
-                    (BookingStatus.CONFIRMED, BookingStatus.WAITLISTED)
-                ),
+                Booking.status.in_((BookingStatus.CONFIRMED, BookingStatus.WAITLISTED)),
             )
             .order_by(Booking.status, Booking.created_at, Booking.id)
-        ).unique().all()
+        )
+        .unique()
+        .all()
     )
-    return [
-        (booking, waitlist_position_for(db, booking)) for booking in bookings
-    ]
+    return [(booking, waitlist_position_for(db, booking)) for booking in bookings]

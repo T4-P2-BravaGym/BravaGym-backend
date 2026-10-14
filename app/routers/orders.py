@@ -24,13 +24,15 @@ AUTH_RESPONSES = {
     status_code=status.HTTP_201_CREATED,
     summary="Place an order",
     description=(
-            "Creates a pending order with its lines, takes the stock and creates a pending "
-            "payment for the total (RN-17). Send only product ids and quantities: prices "
-            "always come from the database. All or nothing: if one product fails, nothing changes."
+        "Creates a pending order with its lines, takes the stock and creates a pending "
+        "payment for the total (RN-17). Send only product ids and quantities: prices "
+        "always come from the database. All or nothing: if one product fails, nothing changes."
     ),
     responses={
         **AUTH_RESPONSES,
-        409: {"description": "A product is not available or there is not enough stock (RN-17)"},
+        409: {
+            "description": "A product is not available or there is not enough stock (RN-17)"
+        },
         422: {"description": "Empty cart, invalid quantity or the same product twice"},
     },
 )
@@ -47,12 +49,14 @@ def place_order(body: OrderCreate, member: CurrentMember, db: DbSession) -> Orde
     responses=AUTH_RESPONSES,
 )
 def list_my_orders(
-        member: CurrentMember,
-        db: DbSession,
-        page: Annotated[int, Query(ge=1)] = 1,
-        size: Annotated[int, Query(ge=1, le=100)] = 20,
+    member: CurrentMember,
+    db: DbSession,
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> OrderPage:
-    results, total = order_service.list_my_orders(db, user_id=member.id, page=page, size=size)
+    results, total = order_service.list_my_orders(
+        db, user_id=member.id, page=page, size=size
+    )
     return OrderPage(
         items=[OrderOut.from_order(result.order, result.payment) for result in results],
         total=total,
@@ -66,8 +70,8 @@ def list_my_orders(
     response_model=OrderOut,
     summary="Cancel my pending order",
     description=(
-            "Puts the stock back and marks the pending payment as cancelled (RN-16, RN-17). "
-            "Only for the member's own orders that are still unpaid."
+        "Puts the stock back and marks the pending payment as cancelled (RN-16, RN-17). "
+        "Only for the member's own orders that are still unpaid."
     ),
     responses={
         **AUTH_RESPONSES,

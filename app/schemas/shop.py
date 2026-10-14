@@ -1,6 +1,13 @@
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
 from app.models.enums import ProductSize
 from app.schemas.common import Page
@@ -12,7 +19,9 @@ MAX_PRICE_CENTS = 1_000_000
 MAX_STOCK = 100_000
 MAX_SIZES = len(ProductSize)
 
-STOCK_WITH_SIZES = "when the product has sizes, send the stock of each size instead of stock"
+STOCK_WITH_SIZES = (
+    "when the product has sizes, send the stock of each size instead of stock"
+)
 
 CATEGORY_EXAMPLE = {"id": 1, "name": "Suplementos"}
 
@@ -53,11 +62,14 @@ PRODUCT_PAGE_EXAMPLE = {
     "size": 20,
 }
 
-PRODUCT_ADMIN_PAGE_EXAMPLE = {**PRODUCT_PAGE_EXAMPLE, "items": [PRODUCT_ADMIN_EXAMPLE], "total": 1}
+PRODUCT_ADMIN_PAGE_EXAMPLE = {
+    **PRODUCT_PAGE_EXAMPLE,
+    "items": [PRODUCT_ADMIN_EXAMPLE],
+    "total": 1,
+}
 
 
 class CategoryOut(BaseModel):
-
     model_config = ConfigDict(
         from_attributes=True,
         json_schema_extra={"example": CATEGORY_EXAMPLE},
@@ -68,7 +80,6 @@ class CategoryOut(BaseModel):
 
 
 class CategoryIn(BaseModel):
-
     model_config = ConfigDict(
         str_strip_whitespace=True,
         json_schema_extra={"example": {"name": "Accesorios"}},
@@ -121,7 +132,9 @@ class ProductOut(BaseModel):
     name: str = Field(max_length=120)
     description: str | None
     price_cents: int = Field(ge=0)
-    stock: int = Field(ge=0, description="Units on sale (for clothing, the total of its sizes)")
+    stock: int = Field(
+        ge=0, description="Units on sale (for clothing, the total of its sizes)"
+    )
     sizes: list[SizeOut] = Field(
         default_factory=list,
         description="Sizes on sale, from XS to XL. Empty when the product has no sizes.",
@@ -138,7 +151,6 @@ class ProductOut(BaseModel):
 
 
 class ProductAdminOut(ProductOut):
-
     model_config = ConfigDict(json_schema_extra={"example": PRODUCT_ADMIN_EXAMPLE})
 
     is_active: bool
@@ -149,7 +161,6 @@ class ProductAdminOut(ProductOut):
 
 
 class ProductCreate(BaseModel):
-
     model_config = ConfigDict(
         str_strip_whitespace=True,
         json_schema_extra={
@@ -190,7 +201,6 @@ _NOT_NULL_FIELDS = ("category_id", "name", "price_cents", "stock", "is_active", 
 
 
 class ProductUpdate(BaseModel):
-
     model_config = ConfigDict(
         str_strip_whitespace=True,
         json_schema_extra={"example": {"price_cents": 2990, "stock": 15}},

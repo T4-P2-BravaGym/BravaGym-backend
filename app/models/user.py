@@ -1,4 +1,5 @@
 """Users, roles and trainer profiles (HU-01, HU-02, HU-05, HU-15)."""
+
 from datetime import datetime
 from typing import Optional
 
@@ -32,7 +33,9 @@ class User(Base):
     deactivated_at: Mapped[datetime | None]
 
     role: Mapped["Role"] = relationship(lazy="joined")
-    trainer_profile: Mapped[Optional["TrainerProfile"]] = relationship(back_populates="user")
+    trainer_profile: Mapped[Optional["TrainerProfile"]] = relationship(
+        back_populates="user"
+    )
 
 
 class TrainerProfile(Base):

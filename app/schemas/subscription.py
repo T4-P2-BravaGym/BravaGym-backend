@@ -19,13 +19,14 @@ SUBSCRIPTION_EXAMPLE = {
 
 
 class SubscriptionCreate(BaseModel):
-    model_config = ConfigDict(extra="forbid", json_schema_extra={"example": {"plan_id": 2}})
+    model_config = ConfigDict(
+        extra="forbid", json_schema_extra={"example": {"plan_id": 2}}
+    )
 
     plan_id: int = Field(ge=1, le=2_147_483_647)
 
 
 class SubscriptionPlanOut(BaseModel):
-
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -35,7 +36,9 @@ class SubscriptionPlanOut(BaseModel):
 
 
 class SubscriptionOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True, json_schema_extra={"example": SUBSCRIPTION_EXAMPLE})
+    model_config = ConfigDict(
+        from_attributes=True, json_schema_extra={"example": SUBSCRIPTION_EXAMPLE}
+    )
 
     id: int
     status: SubscriptionStatus
@@ -45,7 +48,6 @@ class SubscriptionOut(BaseModel):
 
 
 class MySubscriptionsOut(BaseModel):
-
     model_config = ConfigDict(
         json_schema_extra={"example": {"current": SUBSCRIPTION_EXAMPLE, "history": []}}
     )

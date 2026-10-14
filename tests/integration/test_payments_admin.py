@@ -1,13 +1,14 @@
 """Integration tests for admin GET /payments, /payments/export and POST …/refund (HU-26)."""
+
 import csv
 import io
 from datetime import date, datetime
 
 import pytest
-from freezegun import freeze_time
-
 from app.models import MembershipPlan, Order, Payment, Subscription
 from app.models.enums import PaymentStatus, RoleName
+from freezegun import freeze_time
+
 from tests.conftest import auth_header_for
 
 PAYMENTS_URL = "/api/v1/payments"
@@ -212,9 +213,7 @@ def test_export_csv_same_filters_as_list(client, db, make_user):
     admin = make_user(RoleName.ADMIN)
     member_a = make_user(RoleName.MEMBER)
     member_b = make_user(RoleName.MEMBER)
-    add_subscription_payment(
-        db, member_a, created_at=datetime(2026, 10, 3, 10, 0, 0)
-    )
+    add_subscription_payment(db, member_a, created_at=datetime(2026, 10, 3, 10, 0, 0))
     target = add_order_payment(
         db, member_b, base_cents=777, created_at=datetime(2026, 10, 4, 11, 0, 0)
     )

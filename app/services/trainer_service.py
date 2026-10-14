@@ -34,7 +34,9 @@ def list_trainers(db: Session) -> list[TrainerOut]:
     return [_to_trainer_out(trainer) for trainer in trainers]
 
 
-def update_my_profile(db: Session, trainer: User, changes: TrainerProfileUpdate) -> TrainerOut:
+def update_my_profile(
+    db: Session, trainer: User, changes: TrainerProfileUpdate
+) -> TrainerOut:
     """Change only the fields the trainer sent. Creates the profile if she has none yet."""
     if trainer.trainer_profile is None:
         trainer.trainer_profile = TrainerProfile()

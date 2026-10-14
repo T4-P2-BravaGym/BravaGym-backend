@@ -1,12 +1,12 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from freezegun import freeze_time
-from sqlalchemy import func, select
-
 from app.models import Booking, ClassSession, ClassType, Payment
 from app.models.enums import PaymentStatus, RoleName, SessionStatus
 from app.models.types import utc_now
+from freezegun import freeze_time
+from sqlalchemy import func, select
+
 from tests.conftest import auth_header_for
 
 BOOK_URL = "/api/v1/sessions/{session_id}/bookings"
@@ -33,7 +33,7 @@ def _seed_session(
     db.flush()
 
     default_start = (utc_now() + timedelta(days=7)).replace(
-        hour=17, minute=30, second=0, microsecond=0, tzinfo=timezone.utc
+        hour=17, minute=30, second=0, microsecond=0, tzinfo=UTC
     )
 
     session = ClassSession(
@@ -104,7 +104,10 @@ def test_rn03_duplicate_booking_returns_409(
     make_subscription(member, make_plan())
     session = _seed_session(db, make_user, name="Duplicada API")
     headers = auth_header_for(member)
-    assert client.post(BOOK_URL.format(session_id=session.id), headers=headers).status_code == 201
+    assert (
+        client.post(BOOK_URL.format(session_id=session.id), headers=headers).status_code
+        == 201
+    )
 
     response = client.post(BOOK_URL.format(session_id=session.id), headers=headers)
 
@@ -115,9 +118,7 @@ def test_rn03_duplicate_booking_returns_409(
     }
 
 
-def test_rn01_no_active_subscription_returns_403(
-    client, db, make_user, make_plan
-):
+def test_rn01_no_active_subscription_returns_403(client, db, make_user, make_plan):
     member = make_user()
     session = _seed_session(db, make_user, name="Sin sub API")
 
@@ -166,7 +167,7 @@ def test_rn04_past_session_returns_409(
     session = _seed_session(
         db,
         make_user,
-        starts_at=datetime(2026, 10, 7, 10, 0, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 7, 10, 0, tzinfo=UTC),
         name="Pasada API",
     )
 
@@ -201,7 +202,9 @@ def test_book_without_token_returns_401(client, db, make_user):
     assert response.status_code == 401
 
 
-@pytest.mark.parametrize("role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN])
+@pytest.mark.parametrize(
+    "role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN]
+)
 def test_only_members_can_book(client, db, auth_headers, make_user, role):
     session = _seed_session(db, make_user, name=f"Rol {role}")
 
@@ -275,7 +278,7 @@ def test_get_my_bookings_filters_upcoming(
     past = _seed_session(
         db,
         make_user,
-        starts_at=datetime(2026, 10, 8, 10, 0, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 8, 10, 0, tzinfo=UTC),
         name="Futura filtro",
     )
     # Book future session while frozen "now" is before it
@@ -303,7 +306,9 @@ def test_my_bookings_without_token_returns_401(client):
     assert client.get(MY_BOOKINGS_URL).status_code == 401
 
 
-@pytest.mark.parametrize("role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN])
+@pytest.mark.parametrize(
+    "role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN]
+)
 def test_only_members_list_my_bookings(client, auth_headers, role):
     response = client.get(MY_BOOKINGS_URL, headers=auth_headers(role))
     assert response.status_code == 403
@@ -321,7 +326,7 @@ def test_cancel_confirmed_at_60_minutes_returns_cancelled(
     session = _seed_session(
         db,
         make_user,
-        starts_at=datetime(2026, 10, 7, 13, 0, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 7, 13, 0, tzinfo=UTC),
         name="Cancel API 60",
     )
     booked = client.post(
@@ -352,7 +357,7 @@ def test_cancel_confirmed_at_59_minutes_returns_409(
     session = _seed_session(
         db,
         make_user,
-        starts_at=datetime(2026, 10, 7, 12, 59, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 7, 12, 59, tzinfo=UTC),
         name="Cancel API 59",
     )
     booked = client.post(
@@ -388,7 +393,7 @@ def test_cancel_promotes_waitlist_via_api(
         db,
         make_user,
         capacity=1,
-        starts_at=datetime(2026, 10, 7, 15, 0, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 7, 15, 0, tzinfo=UTC),
         name="Promoción API",
     )
     plan = make_plan()
@@ -439,7 +444,9 @@ def test_cancel_other_members_booking_returns_404(
     assert response.status_code == 404
 
 
-def test_cancel_without_token_returns_401(client, db, make_user, make_plan, make_subscription):
+def test_cancel_without_token_returns_401(
+    client, db, make_user, make_plan, make_subscription
+):
     member = make_user()
     make_subscription(member, make_plan())
     session = _seed_session(db, make_user, name="Cancel sin token")
@@ -452,8 +459,12 @@ def test_cancel_without_token_returns_401(client, db, make_user, make_plan, make
     assert response.status_code == 401
 
 
-@pytest.mark.parametrize("role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN])
-def test_only_members_can_cancel(client, db, auth_headers, make_user, make_plan, make_subscription, role):
+@pytest.mark.parametrize(
+    "role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN]
+)
+def test_only_members_can_cancel(
+    client, db, auth_headers, make_user, make_plan, make_subscription, role
+):
     member = make_user()
     make_subscription(member, make_plan())
     session = _seed_session(db, make_user, name=f"Cancel rol {role}")
