@@ -252,7 +252,7 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
 
 ## 10. Bitácora de IA
 
-Cómo hemos usado la IA se registra en `docs/ai-log.md`. Es un entregable de la asignatura y vive solo en el backend; el frontend enlaza a él.
+El flujo común está descrito una sola vez al principio de `docs/ai-log.md`; cada entrada recoge solo lo propio de su historia.
 
 Una entrada por historia y persona, añadida en la misma PR que el código:
 
