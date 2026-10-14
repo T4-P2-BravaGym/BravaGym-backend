@@ -55,3 +55,15 @@ coinciden, el aviso sale sin llamar a la API. Estados: "Guardando…" en el bot�
 - Que administración cambie la contraseña de otra usuaria (HU-31 lo excluye).
 - Reglas de contraseña más fuertes (mayúsculas, símbolos): se usan las del registro.
 
+## Decisiones
+
+| Decisión | Por qué |
+| --- | --- |
+| `PasswordChange` vive en `schemas/auth.py`, junto al registro | Las reglas de contraseña ya estaban allí. |
+| La regla de los 72 bytes pasa a una función común (`check_fits_bcrypt`) que usan el registro y el cambio | Una sola regla en un solo sitio (DRY); el registro se comporta igual. |
+| "Igual a la actual" se comprueba en el esquema (422) | Solo compara los dos textos enviados, no hace falta la base de datos. |
+| La contraseña incorrecta se comprueba en el servicio con `verify_password` (400) | Hay que leer el hash guardado. Se usa la `AppError` base, que ya es 400, sin tocar `exceptions.py`. |
+| Límite de 5 intentos fallidos en 15 minutos con el `AttemptWindowLimiter` de la HU-34 | Sin límite, alguien con la sesión de otra podría probar contraseñas. Se reutiliza la clase; el login no cambia. |
+| El límite se cuenta por id de usuaria, no por IP | La usuaria ya está identificada; así los fallos de una no bloquean a otra. |
+| Un cambio correcto pone el contador a cero | Igual que el login: los fallos antiguos no cuentan después de acertar. |
+| La respuesta es 204 sin cuerpo | No hace falta devolver nada y así nada de la contraseña sale en la respuesta. |
