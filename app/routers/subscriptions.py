@@ -5,7 +5,11 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import CurrentMember
-from app.schemas.subscription import MySubscriptionsOut, SubscriptionCreate, SubscriptionOut
+from app.schemas.subscription import (
+    MySubscriptionsOut,
+    SubscriptionCreate,
+    SubscriptionOut,
+)
 from app.services import subscription_service
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
@@ -24,8 +28,8 @@ AUTH_RESPONSES = {
     status_code=status.HTTP_201_CREATED,
     summary="Subscribe to a membership plan",
     description=(
-            "Creates an active subscription and a pending payment for the monthly fee (RN-11). "
-            "The amount is read from the plan, never from the request."
+        "Creates an active subscription and a pending payment for the monthly fee (RN-11). "
+        "The amount is read from the plan, never from the request."
     ),
     responses={
         **AUTH_RESPONSES,
@@ -33,8 +37,12 @@ AUTH_RESPONSES = {
         409: {"description": "The member already has an active subscription (RN-11)"},
     },
 )
-def subscribe(data: SubscriptionCreate, member: CurrentMember, db: DbSession) -> SubscriptionOut:
-    subscription = subscription_service.subscribe(db, user_id=member.id, plan_id=data.plan_id)
+def subscribe(
+    data: SubscriptionCreate, member: CurrentMember, db: DbSession
+) -> SubscriptionOut:
+    subscription = subscription_service.subscribe(
+        db, user_id=member.id, plan_id=data.plan_id
+    )
     return SubscriptionOut.model_validate(subscription)
 
 

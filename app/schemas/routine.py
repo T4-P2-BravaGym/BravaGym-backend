@@ -2,6 +2,7 @@
 
 Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
 """
+
 from datetime import date
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -131,7 +132,13 @@ class RoutineOut(BaseModel):
                     {
                         "day_number": 1,
                         "lines": [
-                            {"id": 1, "position": 1, "exercise_name": "Sentadilla trasera", "sets": 4, "reps": 6, "rest_seconds": 150}
+                            {
+                                "position": 1,
+                                "exercise_name": "Sentadilla trasera",
+                                "sets": 4,
+                                "reps": 6,
+                                "rest_seconds": 150,
+                            }
                         ],
                     }
                 ],

@@ -4,10 +4,9 @@ from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.migration import MigrationContext
-from sqlalchemy import create_engine
-
 from app import models  # noqa: F401
 from app.core.database import Base
+from sqlalchemy import create_engine
 
 ROOT = Path(__file__).resolve().parents[2]
 

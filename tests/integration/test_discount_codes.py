@@ -1,11 +1,10 @@
 from datetime import date, datetime
 
 import pytest
-from freezegun import freeze_time
-
 from app.core.security import create_access_token
 from app.models import DiscountCode, MembershipPlan, Payment, Subscription
 from app.models.enums import PaymentStatus, RoleName
+from freezegun import freeze_time
 
 CODES_URL = "/api/v1/discount-codes"
 TODAY = "2026-10-08"
@@ -16,7 +15,13 @@ def headers_for(user):
 
 
 def new_code_body(**changes):
-    body = {"code": "BRAVA20", "percent_off": 20, "valid_from": "2026-10-01", "valid_until": "2026-10-31", "max_uses": 2}
+    body = {
+        "code": "BRAVA20",
+        "percent_off": 20,
+        "valid_from": "2026-10-01",
+        "valid_until": "2026-10-31",
+        "max_uses": 2,
+    }
     return {**body, **changes}
 
 
@@ -61,7 +66,9 @@ def add_payment(db, make_user, code, status=PaymentStatus.PAID):
 def test_admin_creates_a_code_in_capitals(client, make_user):
     admin = make_user(RoleName.ADMIN)
 
-    response = client.post(CODES_URL, json=new_code_body(code="  brava20 "), headers=headers_for(admin))
+    response = client.post(
+        CODES_URL, json=new_code_body(code="  brava20 "), headers=headers_for(admin)
+    )
 
     assert response.status_code == 201
     assert response.json()["code"] == "BRAVA20"
@@ -73,7 +80,9 @@ def test_creating_a_repeated_code_returns_409(client, db, make_user):
     admin = make_user(RoleName.ADMIN)
     add_code(db, admin)
 
-    response = client.post(CODES_URL, json=new_code_body(code="brava20"), headers=headers_for(admin))
+    response = client.post(
+        CODES_URL, json=new_code_body(code="brava20"), headers=headers_for(admin)
+    )
 
     assert response.status_code == 409
 
@@ -82,7 +91,9 @@ def test_creating_a_repeated_code_returns_409(client, db, make_user):
 def test_percent_outside_1_to_100_returns_422(client, make_user, percent):
     admin = make_user(RoleName.ADMIN)
 
-    response = client.post(CODES_URL, json=new_code_body(percent_off=percent), headers=headers_for(admin))
+    response = client.post(
+        CODES_URL, json=new_code_body(percent_off=percent), headers=headers_for(admin)
+    )
 
     assert response.status_code == 422
 
@@ -91,7 +102,9 @@ def test_end_date_before_start_date_returns_422(client, make_user):
     admin = make_user(RoleName.ADMIN)
 
     response = client.post(
-        CODES_URL, json=new_code_body(valid_from="2026-10-31", valid_until="2026-10-01"), headers=headers_for(admin)
+        CODES_URL,
+        json=new_code_body(valid_from="2026-10-31", valid_until="2026-10-01"),
+        headers=headers_for(admin),
     )
 
     assert response.status_code == 422
@@ -113,7 +126,9 @@ def test_admin_updates_only_the_fields_sent(client, db, make_user):
     admin = make_user(RoleName.ADMIN)
     code = add_code(db, admin)
 
-    response = client.patch(f"{CODES_URL}/{code.id}", json={"percent_off": 15}, headers=headers_for(admin))
+    response = client.patch(
+        f"{CODES_URL}/{code.id}", json={"percent_off": 15}, headers=headers_for(admin)
+    )
 
     assert response.status_code == 200
     assert response.json()["percent_off"] == 15
@@ -124,7 +139,11 @@ def test_update_that_leaves_the_dates_reversed_returns_422(client, db, make_user
     admin = make_user(RoleName.ADMIN)
     code = add_code(db, admin)
 
-    response = client.patch(f"{CODES_URL}/{code.id}", json={"valid_until": "2026-09-01"}, headers=headers_for(admin))
+    response = client.patch(
+        f"{CODES_URL}/{code.id}",
+        json={"valid_until": "2026-09-01"},
+        headers=headers_for(admin),
+    )
 
     assert response.status_code == 422
 
@@ -136,21 +155,38 @@ def test_delete_deactivates_the_code_instead_of_removing_it(client, db, make_use
     response = client.delete(f"{CODES_URL}/{code.id}", headers=headers_for(admin))
 
     assert response.status_code == 204
-    assert client.get(CODES_URL, headers=headers_for(admin)).json()["items"][0]["is_active"] is False
+    assert (
+        client.get(CODES_URL, headers=headers_for(admin)).json()["items"][0][
+            "is_active"
+        ]
+        is False
+    )
 
 
 def test_update_or_delete_an_unknown_code_returns_404(client, make_user):
     admin = make_user(RoleName.ADMIN)
 
-    assert client.patch(f"{CODES_URL}/999", json={"percent_off": 10}, headers=headers_for(admin)).status_code == 404
-    assert client.delete(f"{CODES_URL}/999", headers=headers_for(admin)).status_code == 404
+    assert (
+        client.patch(
+            f"{CODES_URL}/999", json={"percent_off": 10}, headers=headers_for(admin)
+        ).status_code
+        == 404
+    )
+    assert (
+        client.delete(f"{CODES_URL}/999", headers=headers_for(admin)).status_code == 404
+    )
 
 
 def test_member_cannot_manage_codes_returns_403(client, make_user):
     member = make_user(RoleName.MEMBER)
 
     assert client.get(CODES_URL, headers=headers_for(member)).status_code == 403
-    assert client.post(CODES_URL, json=new_code_body(), headers=headers_for(member)).status_code == 403
+    assert (
+        client.post(
+            CODES_URL, json=new_code_body(), headers=headers_for(member)
+        ).status_code
+        == 403
+    )
 
 
 def test_manage_codes_without_token_returns_401(client):
@@ -193,14 +229,23 @@ def test_rn14_inactive_code_returns_422(client, db, make_user):
 
 @pytest.mark.parametrize(
     ("today", "status_code"),
-    [("2026-09-30", 422), ("2026-10-01", 200), ("2026-10-31", 200), ("2026-11-01", 422)],
+    [
+        ("2026-09-30", 422),
+        ("2026-10-01", 200),
+        ("2026-10-31", 200),
+        ("2026-11-01", 422),
+    ],
 )
-def test_rn14_code_only_works_between_its_dates(client, db, make_user, today, status_code):
+def test_rn14_code_only_works_between_its_dates(
+    client, db, make_user, today, status_code
+):
     add_code(db, make_user(RoleName.ADMIN))
     member = make_user(RoleName.MEMBER)
 
     with freeze_time(today):
-        response = client.get(f"{CODES_URL}/BRAVA20/validate", headers=headers_for(member))
+        response = client.get(
+            f"{CODES_URL}/BRAVA20/validate", headers=headers_for(member)
+        )
 
     assert response.status_code == status_code
 
@@ -210,7 +255,12 @@ def test_rn14_code_used_max_uses_times_returns_422(client, db, make_user):
     code = add_code(db, make_user(RoleName.ADMIN), max_uses=2)
     add_payment(db, make_user, code)
     member = make_user(RoleName.MEMBER)
-    assert client.get(f"{CODES_URL}/BRAVA20/validate", headers=headers_for(member)).status_code == 200
+    assert (
+        client.get(
+            f"{CODES_URL}/BRAVA20/validate", headers=headers_for(member)
+        ).status_code
+        == 200
+    )
 
     add_payment(db, make_user, code)
     response = client.get(f"{CODES_URL}/BRAVA20/validate", headers=headers_for(member))
@@ -243,5 +293,3 @@ def test_rn14_code_without_max_uses_has_no_limit(client, db, make_user):
 
 def test_validate_without_token_returns_401(client):
     assert client.get(f"{CODES_URL}/BRAVA20/validate").status_code == 401
-
-    

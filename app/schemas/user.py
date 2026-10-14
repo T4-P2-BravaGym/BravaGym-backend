@@ -2,6 +2,7 @@
 
 Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
 """
+
 from pydantic import AliasPath, BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.enums import RoleName
@@ -37,12 +38,14 @@ class TrainerOut(BaseModel):
     specialty: str | None
     bio: str | None
 
-    
+
 class TrainerProfileUpdate(BaseModel):
     """What a trainer can change in her public profile. Fields left out are not changed."""
 
     model_config = ConfigDict(
-        json_schema_extra={"example": {"specialty": "Powerlifting", "bio": "Fuerza desde cero."}}
+        json_schema_extra={
+            "example": {"specialty": "Powerlifting", "bio": "Fuerza desde cero."}
+        }
     )
 
     specialty: str | None = Field(default=None, max_length=120)
@@ -52,7 +55,9 @@ class TrainerProfileUpdate(BaseModel):
 class UserOut(BaseModel):
     """Public view of a user. Never includes password_hash."""
 
-    model_config = ConfigDict(from_attributes=True, json_schema_extra={"example": USER_EXAMPLE})
+    model_config = ConfigDict(
+        from_attributes=True, json_schema_extra={"example": USER_EXAMPLE}
+    )
 
     id: int
     email: str
@@ -67,7 +72,9 @@ class UserPage(Page[UserOut]):
     """Paginated user list for administration."""
 
     model_config = ConfigDict(
-        json_schema_extra={"example": {"items": [USER_EXAMPLE], "total": 1, "page": 1, "size": 20}}
+        json_schema_extra={
+            "example": {"items": [USER_EXAMPLE], "total": 1, "page": 1, "size": 20}
+        }
     )
 
 
@@ -76,7 +83,12 @@ class UserUpdate(BaseModel):
 
     model_config = ConfigDict(
         json_schema_extra={
-            "example": {"first_name": "Lucía", "last_name": "García", "phone": "600123456", "email": "lucia@example.com"}
+            "example": {
+                "first_name": "Lucía",
+                "last_name": "García",
+                "phone": "600123456",
+                "email": "lucia@example.com",
+            }
         }
     )
 
@@ -92,10 +104,9 @@ class RoleUpdate(BaseModel):
 
     model_config = ConfigDict(json_schema_extra={"example": {"role": "trainer"}})
 
-    role: RoleName    
+    role: RoleName
 
 
 class UserAdminUpdate(UserUpdate):
     """What an admin can change in another user's profile (HU-31): the same fields as her own
     profile. Never role (that is PATCH /users/{id}/role), is_active (that is DELETE) or password."""
-

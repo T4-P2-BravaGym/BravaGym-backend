@@ -1,10 +1,9 @@
 from datetime import date
 
-from sqlalchemy import select
-
 from app.core.security import create_access_token
 from app.models import Exercise, Routine, RoutineExercise
 from app.models.enums import RoleName
+from sqlalchemy import select
 
 MY_ROUTINE_URL = "/api/v1/routines/me"
 
@@ -15,8 +14,12 @@ def headers_for(user):
 
 def add_routine(db, member, trainer, *, is_active=True, name="Fuerza base"):
     """A routine with day 2 first and day 1 out of order, to check the API sorts it."""
-    squat = db.scalar(select(Exercise).where(Exercise.name == "Sentadilla")) or Exercise(name="Sentadilla", muscle_group="Piernas")
-    row = db.scalar(select(Exercise).where(Exercise.name == "Remo")) or Exercise(name="Remo", muscle_group="Espalda")
+    squat = db.scalar(
+        select(Exercise).where(Exercise.name == "Sentadilla")
+    ) or Exercise(name="Sentadilla", muscle_group="Piernas")
+    row = db.scalar(select(Exercise).where(Exercise.name == "Remo")) or Exercise(
+        name="Remo", muscle_group="Espalda"
+    )
     routine = Routine(
         member=member,
         trainer=trainer,
@@ -24,9 +27,20 @@ def add_routine(db, member, trainer, *, is_active=True, name="Fuerza base"):
         start_date=date(2026, 10, 5),
         is_active=is_active,
         items=[
-            RoutineExercise(exercise=row, day_number=2, position=1, sets=3, reps=10, rest_seconds=90),
-            RoutineExercise(exercise=squat, day_number=1, position=2, sets=4, reps=8, rest_seconds=120),
-            RoutineExercise(exercise=row, day_number=1, position=1, sets=3, reps=12, rest_seconds=60),
+            RoutineExercise(
+                exercise=row, day_number=2, position=1, sets=3, reps=10, rest_seconds=90
+            ),
+            RoutineExercise(
+                exercise=squat,
+                day_number=1,
+                position=2,
+                sets=4,
+                reps=8,
+                rest_seconds=120,
+            ),
+            RoutineExercise(
+                exercise=row, day_number=1, position=1, sets=3, reps=12, rest_seconds=60
+            ),
         ],
     )
     db.add(routine)
@@ -98,4 +112,3 @@ def test_trainer_cannot_use_my_routine_returns_403(client, auth_headers):
     response = client.get(MY_ROUTINE_URL, headers=auth_headers(RoleName.TRAINER))
 
     assert response.status_code == 403
-    

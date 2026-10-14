@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import CheckConstraint, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -7,8 +7,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.models.enums import PaymentMethod, PaymentStatus
 from app.models.types import db_enum, utc_now
-
-from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from app.models.classes import Booking
@@ -20,9 +18,13 @@ if TYPE_CHECKING:
 class DiscountCode(Base):
     __tablename__ = "discount_codes"
     __table_args__ = (
-        CheckConstraint("percent_off BETWEEN 1 AND 100", name="ck_discount_codes_percent"),
+        CheckConstraint(
+            "percent_off BETWEEN 1 AND 100", name="ck_discount_codes_percent"
+        ),
         CheckConstraint("valid_until >= valid_from", name="ck_discount_codes_dates"),
-        CheckConstraint("max_uses IS NULL OR max_uses > 0", name="ck_discount_codes_max_uses"),
+        CheckConstraint(
+            "max_uses IS NULL OR max_uses > 0", name="ck_discount_codes_max_uses"
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -50,7 +52,9 @@ class Payment(Base):
             " AND final_amount_cents <= base_amount_cents",
             name="ck_payments_amounts",
         ),
-        CheckConstraint("status != 'paid' OR paid_at IS NOT NULL", name="ck_payments_paid_at"),
+        CheckConstraint(
+            "status != 'paid' OR paid_at IS NOT NULL", name="ck_payments_paid_at"
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -58,7 +62,9 @@ class Payment(Base):
     subscription_id: Mapped[int | None] = mapped_column(ForeignKey("subscriptions.id"))
     booking_id: Mapped[int | None] = mapped_column(ForeignKey("bookings.id"))
     order_id: Mapped[int | None] = mapped_column(ForeignKey("orders.id"))
-    discount_code_id: Mapped[int | None] = mapped_column(ForeignKey("discount_codes.id"))
+    discount_code_id: Mapped[int | None] = mapped_column(
+        ForeignKey("discount_codes.id")
+    )
     base_amount_cents: Mapped[int]
     final_amount_cents: Mapped[int]
     status: Mapped[PaymentStatus] = mapped_column(

@@ -16,7 +16,9 @@ def hash_password(plain_password: str) -> str:
 
 def verify_password(plain_password: str, password_hash: str) -> bool:
     try:
-        return bcrypt.checkpw(plain_password.encode("utf-8"), password_hash.encode("utf-8"))
+        return bcrypt.checkpw(
+            plain_password.encode("utf-8"), password_hash.encode("utf-8")
+        )
     except ValueError:
         return False
 
@@ -26,7 +28,8 @@ def create_access_token(user_id: int, role: str) -> str:
     payload = {
         "sub": str(user_id),
         "role": str(role),
-        "exp": datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes),
+        "exp": datetime.now(UTC)
+        + timedelta(minutes=settings.access_token_expire_minutes),
         "iss": settings.jwt_issuer,
         "aud": settings.jwt_audience,
     }

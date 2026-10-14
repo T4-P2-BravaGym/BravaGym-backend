@@ -1,15 +1,15 @@
 """Unit tests for member payments (HU-24) and admin list/export/refund (HU-26, RN-14 to RN-16)."""
+
 import csv
 import io
 from datetime import date, datetime
 
 import pytest
-from freezegun import freeze_time
-
 from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
 from app.models import DiscountCode, MembershipPlan, Order, Payment, Subscription
 from app.models.enums import OrderStatus, PaymentStatus, RoleName
 from app.services import payment_service
+from freezegun import freeze_time
 
 TODAY = "2026-10-08"
 
@@ -25,7 +25,10 @@ def _add_subscription_payment(
 ):
     """Attach a payment to an existing subscription, or create one active subscription."""
     if subscription is None:
-        plan = MembershipPlan(name=f"Plan {user.id}-{base_cents}-{id(user)}", monthly_price_cents=base_cents)
+        plan = MembershipPlan(
+            name=f"Plan {user.id}-{base_cents}-{id(user)}",
+            monthly_price_cents=base_cents,
+        )
         subscription = Subscription(user=user, plan=plan, start_date=date(2026, 10, 1))
         db.add(subscription)
         db.flush()
@@ -54,8 +57,10 @@ def _add_order_payment(
     paid_at=None,
 ):
     """Shop order + linked payment (exactly one concept FK). Returns (payment, order)."""
-    resolved_status = payment_status if payment_status is not None else (
-        status if status is not None else PaymentStatus.PENDING
+    resolved_status = (
+        payment_status
+        if payment_status is not None
+        else (status if status is not None else PaymentStatus.PENDING)
     )
     order = Order(user_id=user.id, status=order_status)
     db.add(order)
@@ -126,7 +131,9 @@ def test_rn15_rn16_pay_with_20_percent_code_sets_80_percent(db, make_user):
     _add_code(db, admin, code="OFF20", percent_off=20)
     payment = _add_subscription_payment(db, member, base_cents=5000)
 
-    result = payment_service.pay_payment(db, member, payment.id, discount_code_text="off20")
+    result = payment_service.pay_payment(
+        db, member, payment.id, discount_code_text="off20"
+    )
 
     assert result.status == PaymentStatus.PAID
     assert result.base_amount_cents == 5000

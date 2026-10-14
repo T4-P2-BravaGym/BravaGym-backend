@@ -2,7 +2,9 @@
 
 Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
 """
+
 from pydantic import BaseModel, ConfigDict, Field, computed_field
+
 from app.schemas.common import Page
 
 PLAN_EXAMPLE = {
@@ -31,7 +33,7 @@ class PlanOut(BaseModel):
     def monthly_price_formatted(self) -> str:
         euros, cents = divmod(self.monthly_price_cents, 100)
         return f"{euros},{cents:02d} €"
-    
+
 
 class AdminPlanOut(PlanOut):
     model_config = ConfigDict(
@@ -64,6 +66,7 @@ class PlanCreate(BaseModel):
 
 class PlanUpdate(BaseModel):
     """Fields left out of the request are not changed."""
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {

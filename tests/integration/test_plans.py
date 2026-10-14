@@ -1,11 +1,12 @@
 import pytest
-
-from app.models.membership import MembershipPlan
 from app.models.enums import RoleName
+from app.models.membership import MembershipPlan
 
 
 @pytest.mark.parametrize("role", [RoleName.ADMIN, RoleName.SUPERADMIN])
-def test_admin_list_includes_retired_plans_but_public_list_hides_them(client, auth_headers, make_plan, role):
+def test_admin_list_includes_retired_plans_but_public_list_hides_them(
+    client, auth_headers, make_plan, role
+):
     retired = make_plan(name="Retired", is_active=False, monthly_price_cents=100)
     active = make_plan(name="Current", monthly_price_cents=3900)
     response = client.get("/api/v1/plans/admin", headers=auth_headers(role))
@@ -23,7 +24,9 @@ def test_admin_list_requires_login(client):
 
 @pytest.mark.parametrize("role", [RoleName.MEMBER, RoleName.TRAINER])
 def test_admin_list_rejects_other_roles(client, auth_headers, role):
-    assert client.get("/api/v1/plans/admin", headers=auth_headers(role)).status_code == 403
+    assert (
+        client.get("/api/v1/plans/admin", headers=auth_headers(role)).status_code == 403
+    )
 
 
 def test_admin_list_pagination(client, auth_headers, make_plan):
@@ -34,7 +37,9 @@ def test_admin_list_pagination(client, auth_headers, make_plan):
     assert response.status_code == 200
     assert response.json()["total"] == 2
     assert response.json()["items"][0]["id"] == second.id
-    assert client.get("/api/v1/plans/admin?size=101", headers=headers).status_code == 422
+    assert (
+        client.get("/api/v1/plans/admin?size=101", headers=headers).status_code == 422
+    )
 
 
 def test_admin_can_create_plan(client, db, auth_headers):
@@ -126,6 +131,7 @@ def test_get_plans_returns_only_active_plans_sorted_by_price(client, db):
     assert response.status_code == 200
     assert [plan["name"] for plan in response.json()] == ["Basic", "Premium"]
 
+
 def test_create_plan_with_duplicate_name_returns_409(
     client, db, auth_headers, make_plan
 ):
@@ -147,6 +153,7 @@ def test_create_plan_with_duplicate_name_returns_409(
     assert plans[0].id == existing.id
     assert plans[0].monthly_price_cents == 4500
 
+
 def test_create_plan_without_login_returns_401(client, db):
     response = client.post(
         "/api/v1/plans",
@@ -159,8 +166,8 @@ def test_create_plan_without_login_returns_401(client, db):
     assert response.status_code == 401
     assert db.query(MembershipPlan).count() == 0
 
-@pytest.mark.parametrize("role", [RoleName.MEMBER, RoleName.TRAINER])
 
+@pytest.mark.parametrize("role", [RoleName.MEMBER, RoleName.TRAINER])
 def test_create_plan_with_wrong_role_returns_403(client, db, auth_headers, role):
     response = client.post(
         "/api/v1/plans",
@@ -174,6 +181,7 @@ def test_create_plan_with_wrong_role_returns_403(client, db, auth_headers, role)
     assert response.status_code == 403
     assert db.query(MembershipPlan).count() == 0
 
+
 @pytest.mark.parametrize(
     "payload",
     [
@@ -183,10 +191,7 @@ def test_create_plan_with_wrong_role_returns_403(client, db, auth_headers, role)
         {"name": "Strength"},
     ],
 )
-
-def test_create_plan_with_invalid_data_returns_422(
-    client, db, auth_headers, payload
-):
+def test_create_plan_with_invalid_data_returns_422(client, db, auth_headers, payload):
     response = client.post(
         "/api/v1/plans",
         headers=auth_headers(RoleName.ADMIN),
@@ -195,6 +200,7 @@ def test_create_plan_with_invalid_data_returns_422(
 
     assert response.status_code == 422
     assert db.query(MembershipPlan).count() == 0
+
 
 def test_admin_can_update_price_without_changing_other_fields(
     client, db, auth_headers, make_plan
@@ -224,6 +230,7 @@ def test_admin_can_update_price_without_changing_other_fields(
     assert plan.includes_personal_training is True
     assert plan.is_active is True
 
+
 def test_update_plan_with_duplicate_name_returns_409(
     client, db, auth_headers, make_plan
 ):
@@ -242,6 +249,7 @@ def test_update_plan_with_duplicate_name_returns_409(
     assert plan.name == "Basic"
     assert plan.monthly_price_cents == 3900
 
+
 def test_update_missing_plan_returns_404(client, db, auth_headers):
     response = client.patch(
         "/api/v1/plans/999",
@@ -251,8 +259,8 @@ def test_update_missing_plan_returns_404(client, db, auth_headers):
 
     assert response.status_code == 404
 
-@pytest.mark.parametrize("role", [RoleName.MEMBER, RoleName.TRAINER])
 
+@pytest.mark.parametrize("role", [RoleName.MEMBER, RoleName.TRAINER])
 def test_update_plan_with_wrong_role_returns_403(
     client, db, auth_headers, make_plan, role
 ):
@@ -269,6 +277,7 @@ def test_update_plan_with_wrong_role_returns_403(
     db.refresh(plan)
     assert plan.monthly_price_cents == 3900
 
+
 def test_update_plan_without_login_returns_401(client, db, make_plan):
     plan = make_plan(name="Basic", monthly_price_cents=3900)
 
@@ -282,6 +291,7 @@ def test_update_plan_without_login_returns_401(client, db, make_plan):
     db.refresh(plan)
     assert plan.monthly_price_cents == 3900
 
+
 @pytest.mark.parametrize(
     "payload",
     [
@@ -293,7 +303,6 @@ def test_update_plan_without_login_returns_401(client, db, make_plan):
         {"includes_personal_training": None},
     ],
 )
-
 def test_update_plan_with_invalid_data_returns_422(
     client, db, auth_headers, make_plan, payload
 ):
@@ -352,8 +361,8 @@ def test_delete_plan_deactivates_it_and_preserves_subscription(
     assert public_response.status_code == 200
     assert public_response.json() == []
 
-@pytest.mark.parametrize("role", [RoleName.MEMBER, RoleName.TRAINER])
 
+@pytest.mark.parametrize("role", [RoleName.MEMBER, RoleName.TRAINER])
 def test_delete_plan_with_wrong_role_returns_403(
     client, db, auth_headers, make_plan, role
 ):
@@ -368,6 +377,7 @@ def test_delete_plan_with_wrong_role_returns_403(
 
     db.refresh(plan)
     assert plan.is_active is True
+
 
 def test_delete_plan_without_login_returns_401(client, db, make_plan):
     plan = make_plan(name="Basic")
@@ -389,9 +399,7 @@ def test_delete_missing_plan_returns_404(client, auth_headers):
     assert response.status_code == 404
 
 
-def test_update_plan_can_keep_its_own_name(
-    client, db, auth_headers, make_plan
-):
+def test_update_plan_can_keep_its_own_name(client, db, auth_headers, make_plan):
     plan = make_plan(name="Basic", monthly_price_cents=3900)
 
     response = client.patch(
@@ -410,13 +418,15 @@ def test_update_plan_can_keep_its_own_name(
 def test_superadmin_can_create_update_and_deactivate_plan(client, db, auth_headers):
     headers = auth_headers(RoleName.SUPERADMIN)
     created = client.post(
-        "/api/v1/plans", headers=headers,
+        "/api/v1/plans",
+        headers=headers,
         json={"name": "Superadmin plan", "monthly_price_cents": 4500},
     )
     assert created.status_code == 201
     plan_id = created.json()["id"]
     updated = client.patch(
-        f"/api/v1/plans/{plan_id}", headers=headers,
+        f"/api/v1/plans/{plan_id}",
+        headers=headers,
         json={"monthly_price_cents": 5000},
     )
     assert updated.status_code == 200
@@ -433,7 +443,8 @@ def test_admin_can_clear_plan_description(client, db, auth_headers, make_plan):
     plan.description = "Original description"
     db.commit()
     response = client.patch(
-        f"/api/v1/plans/{plan.id}", headers=auth_headers(RoleName.ADMIN),
+        f"/api/v1/plans/{plan.id}",
+        headers=auth_headers(RoleName.ADMIN),
         json={"description": None},
     )
     assert response.status_code == 200
@@ -448,7 +459,12 @@ def test_deactivating_retired_plan_preserves_subscription(
 ):
     plan = make_plan(name="Already retired", is_active=False)
     subscription = make_subscription(user=make_user(), plan=plan)
-    original = (subscription.plan_id, subscription.status, subscription.start_date, subscription.end_date)
+    original = (
+        subscription.plan_id,
+        subscription.status,
+        subscription.start_date,
+        subscription.end_date,
+    )
     headers = auth_headers(RoleName.ADMIN)
     for _ in range(2):
         response = client.delete(f"/api/v1/plans/{plan.id}", headers=headers)
@@ -456,4 +472,9 @@ def test_deactivating_retired_plan_preserves_subscription(
     db.refresh(plan)
     db.refresh(subscription)
     assert plan.is_active is False
-    assert (subscription.plan_id, subscription.status, subscription.start_date, subscription.end_date) == original
+    assert (
+        subscription.plan_id,
+        subscription.status,
+        subscription.start_date,
+        subscription.end_date,
+    ) == original

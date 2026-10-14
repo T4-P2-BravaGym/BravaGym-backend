@@ -1,10 +1,9 @@
 import pytest
-from sqlalchemy import func, select
-
 from app.core.exceptions import ConflictError, NotFoundError
 from app.models import Payment, Subscription
 from app.models.enums import SubscriptionStatus
 from app.services import subscription_service
+from sqlalchemy import func, select
 
 
 def count_rows(db, model) -> int:
@@ -23,7 +22,7 @@ def test_rn11_subscribe_twice_raises_conflict(db, make_user, make_plan):
 
 
 def test_rn11_simultaneous_request_stopped_by_the_unique_index_raises_conflict(
-        db, make_user, make_plan, make_subscription, monkeypatch
+    db, make_user, make_plan, make_subscription, monkeypatch
 ):
     member = make_user()
     make_subscription(member, make_plan())
@@ -57,15 +56,19 @@ def test_the_payment_amount_comes_from_the_plan(db, make_user, make_plan):
     member = make_user()
     plan = make_plan(monthly_price_cents=8900)
 
-    subscription = subscription_service.subscribe(db, user_id=member.id, plan_id=plan.id)
+    subscription = subscription_service.subscribe(
+        db, user_id=member.id, plan_id=plan.id
+    )
 
-    payment = db.scalar(select(Payment).where(Payment.subscription_id == subscription.id))
+    payment = db.scalar(
+        select(Payment).where(Payment.subscription_id == subscription.id)
+    )
     assert payment.base_amount_cents == 8900
     assert payment.final_amount_cents == 8900
 
 
 def test_get_active_subscription_ignores_cancelled_and_expired_ones(
-        db, make_user, make_plan, make_subscription
+    db, make_user, make_plan, make_subscription
 ):
     member = make_user()
     plan = make_plan()

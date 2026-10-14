@@ -1,0 +1,40 @@
+# Tooling config for Brava Gym API (ruff + coverage). Runtime deps stay in requirements*.txt.
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+src = ["app", "tests"]
+# Keep HU-28 / payment service files untouched while that area settles on dev
+# (PR #241 already merged; still exclude to honor T-04 anti-conflict note).
+extend-exclude = [
+  "app/core/cache.py",
+  "app/core/config.py",
+  "app/main.py",
+  "app/services/plan_service.py",
+  "app/services/shop_service.py",
+  "app/routers/products.py",
+  "app/services/payment_service.py",
+  "tests/conftest.py",
+  "tests/unit/test_cache.py",
+  "tests/unit/test_plan_cache.py",
+  "tests/unit/test_product_cache.py",
+  "tests/integration/test_cache_plans_products.py",
+]
+
+[tool.ruff.lint]
+# FastAPI uses Depends()/Query() in defaults; that is intentional (B008).
+# UP046 would rewrite Pydantic Generic models unsafely; leave Page as-is.
+# RUF012/RUF059/C408 are noisy on this codebase; ignore until a dedicated cleanup.
+ignore = ["B008", "UP046", "RUF012", "RUF059", "C408"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["F811"]
+
+[tool.coverage.run]
+source = ["app"]
+branch = false
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true

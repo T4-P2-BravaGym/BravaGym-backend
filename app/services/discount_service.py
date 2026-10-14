@@ -2,6 +2,7 @@
 
 Business rules RN-xx: docs/business-rules.md.
 """
+
 import logging
 
 from sqlalchemy import func, select
@@ -12,7 +13,12 @@ from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
 from app.models import DiscountCode, Payment, User
 from app.models.enums import PaymentStatus
 from app.models.types import utc_now
-from app.schemas.payment import DATES_IN_ORDER, DiscountCodeCreate, DiscountCodeOut, DiscountCodeUpdate
+from app.schemas.payment import (
+    DATES_IN_ORDER,
+    DiscountCodeCreate,
+    DiscountCodeOut,
+    DiscountCodeUpdate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +55,9 @@ def _get_or_404(db: Session, code_id: int) -> DiscountCode:
     return code
 
 
-def list_codes(db: Session, *, page: int = 1, size: int = 20) -> tuple[list[DiscountCodeOut], int]:
+def list_codes(
+    db: Session, *, page: int = 1, size: int = 20
+) -> tuple[list[DiscountCodeOut], int]:
     """All codes, newest end date first. Returns (codes of this page, total)."""
     total = db.scalar(select(func.count(DiscountCode.id))) or 0
     codes = db.scalars(
@@ -63,7 +71,10 @@ def list_codes(db: Session, *, page: int = 1, size: int = 20) -> tuple[list[Disc
 
 def create_code(db: Session, admin: User, data: DiscountCodeCreate) -> DiscountCodeOut:
     """409 if a code with the same text already exists."""
-    if db.scalar(select(DiscountCode).where(DiscountCode.code == data.code)) is not None:
+    if (
+        db.scalar(select(DiscountCode).where(DiscountCode.code == data.code))
+        is not None
+    ):
         raise ConflictError(CODE_TAKEN)
 
     code = DiscountCode(**data.model_dump(), created_by=admin.id)
@@ -78,7 +89,9 @@ def create_code(db: Session, admin: User, data: DiscountCodeCreate) -> DiscountC
     return _to_out(db, code)
 
 
-def update_code(db: Session, admin: User, code_id: int, changes: DiscountCodeUpdate) -> DiscountCodeOut:
+def update_code(
+    db: Session, admin: User, code_id: int, changes: DiscountCodeUpdate
+) -> DiscountCodeOut:
     """Change only the fields sent. The dates are checked again with the values that stay."""
     code = _get_or_404(db, code_id)
     data = changes.model_dump(exclude_unset=True)
@@ -104,7 +117,9 @@ def deactivate_code(db: Session, admin: User, code_id: int) -> None:
 
 def get_valid_code(db: Session, code_text: str) -> DiscountCode:
     """RN-14: active, within its dates and under max_uses. 422 otherwise. Reused when paying (HU-24)."""
-    code = db.scalar(select(DiscountCode).where(DiscountCode.code == code_text.strip().upper()))
+    code = db.scalar(
+        select(DiscountCode).where(DiscountCode.code == code_text.strip().upper())
+    )
     if code is None:
         raise ValidationAppError("Este código de descuento no existe.")
     if not code.is_active:
@@ -113,5 +128,7 @@ def get_valid_code(db: Session, code_text: str) -> DiscountCode:
     if not code.valid_from <= today <= code.valid_until:
         raise ValidationAppError("Este código de descuento no está vigente hoy.")
     if code.max_uses is not None and count_uses(db, code.id) >= code.max_uses:
-        raise ValidationAppError("Este código de descuento ya se ha usado el máximo de veces.")
+        raise ValidationAppError(
+            "Este código de descuento ya se ha usado el máximo de veces."
+        )
     return code

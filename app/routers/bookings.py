@@ -98,7 +98,5 @@ def cancel_booking(
     member: CurrentMember,
     db: DbSession,
 ) -> BookingOut:
-    row = booking_service.cancel_booking(
-        db, user_id=member.id, booking_id=booking_id
-    )
+    row = booking_service.cancel_booking(db, user_id=member.id, booking_id=booking_id)
     return BookingOut.from_booking(row.booking, row.waitlist_position)

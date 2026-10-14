@@ -1,9 +1,10 @@
 """Integration tests for trainer session management (HU-11.3 / HU-11.4)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from app.models import Booking, ClassSession, ClassType, Payment
 from app.models.enums import BookingStatus, PaymentStatus, RoleName, SessionStatus
+
 from tests.conftest import auth_header_for
 
 SESSIONS_URL = "/api/v1/sessions"
@@ -177,7 +178,7 @@ def test_cancel_session_cancels_bookings(client, db, make_user):
     session = ClassSession(
         class_type=class_type,
         trainer=trainer,
-        starts_at=datetime(2026, 10, 11, 18, 0, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 11, 18, 0, tzinfo=UTC),
         capacity=4,
     )
     db.add(session)
@@ -223,7 +224,7 @@ def test_get_session_bookings_trainer_and_permissions(client, db, make_user):
     session = ClassSession(
         class_type=class_type,
         trainer=trainer,
-        starts_at=datetime.now(timezone.utc) + timedelta(days=2),
+        starts_at=datetime.now(UTC) + timedelta(days=2),
         capacity=4,
     )
     db.add(session)

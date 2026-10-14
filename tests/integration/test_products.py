@@ -1,5 +1,4 @@
 import pytest
-
 from app.services.shop_service import INVALID_PRICE_RANGE
 
 PRODUCTS_URL = "/api/v1/products"
@@ -83,7 +82,11 @@ def test_filter_by_price_range_includes_both_limits(client, shop):
     response = client.get(PRODUCTS_URL, params={"min_price": 2200, "max_price": 3490})
 
     assert response.status_code == 200
-    assert _names(response) == ["Camiseta Brava", "Creatina 300 g", "Proteína whey 1 kg"]
+    assert _names(response) == [
+        "Camiseta Brava",
+        "Creatina 300 g",
+        "Proteína whey 1 kg",
+    ]
 
 
 def test_filter_by_category_and_price_together(client, shop):
@@ -114,14 +117,24 @@ def test_sort_by_price_ascending(client, shop):
     response = client.get(PRODUCTS_URL, params={"sort": "price_asc"})
 
     assert response.status_code == 200
-    assert [item["price_cents"] for item in response.json()["items"]] == [2200, 2290, 3490, 3900]
+    assert [item["price_cents"] for item in response.json()["items"]] == [
+        2200,
+        2290,
+        3490,
+        3900,
+    ]
 
 
 def test_sort_by_price_descending(client, shop):
     response = client.get(PRODUCTS_URL, params={"sort": "price_desc"})
 
     assert response.status_code == 200
-    assert [item["price_cents"] for item in response.json()["items"]] == [3900, 3490, 2290, 2200]
+    assert [item["price_cents"] for item in response.json()["items"]] == [
+        3900,
+        3490,
+        2290,
+        2200,
+    ]
 
 
 def test_sort_works_together_with_filters_and_pagination(client, shop):
@@ -157,7 +170,10 @@ def test_min_price_greater_than_max_price_returns_422(client, shop):
     response = client.get(PRODUCTS_URL, params={"min_price": 3000, "max_price": 1000})
 
     assert response.status_code == 422
-    assert response.json() == {"detail": INVALID_PRICE_RANGE, "code": "validation_error"}
+    assert response.json() == {
+        "detail": INVALID_PRICE_RANGE,
+        "code": "validation_error",
+    }
 
 
 @pytest.mark.parametrize(

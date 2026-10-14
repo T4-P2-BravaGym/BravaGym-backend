@@ -31,8 +31,8 @@ DbSession = Annotated[Session, Depends(get_db)]
     responses={404: {"description": "The member has no active routine"}},
 )
 def get_my_routine(
-        member: Annotated[User, Depends(require_roles(RoleName.MEMBER))],
-        db: Annotated[Session, Depends(get_db)],
+    member: Annotated[User, Depends(require_roles(RoleName.MEMBER))],
+    db: Annotated[Session, Depends(get_db)],
 ) -> RoutineOut:
     return routine_service.my_routine(db, member)
 

@@ -1,11 +1,8 @@
 """Unit tests for booking_service (HU-12 / RN-01–04, RN-07)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from freezegun import freeze_time
-from sqlalchemy import func, select
-
 from app.core.exceptions import ConflictError, NotFoundError, PermissionDeniedError
 from app.models import Booking, ClassSession, ClassType, Payment
 from app.models.enums import (
@@ -23,6 +20,8 @@ from app.services.booking_service import (
     SESSION_NOT_BOOKABLE,
     SESSION_NOT_FOUND,
 )
+from freezegun import freeze_time
+from sqlalchemy import func, select
 
 
 def _make_session(
@@ -46,7 +45,7 @@ def _make_session(
     session = ClassSession(
         class_type=class_type,
         trainer=trainer,
-        starts_at=starts_at or (datetime.now(timezone.utc) + timedelta(days=1)),
+        starts_at=starts_at or (datetime.now(UTC) + timedelta(days=1)),
         capacity=capacity,
         status=status,
     )
@@ -63,9 +62,7 @@ def test_rn01_book_without_active_subscription_raises_403(
     session = _make_session(db, make_user, name="Sin suscripción")
 
     with pytest.raises(PermissionDeniedError, match=NO_ACTIVE_SUBSCRIPTION):
-        booking_service.book_session(
-            db, user_id=member.id, class_session_id=session.id
-        )
+        booking_service.book_session(db, user_id=member.id, class_session_id=session.id)
 
     assert db.scalar(select(func.count()).select_from(Booking)) == 0
 
@@ -75,9 +72,7 @@ def test_rn01_book_with_no_subscription_at_all_raises_403(db, make_user):
     session = _make_session(db, make_user, name="Sin plan")
 
     with pytest.raises(PermissionDeniedError, match=NO_ACTIVE_SUBSCRIPTION):
-        booking_service.book_session(
-            db, user_id=member.id, class_session_id=session.id
-        )
+        booking_service.book_session(db, user_id=member.id, class_session_id=session.id)
 
 
 def test_rn02_book_with_free_spots_is_confirmed(
@@ -123,18 +118,14 @@ def test_rn02_full_class_goes_to_waitlist_with_position(
     assert third_result.waitlist_position == 2
 
 
-def test_rn03_duplicate_booking_raises_409(
-    db, make_user, make_plan, make_subscription
-):
+def test_rn03_duplicate_booking_raises_409(db, make_user, make_plan, make_subscription):
     member = make_user()
     make_subscription(member, make_plan())
     session = _make_session(db, make_user, name="Duplicada")
     booking_service.book_session(db, user_id=member.id, class_session_id=session.id)
 
     with pytest.raises(ConflictError, match=ALREADY_BOOKED):
-        booking_service.book_session(
-            db, user_id=member.id, class_session_id=session.id
-        )
+        booking_service.book_session(db, user_id=member.id, class_session_id=session.id)
 
     assert db.scalar(select(func.count()).select_from(Booking)) == 1
 
@@ -170,19 +161,15 @@ def test_rn04_past_session_raises_409(db, make_user, make_plan, make_subscriptio
     session = _make_session(
         db,
         make_user,
-        starts_at=datetime(2026, 10, 7, 11, 0, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 7, 11, 0, tzinfo=UTC),
         name="Pasada",
     )
 
     with pytest.raises(ConflictError, match=SESSION_NOT_BOOKABLE):
-        booking_service.book_session(
-            db, user_id=member.id, class_session_id=session.id
-        )
+        booking_service.book_session(db, user_id=member.id, class_session_id=session.id)
 
 
-def test_rn04_cancelled_session_raises_409(
-    db, make_user, make_plan, make_subscription
-):
+def test_rn04_cancelled_session_raises_409(db, make_user, make_plan, make_subscription):
     member = make_user()
     make_subscription(member, make_plan())
     session = _make_session(
@@ -190,9 +177,7 @@ def test_rn04_cancelled_session_raises_409(
     )
 
     with pytest.raises(ConflictError, match=SESSION_NOT_BOOKABLE):
-        booking_service.book_session(
-            db, user_id=member.id, class_session_id=session.id
-        )
+        booking_service.book_session(db, user_id=member.id, class_session_id=session.id)
 
 
 def test_book_missing_session_raises_404(db, make_user, make_plan, make_subscription):
@@ -275,9 +260,7 @@ def test_rn07_zero_extra_price_creates_no_payment(
     )
 
 
-def test_list_my_bookings_only_returns_own(
-    db, make_user, make_plan, make_subscription
-):
+def test_list_my_bookings_only_returns_own(db, make_user, make_plan, make_subscription):
     plan = make_plan()
     session = _make_session(db, make_user, capacity=5, name="Listado")
     mine = make_user()
@@ -316,7 +299,7 @@ def test_rn05_cancel_confirmed_at_59_minutes_raises_409(
         make_user,
         make_plan,
         make_subscription,
-        starts_at=datetime(2026, 10, 7, 12, 59, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 7, 12, 59, tzinfo=UTC),
         name="Cancel 59",
     )
 
@@ -337,7 +320,7 @@ def test_rn05_cancel_confirmed_at_60_minutes_succeeds(
         make_user,
         make_plan,
         make_subscription,
-        starts_at=datetime(2026, 10, 7, 13, 0, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 7, 13, 0, tzinfo=UTC),
         name="Cancel 60",
     )
 
@@ -359,7 +342,7 @@ def test_rn05_cancel_confirmed_at_61_minutes_succeeds(
         make_user,
         make_plan,
         make_subscription,
-        starts_at=datetime(2026, 10, 7, 13, 1, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 7, 13, 1, tzinfo=UTC),
         name="Cancel 61",
     )
 
@@ -378,7 +361,7 @@ def test_rn05_leave_waitlist_always_allowed_under_one_hour(
         db,
         make_user,
         capacity=1,
-        starts_at=datetime(2026, 10, 7, 13, 0, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 7, 13, 0, tzinfo=UTC),
         name="Salir espera",
     )
     plan = make_plan()
@@ -415,7 +398,7 @@ def test_rn06_cancel_confirmed_promotes_oldest_waitlisted(
         db,
         make_user,
         capacity=1,
-        starts_at=datetime(2026, 10, 7, 14, 0, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 7, 14, 0, tzinfo=UTC),
         name="Promoción",
         extra_price_cents=900,
     )
@@ -483,7 +466,7 @@ def test_cancel_already_cancelled_raises_409(
         make_user,
         make_plan,
         make_subscription,
-        starts_at=datetime.now(timezone.utc) + timedelta(days=2),
+        starts_at=datetime.now(UTC) + timedelta(days=2),
         name="Ya cancelada",
     )
     booking_service.cancel_booking(db, user_id=member.id, booking_id=booking.id)

@@ -62,7 +62,9 @@ def _to_routine_out(routine: Routine) -> RoutineOut:
 def my_routine(db: Session, member: User) -> RoutineOut:
     """The member's active routine. 404 when she has none."""
     routine = db.scalar(
-        select(Routine).where(Routine.member_id == member.id, Routine.is_active.is_(True))
+        select(Routine).where(
+            Routine.member_id == member.id, Routine.is_active.is_(True)
+        )
     )
     if routine is None:
         raise NotFoundError(NO_ROUTINE)

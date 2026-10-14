@@ -19,11 +19,16 @@ def get_active_subscription(db: Session, user_id: int) -> Subscription | None:
     return db.scalar(
         select(Subscription)
         .options(joinedload(Subscription.plan))
-        .where(Subscription.user_id == user_id, Subscription.status == SubscriptionStatus.ACTIVE)
+        .where(
+            Subscription.user_id == user_id,
+            Subscription.status == SubscriptionStatus.ACTIVE,
+        )
     )
 
 
-def get_my_subscriptions(db: Session, user_id: int) -> tuple[Subscription | None, list[Subscription]]:
+def get_my_subscriptions(
+    db: Session, user_id: int
+) -> tuple[Subscription | None, list[Subscription]]:
     subscriptions = db.scalars(
         select(Subscription)
         .options(joinedload(Subscription.plan))
@@ -31,7 +36,9 @@ def get_my_subscriptions(db: Session, user_id: int) -> tuple[Subscription | None
         .order_by(Subscription.start_date.desc(), Subscription.id.desc())
     ).all()
 
-    current = next((s for s in subscriptions if s.status == SubscriptionStatus.ACTIVE), None)
+    current = next(
+        (s for s in subscriptions if s.status == SubscriptionStatus.ACTIVE), None
+    )
     history = [s for s in subscriptions if s is not current]
     return current, history
 

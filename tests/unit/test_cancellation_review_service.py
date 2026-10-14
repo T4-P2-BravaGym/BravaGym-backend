@@ -1,11 +1,14 @@
 """Unit tests for admin cancellation review (HU-20 / RN-13)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy import func, select
-
-from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
+from app.core.exceptions import (
+    ConflictError,
+    NotFoundError,
+    UnauthorizedError,
+    ValidationAppError,
+)
 from app.models import Booking, CancellationRequest, ClassSession, ClassType
 from app.models.enums import (
     BookingStatus,
@@ -14,9 +17,10 @@ from app.models.enums import (
     SessionStatus,
     SubscriptionStatus,
 )
-from app.core.exceptions import UnauthorizedError
 from app.services import booking_service, cancellation_service
 from app.services.auth_service import login
+from sqlalchemy import func, select
+
 from tests.conftest import TEST_PASSWORD
 
 
@@ -39,7 +43,7 @@ def _make_class_session(
     session = ClassSession(
         class_type=class_type,
         trainer=trainer,
-        starts_at=starts_at or (datetime.now(timezone.utc) + timedelta(days=2)),
+        starts_at=starts_at or (datetime.now(UTC) + timedelta(days=2)),
         capacity=capacity,
         status=SessionStatus.SCHEDULED,
     )
@@ -48,7 +52,9 @@ def _make_class_session(
     return session
 
 
-def _pending_request(db, member, subscription, reason: str = "Me voy") -> CancellationRequest:
+def _pending_request(
+    db, member, subscription, reason: str = "Me voy"
+) -> CancellationRequest:
     request = CancellationRequest(
         subscription_id=subscription.id,
         reason=reason,
@@ -75,14 +81,14 @@ def test_rn13_approve_cancels_subscription_deactivates_user_and_future_bookings(
     past = _make_class_session(
         db,
         make_user,
-        starts_at=datetime.now(timezone.utc) - timedelta(days=3),
+        starts_at=datetime.now(UTC) - timedelta(days=3),
         name="Pasada",
     )
     soon = _make_class_session(
         db,
         make_user,
         capacity=1,
-        starts_at=datetime.now(timezone.utc) + timedelta(minutes=30),
+        starts_at=datetime.now(UTC) + timedelta(minutes=30),
         name="Pronto",
     )
 
@@ -182,7 +188,9 @@ def test_rn13_reject_keeps_member_and_subscription_active(
     assert subscription.status == SubscriptionStatus.ACTIVE
 
 
-def test_rn13_approved_member_cannot_log_in(db, make_user, make_plan, make_subscription):
+def test_rn13_approved_member_cannot_log_in(
+    db, make_user, make_plan, make_subscription
+):
     member = make_user()
     subscription = make_subscription(member, make_plan())
     admin = make_user(RoleName.ADMIN)

@@ -29,7 +29,9 @@ class Product(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    category_id: Mapped[int] = mapped_column(ForeignKey("product_categories.id"), index=True)
+    category_id: Mapped[int] = mapped_column(
+        ForeignKey("product_categories.id"), index=True
+    )
     name: Mapped[str] = mapped_column(String(120))
     description: Mapped[str | None] = mapped_column(Text)
     price_cents: Mapped[int]
@@ -80,7 +82,9 @@ class Order(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    status: Mapped[OrderStatus] = mapped_column(db_enum(OrderStatus), default=OrderStatus.PENDING)
+    status: Mapped[OrderStatus] = mapped_column(
+        db_enum(OrderStatus), default=OrderStatus.PENDING
+    )
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
 
     user: Mapped["User"] = relationship()
@@ -93,7 +97,10 @@ class OrderItem(Base):
     __tablename__ = "order_items"
     __table_args__ = (
         UniqueConstraint(
-            "order_id", "product_id", "variant_id", name="uq_order_items_order_product_variant"
+            "order_id",
+            "product_id",
+            "variant_id",
+            name="uq_order_items_order_product_variant",
         ),
         CheckConstraint("quantity > 0", name="ck_order_items_quantity"),
         CheckConstraint("unit_price_cents >= 0", name="ck_order_items_price"),

@@ -1,4 +1,5 @@
 """Logging setup. Never log passwords, tokens or personal data you do not need."""
+
 import logging
 
 
