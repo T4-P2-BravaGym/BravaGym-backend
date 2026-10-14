@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, pool
 
 from app import models
 from app.core.config import get_settings
@@ -31,7 +31,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    engine = create_engine(get_url())
+    engine = create_engine(get_url(), poolclass=pool.NullPool)
     enable_sqlite_foreign_keys(engine)
     with engine.connect() as connection:
         context.configure(
