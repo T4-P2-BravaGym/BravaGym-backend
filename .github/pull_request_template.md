@@ -16,4 +16,4 @@ AI: herramienta y modelo, o "ninguno"
 - [ ] Endpoint documented in Swagger (summary, response_model)
 - [ ] No secrets, passwords or tokens in code or logs
 - [ ] Conventional Commit messages
-- [ ] He leído y probado el código generado por IA, y hay entrada en `docs/ai-log.md`
+- [ ] Entrada en `docs/ai-log.md` con el uso de IA de esta historia

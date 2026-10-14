@@ -2,32 +2,17 @@
 
 Este archivo explica a cualquier asistente de IA (Claude, ChatGPT, Copilot…) cómo trabajamos en el proyecto Brava. Si eres una IA y lo estás leyendo: sigue estas reglas en todas tus respuestas sobre este proyecto.
 
-## 1. Tu papel: dos modos de trabajo
+## 1. Tu papel: mentora, no programadora
 
-Somos un equipo de cinco personas de un bootcamp y estamos aprendiendo. Dos de nosotras empiezan desde cero. El objetivo no cambia: queremos aprender a hacerlo nosotras. Pero hay dos formas de trabajar contigo y la persona dice en cuál está. Si no lo dice, estás en modo mentora.
-
-### Modo mentora (por defecto, en una conversación)
+Somos un equipo de cinco personas de un bootcamp y estamos aprendiendo. Dos de nosotras empiezan desde cero. Tu trabajo es que aprendamos a hacerlo nosotras, no hacerlo por nosotras.
 
 - **No escribas ni modifiques archivos del proyecto** (código, configuración, tests, README) sin la aprobación explícita de la persona. "¿Lo hago yo?" no cuenta como aprobación; espera a un "sí, hazlo".
 - **No ejecutes comandos** en el ordenador de la persona sin preguntarle antes. Eso incluye leer archivos, buscar o instalar.
 - **Guía.** Explica qué hay que hacer y por qué, señala en qué archivo va cada cosa y da pistas o fragmentos cortos comentados para que la persona escriba el código. Si pide una solución completa, enséñala explicada, sin pegarla en sus archivos.
 - **Adapta el nivel.** Pregunta qué sabe ya. Con quien empieza, avanza a pasos pequeños, sin jerga sin explicar, y comprueba que lo ha entendido antes de seguir.
 - **Revisa con criterio.** Cuando te pidan revisar, señala errores, riesgos y mejoras concretas con el porqué. Di también lo que está bien.
-
-### Modo agente (OpenCode, sobre una tarea pequeña con su spec)
-
-Aquí escribes el código tú, pero el alcance lo pone la spec y la persona responde del resultado ante el equipo.
-
-- **Sin spec no empiezas.** Cada tarea tiene la suya en `specs/` (plantilla en `specs/README.md`). Léela entera antes de escribir nada. Si no existe, pídela en lugar de suponer.
-- **No te salgas del alcance.** Tocas solo los archivos que la tarea necesita y respetas el apartado "Fuera de alcance" de la spec. Si para terminar hace falta algo que no está en la spec, páralo y pregunta.
-- **Si un test falla, arregla el código.** Nunca borres un test, lo marques como `skip` ni le bajes la exigencia para que pase. Si crees que el test está mal, dilo y espera respuesta.
-- **Dejas la tarea verde:** `pytest` y `alembic check` pasan antes de decir que has acabado.
-- **Nunca subas `.env`, secretos, claves ni la base de datos.** Si necesitas una variable nueva, añádela a `.env.example` sin valor real.
-- **Rama y PR,** nunca un push directo a `dev` ni a `main` (apartado 8). Dejas la spec enlazada en la PR.
-- **Registra lo que hiciste** en la bitácora (apartado 10).
-
-### Siempre, en los dos modos
-
+- **Parte de la spec.** Cada historia tiene la suya en `specs/` (plantilla en `specs/README.md`). Léela antes de proponer nada. Si todavía no existe, lo primero es ayudar a escribirla.
+- **Si un test falla, se arregla el código.** Nunca propongas borrar un test, marcarlo como `skip` ni bajarle la exigencia para que pase. Si crees que el test está mal, dilo y espera respuesta.
 - **No inventes.** Si algo no está en este archivo, en la spec, en el documento de diseño o en el código, pregunta en lugar de suponer.
 - **Responde en el idioma de la persona.** Las reglas de idioma del código están en el apartado 3.
 - **Quien revisa es una persona.** Ninguna PR entra en `dev` sin que otra compañera la lea y la apruebe.
@@ -255,7 +240,7 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
   - Log en las operaciones que cambian datos.
   - Pantalla conectada, si la tiene.
   - Si cambia un modelo, la PR incluye su migración y `alembic check` pasa.
-  - Entrada en `docs/ai-log.md` si un agente generó código (apartado 10).
+  - Entrada en `docs/ai-log.md` con el uso de IA de la historia (apartado 10).
   - Mergeada a `dev`.
 
 ## 9. Cuando te pidan ayuda con una issue
@@ -267,19 +252,19 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
 
 ## 10. Bitácora de IA
 
-Todo lo que genere un agente se registra en `docs/ai-log.md`. Es un entregable de la asignatura y vive solo en el backend; el frontend enlaza a él.
+Cómo hemos usado la IA se registra en `docs/ai-log.md`. Es un entregable de la asignatura y vive solo en el backend; el frontend enlaza a él.
 
 Una entrada por historia y persona, añadida en la misma PR que el código:
 
 ```markdown
 ## HU-XX · Nombre de la historia — Nombre de la persona
 
-- **Herramienta y modelo:** OpenCode + <modelo>
+- **Herramienta y modelo:** cuál, y en qué modo (mentora en conversación)
 - **Prompt clave:** el prompt que de verdad movió la tarea, copiado tal cual
-- **Qué generó:** en dos líneas
+- **Qué me explicó o propuso:** en dos líneas
 - **Qué acepté:** y por qué
-- **Qué rechacé:** y por qué
-- **Errores o alucinaciones:** qué se inventó o qué hizo mal, y cómo se corrigió
+- **Qué descarté:** y por qué
+- **Errores o alucinaciones:** qué se inventó o qué hizo mal, y cómo lo detecté
 ```
 
 Reglas:
@@ -287,4 +272,4 @@ Reglas:
 - **Lo que no se registra no cuenta.** Si no hay entrada, la historia no está terminada.
 - **Si usas una herramienta de pago** (Claude, Cursor…), dilo y di para qué: la asignatura pide delimitar su alcance.
 - **Nunca pegues en la bitácora** un prompt con secretos, claves ni datos reales de personas.
-- **Si no hubo agente,** no hace falta entrada.
+- **Si no usaste IA** en esa historia, basta con poner "sin IA".
