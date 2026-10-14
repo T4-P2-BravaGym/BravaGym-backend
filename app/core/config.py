@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     # Public list cache for /plans and /products (HU-28). Seconds until expiry.
     cache_ttl_seconds: int = 60
 
+    # Auth attempt windows (HU-34). In-memory only — single process.
+    auth_login_max_attempts: int = 5
+    auth_login_window_seconds: int = 900
+    auth_register_max_attempts: int = 10
+    auth_register_window_seconds: int = 3600
+
 
 @lru_cache
 def get_settings() -> Settings:

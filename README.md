@@ -48,7 +48,7 @@ Los tests no usan Alembic (BD en memoria con `create_all`), pero `tests/integrat
 ```
 app/
   main.py            # crea la app, CORS, errores y monta los routers en /api/v1
-  core/              # configuración, base de datos, seguridad (JWT, bcrypt), logging, errores
+  core/              # configuración, BD, seguridad (JWT, bcrypt), caché, rate limit, logging, errores
   models/            # Model: tablas SQLAlchemy (ver docs/er.md)
   schemas/           # View: esquemas Pydantic de entrada y salida
   routers/           # Controller: endpoints finos que llaman a los servicios
@@ -63,6 +63,12 @@ docs/                # diagrama ER, reglas de negocio, mapa de endpoints y permi
 ```
 
 Cada archivo empieza con un comentario que dice qué va dentro y en qué historia (`TODO(HU-12)`). Lo que ya funciona es la base: configuración, base de datos, manejo de errores, CORS y `/health`.
+
+## Límite de intentos (login y registro)
+
+`POST /auth/login` y `POST /auth/register` usan un limitador **en memoria** (`app/core/rate_limit.py`, HU-34): marcas de tiempo por clave (email+IP en login, IP en registro). Los umbrales van en `.env` (`AUTH_LOGIN_*`, `AUTH_REGISTER_*`). Si se supera el límite, la API responde **429** con cabecera `Retry-After`.
+
+**Solo vale con un proceso.** Varios workers de Uvicorn (o varias réplicas) no comparten el contador; cada uno tiene el suyo. Para producción multi-proceso haría falta un almacén compartido (p. ej. Redis).
 
 ## Cómo trabajamos
 

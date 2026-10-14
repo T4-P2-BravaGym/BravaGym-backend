@@ -44,6 +44,17 @@ class ValidationAppError(AppError):
     code = "validation_error"
 
 
+class RateLimitError(AppError):
+    """Too many attempts within the configured window (HTTP 429)."""
+
+    status_code = 429
+    code = "rate_limited"
+
+    def __init__(self, detail: str, *, retry_after: int):
+        super().__init__(detail)
+        self.headers = {"Retry-After": str(retry_after)}
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def handle_app_error(_request: Request, exc: AppError) -> JSONResponse:
