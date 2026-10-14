@@ -152,7 +152,9 @@ def create_personal_training_slot(
         401: {"description": "Missing, invalid or expired token"},
         403: {"description": "Caller is not a trainer or superadmin"},
         404: {"description": "Class type not found"},
-        409: {"description": "Overlap with another session of the same trainer (RN-09)"},
+        409: {
+            "description": "Overlap with another session of the same trainer (RN-09)"
+        },
         422: {"description": "Invalid body or missing trainer_id for superadmin"},
     },
 )
@@ -187,9 +189,7 @@ def update_session(
     actor: TrainerOrSuperadmin,
     db: DbSession,
 ) -> SessionOut:
-    return _to_session_out(
-        session_service.update_session(db, actor, session_id, body)
-    )
+    return _to_session_out(session_service.update_session(db, actor, session_id, body))
 
 
 @router.post(

@@ -12,15 +12,14 @@ from app.core.security import decode_access_token
 from app.models import User
 from app.models.enums import RoleName
 
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 INVALID_SESSION = "Sesión no válida o caducada. Vuelve a iniciar sesión."
 
 
 def get_current_user(
-        token: Annotated[str | None, Depends(oauth2_scheme)],
-        db: Annotated[Session, Depends(get_db)],
+    token: Annotated[str | None, Depends(oauth2_scheme)],
+    db: Annotated[Session, Depends(get_db)],
 ) -> User:
     if not token:
         raise UnauthorizedError(INVALID_SESSION)
@@ -40,7 +39,6 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 def require_roles(*roles: RoleName) -> Callable[[User], User]:
-
 
     def check_role(current_user: CurrentUser) -> User:
         if current_user.role.name not in roles:

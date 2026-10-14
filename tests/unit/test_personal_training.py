@@ -1,11 +1,14 @@
 """Unit tests for personal training (HU-14 / RN-08, RN-09)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy import func, select
-
-from app.core.exceptions import ConflictError, NotFoundError, PermissionDeniedError, ValidationAppError
+from app.core.exceptions import (
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationAppError,
+)
 from app.models import Booking, ClassSession, ClassType
 from app.models.enums import BookingStatus, RoleName, SessionStatus
 from app.services import booking_service, session_service
@@ -17,6 +20,7 @@ from app.services.session_service import (
     PT_CLASS_TYPE_NOT_FOUND,
     TRAINER_OVERLAP,
 )
+from sqlalchemy import func, select
 
 
 def _make_pt_class_type(db, *, name: str = "Entrenamiento personal") -> ClassType:
@@ -45,7 +49,7 @@ def test_rn08_book_pt_without_plan_flag_raises_403(
     session = ClassSession(
         class_type=pt_type,
         trainer=trainer,
-        starts_at=datetime.now(timezone.utc) + timedelta(days=1),
+        starts_at=datetime.now(UTC) + timedelta(days=1),
         duration_minutes=60,
         capacity=1,
         status=SessionStatus.SCHEDULED,
@@ -57,9 +61,7 @@ def test_rn08_book_pt_without_plan_flag_raises_403(
     make_subscription(member, make_plan(includes_personal_training=False))
 
     with pytest.raises(PermissionDeniedError, match=NO_PERSONAL_TRAINING_PLAN):
-        booking_service.book_session(
-            db, user_id=member.id, class_session_id=session.id
-        )
+        booking_service.book_session(db, user_id=member.id, class_session_id=session.id)
 
     assert db.scalar(select(func.count()).select_from(Booking)) == 0
 
@@ -72,7 +74,7 @@ def test_rn08_book_pt_with_plan_flag_is_confirmed(
     session = ClassSession(
         class_type=pt_type,
         trainer=trainer,
-        starts_at=datetime.now(timezone.utc) + timedelta(days=1),
+        starts_at=datetime.now(UTC) + timedelta(days=1),
         duration_minutes=60,
         capacity=1,
         status=SessionStatus.SCHEDULED,
@@ -99,7 +101,7 @@ def test_rn08_regular_class_ignores_pt_plan_flag(
     session = ClassSession(
         class_type=class_type,
         trainer=trainer,
-        starts_at=datetime.now(timezone.utc) + timedelta(days=1),
+        starts_at=datetime.now(UTC) + timedelta(days=1),
         capacity=8,
         status=SessionStatus.SCHEDULED,
     )
@@ -118,7 +120,7 @@ def test_rn08_regular_class_ignores_pt_plan_flag(
 def test_create_pt_slot_forces_60_min_and_capacity_1(db, make_user):
     trainer = make_user(RoleName.TRAINER)
     _make_pt_class_type(db)
-    starts = datetime(2026, 10, 10, 10, 0, tzinfo=timezone.utc)
+    starts = datetime(2026, 10, 10, 10, 0, tzinfo=UTC)
 
     row = session_service.create_personal_training_slot(
         db, trainer_id=trainer.id, starts_at=starts
@@ -139,7 +141,7 @@ def test_create_pt_slot_rejects_non_pt_class_type(db, make_user):
         session_service.create_personal_training_slot(
             db,
             trainer_id=trainer.id,
-            starts_at=datetime(2026, 10, 10, 11, 0, tzinfo=timezone.utc),
+            starts_at=datetime(2026, 10, 10, 11, 0, tzinfo=UTC),
             class_type_id=regular.id,
         )
 
@@ -152,14 +154,14 @@ def test_create_pt_slot_without_pt_type_raises_404(db, make_user):
         session_service.create_personal_training_slot(
             db,
             trainer_id=trainer.id,
-            starts_at=datetime(2026, 10, 10, 12, 0, tzinfo=timezone.utc),
+            starts_at=datetime(2026, 10, 10, 12, 0, tzinfo=UTC),
         )
 
 
 def test_rn09_overlapping_pt_slot_raises_409(db, make_user):
     trainer = make_user(RoleName.TRAINER)
     _make_pt_class_type(db, name="PT solape")
-    starts = datetime(2026, 10, 10, 16, 0, tzinfo=timezone.utc)
+    starts = datetime(2026, 10, 10, 16, 0, tzinfo=UTC)
 
     session_service.create_personal_training_slot(
         db, trainer_id=trainer.id, starts_at=starts
@@ -172,6 +174,4 @@ def test_rn09_overlapping_pt_slot_raises_409(db, make_user):
             starts_at=starts + timedelta(minutes=30),
         )
 
-    assert (
-        db.scalar(select(func.count()).select_from(ClassSession)) == 1
-    )
+    assert db.scalar(select(func.count()).select_from(ClassSession)) == 1

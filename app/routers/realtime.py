@@ -2,6 +2,7 @@
 
 Public, like the schedule. The server only sends messages; the client just listens.
 """
+
 import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -24,4 +25,3 @@ async def session_updates_ws(websocket: WebSocket, session_id: int) -> None:
         logger.info("A client stopped watching session %s", session_id)
     finally:
         session_updates.disconnect(session_id, websocket)
-

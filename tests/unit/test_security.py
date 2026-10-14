@@ -2,8 +2,6 @@ from datetime import UTC, datetime
 
 import jwt
 import pytest
-from freezegun import freeze_time
-
 from app.core.config import get_settings
 from app.core.security import (
     create_access_token,
@@ -11,6 +9,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from freezegun import freeze_time
 
 
 def test_token_has_sub_role_and_expires_in_60_minutes():

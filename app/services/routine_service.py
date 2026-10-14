@@ -2,6 +2,7 @@
 
 TODO(HU-17, HU-18). Business rules RN-xx: docs/business-rules.md.
 """
+
 from itertools import groupby
 
 from sqlalchemy import select
@@ -11,7 +12,9 @@ from app.core.exceptions import NotFoundError
 from app.models import Routine, User
 from app.schemas.routine import RoutineDayOut, RoutineLineOut, RoutineOut
 
-NO_ROUTINE = "Todavía no tienes una rutina asignada. Tu entrenadora te la preparará pronto."
+NO_ROUTINE = (
+    "Todavía no tienes una rutina asignada. Tu entrenadora te la preparará pronto."
+)
 
 
 def _to_routine_out(routine: Routine) -> RoutineOut:
@@ -46,7 +49,9 @@ def _to_routine_out(routine: Routine) -> RoutineOut:
 def my_routine(db: Session, member: User) -> RoutineOut:
     """The member's active routine. 404 when she has none."""
     routine = db.scalar(
-        select(Routine).where(Routine.member_id == member.id, Routine.is_active.is_(True))
+        select(Routine).where(
+            Routine.member_id == member.id, Routine.is_active.is_(True)
+        )
     )
     if routine is None:
         raise NotFoundError(NO_ROUTINE)

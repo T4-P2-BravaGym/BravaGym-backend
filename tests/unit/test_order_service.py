@@ -1,12 +1,11 @@
 import pytest
-from sqlalchemy import func, select, update
-
 from app.core.exceptions import ConflictError, NotFoundError
 from app.models import Order, OrderItem, Payment, Product
 from app.models.enums import OrderStatus, PaymentStatus
 from app.models.types import utc_now
 from app.schemas.order import OrderCreate
 from app.services import order_service
+from sqlalchemy import func, select, update
 
 
 def count_rows(db, model) -> int:
@@ -26,11 +25,15 @@ def stock_of(db, product: Product) -> int:
 def placed(db, make_user, make_product):
     member = make_user()
     product = make_product(stock=5)
-    result = order_service.place_order(db, user_id=member.id, data=order_body((product, 2)))
+    result = order_service.place_order(
+        db, user_id=member.id, data=order_body((product, 2))
+    )
     return member, product, result
 
 
-def test_rn17_order_takes_stock_and_creates_a_pending_payment(db, make_user, make_product):
+def test_rn17_order_takes_stock_and_creates_a_pending_payment(
+    db, make_user, make_product
+):
     member = make_user()
     whey = make_product(price_cents=3490, stock=5)
     straps = make_product(price_cents=1290, stock=2)
@@ -51,7 +54,9 @@ def test_rn17_order_takes_stock_and_creates_a_pending_payment(db, make_user, mak
 
 def test_the_line_keeps_the_price_of_the_day(db, make_user, make_product):
     product = make_product(price_cents=1000)
-    result = order_service.place_order(db, user_id=make_user().id, data=order_body((product, 1)))
+    result = order_service.place_order(
+        db, user_id=make_user().id, data=order_body((product, 1))
+    )
 
     product.price_cents = 1500
     db.commit()
@@ -60,7 +65,9 @@ def test_the_line_keeps_the_price_of_the_day(db, make_user, make_product):
     assert item.unit_price_cents == 1000
 
 
-def test_rn17_not_enough_stock_raises_conflict_and_changes_nothing(db, make_user, make_product):
+def test_rn17_not_enough_stock_raises_conflict_and_changes_nothing(
+    db, make_user, make_product
+):
     plenty = make_product(stock=10)
     scarce = make_product(name="Cinturón de lastre", stock=1)
 
@@ -77,7 +84,7 @@ def test_rn17_not_enough_stock_raises_conflict_and_changes_nothing(db, make_user
 
 
 def test_rn17_stock_is_checked_in_the_database_not_in_the_loaded_object(
-        db, make_user, make_product
+    db, make_user, make_product
 ):
     product = make_product(stock=5)
     db.execute(
@@ -90,7 +97,9 @@ def test_rn17_stock_is_checked_in_the_database_not_in_the_loaded_object(
     assert product.stock == 5
 
     with pytest.raises(ConflictError):
-        order_service.place_order(db, user_id=make_user().id, data=order_body((product, 2)))
+        order_service.place_order(
+            db, user_id=make_user().id, data=order_body((product, 2))
+        )
 
     assert stock_of(db, product) == 1
 
@@ -100,7 +109,9 @@ def test_rn17_the_last_unit_is_sold_only_once(db, make_user, make_product):
     order_service.place_order(db, user_id=make_user().id, data=order_body((product, 1)))
 
     with pytest.raises(ConflictError, match="se ha agotado"):
-        order_service.place_order(db, user_id=make_user().id, data=order_body((product, 1)))
+        order_service.place_order(
+            db, user_id=make_user().id, data=order_body((product, 1))
+        )
 
     assert stock_of(db, product) == 0
     assert count_rows(db, Order) == 1
@@ -110,7 +121,9 @@ def test_inactive_product_raises_conflict(db, make_user, make_product):
     product = make_product(is_active=False)
 
     with pytest.raises(ConflictError):
-        order_service.place_order(db, user_id=make_user().id, data=order_body((product, 1)))
+        order_service.place_order(
+            db, user_id=make_user().id, data=order_body((product, 1))
+        )
 
     assert count_rows(db, Order) == 0
 
@@ -125,7 +138,9 @@ def test_unknown_product_raises_conflict(db, make_user):
 def test_rn17_cancel_puts_the_stock_back_and_cancels_the_payment(db, placed):
     member, product, result = placed
 
-    cancelled = order_service.cancel_order(db, user_id=member.id, order_id=result.order.id)
+    cancelled = order_service.cancel_order(
+        db, user_id=member.id, order_id=result.order.id
+    )
 
     assert cancelled.order.status == OrderStatus.CANCELLED
     assert cancelled.payment.status == PaymentStatus.CANCELLED

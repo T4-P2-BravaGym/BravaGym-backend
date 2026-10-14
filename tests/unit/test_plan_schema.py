@@ -1,8 +1,8 @@
-import pytest
-from pydantic import ValidationError
 from types import SimpleNamespace
 
+import pytest
 from app.schemas.plan import PlanOut
+from pydantic import ValidationError
 
 
 def test_plan_out_reads_plan_attributes():
@@ -21,6 +21,8 @@ def test_plan_out_reads_plan_attributes():
     assert result.name == "Strength Plus"
     assert result.monthly_price_cents == 4990
     assert result.includes_personal_training is True
+
+
 def test_plan_out_accepts_null_description():
     sample_plan = SimpleNamespace(
         id=2,
@@ -34,6 +36,7 @@ def test_plan_out_accepts_null_description():
     result = PlanOut.model_validate(sample_plan)
 
     assert result.description is None
+
 
 def test_plan_out_formats_monthly_price_in_euros():
     sample_plan = SimpleNamespace(
@@ -62,6 +65,8 @@ def test_plan_out_rejects_negative_price():
 
     with pytest.raises(ValidationError):
         PlanOut.model_validate(sample_plan)
+
+
 def test_plan_out_rejects_name_longer_than_80_characters():
     sample_plan = SimpleNamespace(
         id=1,

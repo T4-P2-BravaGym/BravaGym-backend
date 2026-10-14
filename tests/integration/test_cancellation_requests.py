@@ -1,10 +1,10 @@
 """Integration tests for POST/GET cancellation-requests (HU-19, RN-12)."""
 
 import pytest
-from sqlalchemy import func, select
-
 from app.models import CancellationRequest
 from app.models.enums import CancellationStatus, RoleName, SubscriptionStatus
+from sqlalchemy import func, select
+
 from tests.conftest import auth_header_for
 
 CANCEL_URL = "/api/v1/cancellation-requests"
@@ -16,13 +16,15 @@ def count_rows(db, model) -> int:
 
 
 def test_rn12_member_with_active_subscription_creates_pending_and_stays_active(
-        client, db, make_user, make_plan, make_subscription
+    client, db, make_user, make_plan, make_subscription
 ):
     member = make_user()
     subscription = make_subscription(member, make_plan())
     headers = auth_header_for(member)
 
-    response = client.post(CANCEL_URL, json={"reason": "Me mudo de ciudad"}, headers=headers)
+    response = client.post(
+        CANCEL_URL, json={"reason": "Me mudo de ciudad"}, headers=headers
+    )
 
     assert response.status_code == 201
     body = response.json()
@@ -40,7 +42,9 @@ def test_rn12_member_with_active_subscription_creates_pending_and_stays_active(
     assert count_rows(db, CancellationRequest) == 1
 
 
-def test_rn12_second_pending_returns_409(client, db, make_user, make_plan, make_subscription):
+def test_rn12_second_pending_returns_409(
+    client, db, make_user, make_plan, make_subscription
+):
     member = make_user()
     make_subscription(member, make_plan())
     headers = auth_header_for(member)
@@ -78,7 +82,9 @@ def test_rn12_no_endpoint_lets_a_member_delete_herself(client, make_user):
     assert response.status_code == 403
 
 
-def test_get_me_returns_latest_request(client, db, make_user, make_plan, make_subscription):
+def test_get_me_returns_latest_request(
+    client, db, make_user, make_plan, make_subscription
+):
     member = make_user()
     subscription = make_subscription(member, make_plan())
     headers = auth_header_for(member)
@@ -105,7 +111,7 @@ def test_get_me_without_request_returns_404(client, make_user):
 
 
 def test_create_without_active_subscription_returns_404(
-        client, db, make_user, make_plan, make_subscription
+    client, db, make_user, make_plan, make_subscription
 ):
     member = make_user()
     make_subscription(member, make_plan(), status=SubscriptionStatus.EXPIRED)
@@ -131,8 +137,12 @@ def test_get_me_without_token_returns_401(client):
     assert response.status_code == 401
 
 
-@pytest.mark.parametrize("role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN])
-def test_only_members_can_create(client, db, auth_headers, make_plan, make_subscription, make_user, role):
+@pytest.mark.parametrize(
+    "role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN]
+)
+def test_only_members_can_create(
+    client, db, auth_headers, make_plan, make_subscription, make_user, role
+):
     user = make_user(role)
     # Non-members typically have no subscription; still must be rejected by role first.
     response = client.post(
@@ -143,7 +153,9 @@ def test_only_members_can_create(client, db, auth_headers, make_plan, make_subsc
     assert count_rows(db, CancellationRequest) == 0
 
 
-@pytest.mark.parametrize("role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN])
+@pytest.mark.parametrize(
+    "role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN]
+)
 def test_only_members_can_read_me(client, make_user, role):
     response = client.get(MY_CANCEL_URL, headers=auth_header_for(make_user(role)))
 
@@ -152,9 +164,17 @@ def test_only_members_can_read_me(client, make_user, role):
 
 @pytest.mark.parametrize(
     "body",
-    [{}, {"reason": ""}, {"reason": "x" * 2001}, {"reason": 123}, {"reason": "ok", "status": "approved"}],
+    [
+        {},
+        {"reason": ""},
+        {"reason": "x" * 2001},
+        {"reason": 123},
+        {"reason": "ok", "status": "approved"},
+    ],
 )
-def test_malformed_body_returns_422(client, auth_headers, make_plan, make_subscription, make_user, body):
+def test_malformed_body_returns_422(
+    client, auth_headers, make_plan, make_subscription, make_user, body
+):
     member = make_user()
     make_subscription(member, make_plan())
 
@@ -164,7 +184,7 @@ def test_malformed_body_returns_422(client, auth_headers, make_plan, make_subscr
 
 
 def test_member_a_cannot_see_member_b_request_via_me(
-        client, db, make_user, make_plan, make_subscription
+    client, db, make_user, make_plan, make_subscription
 ):
     alice = make_user()
     bob = make_user()
@@ -180,4 +200,7 @@ def test_member_a_cannot_see_member_b_request_via_me(
     assert response.status_code == 404
     assert response.json()["code"] == "not_found"
     assert count_rows(db, CancellationRequest) == 1
-    assert db.get(CancellationRequest, created.json()["id"]).subscription.user_id == alice.id
+    assert (
+        db.get(CancellationRequest, created.json()["id"]).subscription.user_id
+        == alice.id
+    )

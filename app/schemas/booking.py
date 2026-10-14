@@ -83,6 +83,5 @@ class BookingOut(BaseModel):
         )
 
 
-
 class BookingPage(Page[BookingOut]):
     model_config = ConfigDict(json_schema_extra={"example": BOOKING_PAGE_EXAMPLE})

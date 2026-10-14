@@ -3,6 +3,7 @@
 The booking services are sync and run in a worker thread, while websockets live in the
 event loop. notify_from_sync() is the bridge: it schedules the message on that loop.
 """
+
 import asyncio
 import logging
 from collections import defaultdict
@@ -49,7 +50,9 @@ class SessionConnectionManager:
         if self._loop is None or self.watchers(session_id) == 0:
             return
         message = {"type": "session_updated", "session_id": session_id}
-        asyncio.run_coroutine_threadsafe(self.broadcast(session_id, message), self._loop)
+        asyncio.run_coroutine_threadsafe(
+            self.broadcast(session_id, message), self._loop
+        )
 
 
 session_updates = SessionConnectionManager()

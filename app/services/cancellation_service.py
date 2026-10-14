@@ -30,7 +30,9 @@ REQUEST_NOT_PENDING = "Solo se pueden revisar solicitudes pendientes."
 ADMIN_NOTES_REQUIRED = "Las notas de administración son obligatorias al rechazar."
 
 
-def get_pending_for_subscription(db: Session, subscription_id: int) -> CancellationRequest | None:
+def get_pending_for_subscription(
+    db: Session, subscription_id: int
+) -> CancellationRequest | None:
     return db.scalar(
         select(CancellationRequest).where(
             CancellationRequest.subscription_id == subscription_id,
@@ -57,14 +59,18 @@ def get_my_cancellation_request(db: Session, user_id: int) -> CancellationReques
         .join(Subscription, CancellationRequest.subscription_id == Subscription.id)
         .where(Subscription.user_id == user_id)
         .options(*_REQUEST_WITH_MEMBER_PLAN)
-        .order_by(CancellationRequest.requested_at.desc(), CancellationRequest.id.desc())
+        .order_by(
+            CancellationRequest.requested_at.desc(), CancellationRequest.id.desc()
+        )
     )
     if request is None:
         raise NotFoundError(NO_CANCELLATION_REQUEST)
     return request
 
 
-def create_cancellation_request(db: Session, user: User, reason: str) -> CancellationRequest:
+def create_cancellation_request(
+    db: Session, user: User, reason: str
+) -> CancellationRequest:
     """Create a pending cancellation request. The member stays active (RN-12)."""
     subscription = get_active_subscription(db, user.id)
     if subscription is None:
@@ -129,15 +135,15 @@ def list_cancellation_requests(
     count_stmt = select(CancellationRequest)
     if status is not None:
         count_stmt = count_stmt.where(CancellationRequest.status == status)
-    total = int(
-        db.scalar(select(func.count()).select_from(count_stmt.subquery())) or 0
-    )
+    total = int(db.scalar(select(func.count()).select_from(count_stmt.subquery())) or 0)
     offset = (page - 1) * size
     items = list(db.scalars(stmt.offset(offset).limit(size)).unique().all())
     return items, total
 
 
-def _get_pending_request_for_review(db: Session, request_id: int) -> CancellationRequest:
+def _get_pending_request_for_review(
+    db: Session, request_id: int
+) -> CancellationRequest:
     request = db.scalar(
         select(CancellationRequest)
         .where(CancellationRequest.id == request_id)
@@ -154,9 +160,7 @@ def _load_subscription_and_member(
     db: Session, subscription_id: int
 ) -> tuple[Subscription, User]:
     subscription = db.scalar(
-        select(Subscription)
-        .where(Subscription.id == subscription_id)
-        .with_for_update()
+        select(Subscription).where(Subscription.id == subscription_id).with_for_update()
     )
     assert subscription is not None
     member = db.scalar(

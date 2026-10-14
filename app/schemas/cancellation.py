@@ -99,9 +99,7 @@ class CancellationRequestOut(BaseModel):
         plan = subscription.plan if subscription is not None else None
         member_name = None
         if user is not None:
-            member_name = (
-                f"{user.first_name} {user.last_name}".strip() or user.email
-            )
+            member_name = f"{user.first_name} {user.last_name}".strip() or user.email
         return cls(
             id=request.id,
             subscription_id=request.subscription_id,

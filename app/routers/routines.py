@@ -4,6 +4,7 @@ TODO(HU-17, HU-18): POST/GET/PATCH/DELETE /routines, /routines/{id}/exercises, G
 Keep endpoints thin: no business rules and no complex queries here.
 Every endpoint: response_model, summary, and require_roles(...) when it is not public.
 """
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -26,7 +27,7 @@ router = APIRouter(prefix="/routines", tags=["routines"])
     responses={404: {"description": "The member has no active routine"}},
 )
 def get_my_routine(
-        member: Annotated[User, Depends(require_roles(RoleName.MEMBER))],
-        db: Annotated[Session, Depends(get_db)],
+    member: Annotated[User, Depends(require_roles(RoleName.MEMBER))],
+    db: Annotated[Session, Depends(get_db)],
 ) -> RoutineOut:
     return routine_service.my_routine(db, member)

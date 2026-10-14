@@ -102,7 +102,6 @@ def waitlist_position_for(db: Session, booking: Booking) -> int | None:
     return int(position or 0)
 
 
-
 def _ensure_extra_class_payment(
     db: Session, booking: Booking, class_type: ClassType
 ) -> Payment | None:
@@ -133,9 +132,7 @@ def _ensure_extra_class_payment(
 def _load_booking_with_session(db: Session, booking_id: int) -> Booking:
     booking = db.scalar(
         select(Booking)
-        .options(
-            joinedload(Booking.class_session).joinedload(ClassSession.class_type)
-        )
+        .options(joinedload(Booking.class_session).joinedload(ClassSession.class_type))
         .where(Booking.id == booking_id)
     )
     assert booking is not None
@@ -146,6 +143,7 @@ def _emit_session_updated(class_session_id: int) -> None:
     """RN-06: notify listeners when free spots / waitlist change (HU-16, WS /ws/sessions/{id})."""
     logger.info("Session %s updated after booking change", class_session_id)
     session_updates.notify_from_sync(class_session_id)
+
 
 def notify_sessions_updated(session_ids: list[int]) -> None:
     """Public hook for callers that cancel bookings inside a larger transaction."""
@@ -181,7 +179,9 @@ def _promote_oldest_waitlisted(
     return promoted
 
 
-def book_session(db: Session, *, user_id: int, class_session_id: int) -> BookingWithPosition:
+def book_session(
+    db: Session, *, user_id: int, class_session_id: int
+) -> BookingWithPosition:
     """Create or reactivate a booking for a member (RN-01–04, RN-07, RN-08)."""
     subscription = subscription_service.get_active_subscription(db, user_id)
     if subscription is None:
@@ -385,9 +385,7 @@ def cancel_future_bookings_for_user(
             .join(ClassSession, Booking.class_session_id == ClassSession.id)
             .where(
                 Booking.user_id == user_id,
-                Booking.status.in_(
-                    (BookingStatus.CONFIRMED, BookingStatus.WAITLISTED)
-                ),
+                Booking.status.in_((BookingStatus.CONFIRMED, BookingStatus.WAITLISTED)),
                 ClassSession.starts_at >= current,
             )
             .order_by(ClassSession.starts_at, Booking.id)

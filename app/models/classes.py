@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -6,8 +7,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.models.enums import BookingStatus, SessionStatus
 from app.models.types import db_enum, utc_now
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -52,12 +51,16 @@ class ClassSession(Base):
 class Booking(Base):
     __tablename__ = "bookings"
     __table_args__ = (
-        UniqueConstraint("user_id", "class_session_id", name="uq_bookings_user_session"),
+        UniqueConstraint(
+            "user_id", "class_session_id", name="uq_bookings_user_session"
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    class_session_id: Mapped[int] = mapped_column(ForeignKey("class_sessions.id"), index=True)
+    class_session_id: Mapped[int] = mapped_column(
+        ForeignKey("class_sessions.id"), index=True
+    )
     status: Mapped[BookingStatus] = mapped_column(
         db_enum(BookingStatus), default=BookingStatus.CONFIRMED
     )

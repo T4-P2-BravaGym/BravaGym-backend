@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import CheckConstraint, ForeignKey, Index, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -8,10 +8,9 @@ from app.core.database import Base
 from app.models.enums import CancellationStatus, SubscriptionStatus
 from app.models.types import db_enum, utc_now
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
     from app.models.user import User
+
 
 class MembershipPlan(Base):
     __tablename__ = "membership_plans"
@@ -30,7 +29,9 @@ class MembershipPlan(Base):
 class Subscription(Base):
     __tablename__ = "subscriptions"
     __table_args__ = (
-        CheckConstraint("end_date IS NULL OR end_date >= start_date", name="ck_subscriptions_dates"),
+        CheckConstraint(
+            "end_date IS NULL OR end_date >= start_date", name="ck_subscriptions_dates"
+        ),
         Index(
             "uq_subscriptions_one_active_per_user",
             "user_id",
@@ -68,7 +69,9 @@ class CancellationRequest(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    subscription_id: Mapped[int] = mapped_column(ForeignKey("subscriptions.id"), index=True)
+    subscription_id: Mapped[int] = mapped_column(
+        ForeignKey("subscriptions.id"), index=True
+    )
     reason: Mapped[str | None] = mapped_column(Text)
     status: Mapped[CancellationStatus] = mapped_column(
         db_enum(CancellationStatus), default=CancellationStatus.PENDING
