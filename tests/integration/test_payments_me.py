@@ -1,12 +1,13 @@
 """Integration tests for GET /payments/me and POST /payments/{id}/pay (HU-24)."""
+
 from datetime import date, datetime
 
 import pytest
+from app.models import DiscountCode, MembershipPlan, Order, Payment, Subscription
+from app.models.enums import OrderStatus, PaymentStatus, RoleName
 from freezegun import freeze_time
 from sqlalchemy import select
 
-from app.models import DiscountCode, MembershipPlan, Order, Payment, Subscription
-from app.models.enums import OrderStatus, PaymentStatus, RoleName
 from tests.conftest import auth_header_for
 
 PAYMENTS_ME_URL = "/api/v1/payments/me"
@@ -36,7 +37,10 @@ def add_code(db, admin, **changes):
 def add_pending_payment(db, user, *, base_cents=5000, subscription=None):
     """Create a pending payment; reuse subscription to avoid RN-11 unique active conflict."""
     if subscription is None:
-        plan = MembershipPlan(name=f"Plan {user.id}-{base_cents}-{id(user)}", monthly_price_cents=base_cents)
+        plan = MembershipPlan(
+            name=f"Plan {user.id}-{base_cents}-{id(user)}",
+            monthly_price_cents=base_cents,
+        )
         subscription = Subscription(user=user, plan=plan, start_date=date(2026, 10, 1))
         db.add(subscription)
         db.flush()
@@ -105,7 +109,9 @@ def test_rn15_rn16_pay_pending_with_20_percent_code(client, db, make_user):
 
 
 @freeze_time(TODAY)
-def test_rn14_expired_or_exhausted_code_returns_422_and_leaves_payment(client, db, make_user):
+def test_rn14_expired_or_exhausted_code_returns_422_and_leaves_payment(
+    client, db, make_user
+):
     member = make_user(RoleName.MEMBER)
     admin = make_user(RoleName.ADMIN)
     add_code(
@@ -127,14 +133,18 @@ def test_rn14_expired_or_exhausted_code_returns_422_and_leaves_payment(client, d
     payment = add_pending_payment(db, member)
     headers = auth_header_for(member)
 
-    expired = client.post(pay_url(payment.id), json={"discount_code": "CADUCADO"}, headers=headers)
+    expired = client.post(
+        pay_url(payment.id), json={"discount_code": "CADUCADO"}, headers=headers
+    )
     assert expired.status_code == 422
 
     db.refresh(payment)
     assert payment.status == PaymentStatus.PENDING
     assert payment.paid_at is None
 
-    used_up = client.post(pay_url(payment.id), json={"discount_code": "AGOTADO"}, headers=headers)
+    used_up = client.post(
+        pay_url(payment.id), json={"discount_code": "AGOTADO"}, headers=headers
+    )
     assert used_up.status_code == 422
 
     db.refresh(payment)
@@ -165,7 +175,9 @@ def test_rn16_pay_cancelled_payment_returns_409(client, db, make_user):
         order_status=OrderStatus.CANCELLED,
     )
 
-    response = client.post(pay_url(payment.id), json={}, headers=auth_header_for(member))
+    response = client.post(
+        pay_url(payment.id), json={}, headers=auth_header_for(member)
+    )
 
     assert response.status_code == 409
     assert response.json()["code"] == "conflict"
@@ -180,7 +192,9 @@ def test_rn16_pay_order_payment_marks_order_paid(client, db, make_user):
     member = make_user(RoleName.MEMBER)
     payment, order = add_order_payment(db, member, base_cents=3490)
 
-    response = client.post(pay_url(payment.id), json={}, headers=auth_header_for(member))
+    response = client.post(
+        pay_url(payment.id), json={}, headers=auth_header_for(member)
+    )
 
     assert response.status_code == 200
     body = response.json()
@@ -199,7 +213,9 @@ def test_list_my_payments_only_own_and_filter_by_status(client, db, make_user):
     member = make_user(RoleName.MEMBER)
     other = make_user(RoleName.MEMBER)
     pending = add_pending_payment(db, member, base_cents=3900)
-    paid = add_pending_payment(db, member, base_cents=5900, subscription=pending.subscription)
+    paid = add_pending_payment(
+        db, member, base_cents=5900, subscription=pending.subscription
+    )
     paid.status = PaymentStatus.PAID
     paid.paid_at = datetime(2026, 10, 1)
     db.commit()
@@ -238,7 +254,9 @@ def test_pay_and_list_without_token_return_401(client, db, make_user):
     assert client.post(pay_url(payment.id), json={}).status_code == 401
 
 
-@pytest.mark.parametrize("role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN])
+@pytest.mark.parametrize(
+    "role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN]
+)
 def test_only_members_can_list_and_pay(client, db, make_user, role):
     actor = make_user(role)
     member = make_user(RoleName.MEMBER)
@@ -268,7 +286,9 @@ def test_subscribe_then_pay_pending_fee(client, db, make_user, make_plan):
     plan = make_plan(monthly_price_cents=5900)
     headers = auth_header_for(member)
 
-    subscribed = client.post("/api/v1/subscriptions", json={"plan_id": plan.id}, headers=headers)
+    subscribed = client.post(
+        "/api/v1/subscriptions", json={"plan_id": plan.id}, headers=headers
+    )
     assert subscribed.status_code == 201
 
     payment = db.scalar(select(Payment).where(Payment.user_id == member.id))

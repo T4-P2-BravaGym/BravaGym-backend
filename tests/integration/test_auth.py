@@ -1,13 +1,13 @@
 import pytest
-from fastapi import Depends, FastAPI
-from fastapi.testclient import TestClient
-from freezegun import freeze_time
-
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_roles
 from app.core.exceptions import register_exception_handlers
 from app.core.security import create_access_token, decode_access_token
 from app.models.enums import RoleName
+from fastapi import Depends, FastAPI
+from fastapi.testclient import TestClient
+from freezegun import freeze_time
+
 from tests.conftest import TEST_PASSWORD
 
 LOGIN_URL = "/api/v1/auth/login"
@@ -44,7 +44,10 @@ def test_wrong_password_returns_generic_401(client, make_user):
     response = login(client, member.email, "wrong-password")
 
     assert response.status_code == 401
-    assert response.json() == {"detail": "Email o contraseña incorrectos.", "code": "unauthorized"}
+    assert response.json() == {
+        "detail": "Email o contraseña incorrectos.",
+        "code": "unauthorized",
+    }
     assert response.headers["WWW-Authenticate"] == "Bearer"
 
 
@@ -93,7 +96,9 @@ def bearer(token: str) -> dict[str, str]:
 def test_valid_token_identifies_the_user(protected_client, make_user):
     member = make_user()
 
-    response = protected_client.get("/me", headers=bearer(create_access_token(member.id, "member")))
+    response = protected_client.get(
+        "/me", headers=bearer(create_access_token(member.id, "member"))
+    )
 
     assert response.status_code == 200
     assert response.json() == {"id": member.id}
@@ -135,7 +140,9 @@ def test_token_of_a_deactivated_user_returns_401(protected_client, make_user, db
 
 
 def test_member_on_an_admin_route_gets_403(protected_client, auth_headers):
-    response = protected_client.get("/admin-only", headers=auth_headers(RoleName.MEMBER))
+    response = protected_client.get(
+        "/admin-only", headers=auth_headers(RoleName.MEMBER)
+    )
 
     assert response.status_code == 403
     assert response.json()["code"] == "forbidden"

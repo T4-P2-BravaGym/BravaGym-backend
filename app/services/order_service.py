@@ -42,7 +42,9 @@ class _Line:
 
     @property
     def sort_key(self) -> tuple[int, int]:
-        return self.product.id, _SIZE_ORDER.index(self.variant.size) if self.variant else -1
+        return self.product.id, _SIZE_ORDER.index(
+            self.variant.size
+        ) if self.variant else -1
 
 
 def not_enough_stock_message(label: str, available: int) -> str:
@@ -54,7 +56,11 @@ def not_enough_stock_message(label: str, available: int) -> str:
 
 
 def _update_stock(
-        db: Session, model: type[Product] | type[ProductVariant], row_id: int, delta: int, *conditions
+    db: Session,
+    model: type[Product | ProductVariant],
+    row_id: int,
+    delta: int,
+    *conditions,
 ) -> bool:
     stmt = (
         update(model)
@@ -67,7 +73,9 @@ def _update_stock(
     return result.rowcount == 1
 
 
-def _set_status(db: Session, model: type[Order] | type[Payment], row_id: int, current, new) -> bool:
+def _set_status(
+    db: Session, model: type[Order | Payment], row_id: int, current, new
+) -> bool:
     result = db.execute(
         update(model)
         .where(model.id == row_id, model.status == current)
@@ -100,7 +108,9 @@ def _check_lines(db: Session, lines: list[OrderLineIn]) -> list[_Line]:
             .where(Product.id.in_(product_ids))
         )
     }
-    if len(products) != len(product_ids) or not all(p.is_active for p in products.values()):
+    if len(products) != len(product_ids) or not all(
+        p.is_active for p in products.values()
+    ):
         raise ConflictError(PRODUCT_NOT_AVAILABLE)
 
     checked = [
@@ -118,14 +128,25 @@ def _take_stock(db: Session, line: _Line) -> bool:
     if line.variant is None:
         return _update_stock(db, Product, line.product.id, -line.quantity)
     return _update_stock(
-        db, ProductVariant, line.variant.id, -line.quantity, ProductVariant.is_active.is_(True)
+        db,
+        ProductVariant,
+        line.variant.id,
+        -line.quantity,
+        ProductVariant.is_active.is_(True),
     )
 
 
 def _stock_left(db: Session, line: _Line) -> int:
     if line.variant is None:
-        return db.scalar(select(Product.stock).where(Product.id == line.product.id)) or 0
-    return db.scalar(select(ProductVariant.stock).where(ProductVariant.id == line.variant.id)) or 0
+        return (
+            db.scalar(select(Product.stock).where(Product.id == line.product.id)) or 0
+        )
+    return (
+        db.scalar(
+            select(ProductVariant.stock).where(ProductVariant.id == line.variant.id)
+        )
+        or 0
+    )
 
 
 def _restore_stock(db: Session, item: OrderItem) -> None:
@@ -133,12 +154,18 @@ def _restore_stock(db: Session, item: OrderItem) -> None:
         _update_stock(db, Product, item.product_id, item.quantity)
     else:
         _update_stock(
-            db, ProductVariant, item.variant_id, item.quantity, ProductVariant.is_active.is_(True)
+            db,
+            ProductVariant,
+            item.variant_id,
+            item.quantity,
+            ProductVariant.is_active.is_(True),
         )
 
 
 def _orders_stmt() -> Select:
-    return select(Order).options(selectinload(Order.items).joinedload(OrderItem.product))
+    return select(Order).options(
+        selectinload(Order.items).joinedload(OrderItem.product)
+    )
 
 
 def _with_payments(db: Session, orders: list[Order]) -> list[OrderWithPayment]:
@@ -150,11 +177,16 @@ def _with_payments(db: Session, orders: list[Order]) -> list[OrderWithPayment]:
             select(Payment).where(Payment.order_id.in_([order.id for order in orders]))
         )
     }
-    return [OrderWithPayment(order=order, payment=payments.get(order.id)) for order in orders]
+    return [
+        OrderWithPayment(order=order, payment=payments.get(order.id))
+        for order in orders
+    ]
 
 
 def _get_my_order(db: Session, user_id: int, order_id: int) -> OrderWithPayment:
-    order = db.scalar(_orders_stmt().where(Order.id == order_id, Order.user_id == user_id))
+    order = db.scalar(
+        _orders_stmt().where(Order.id == order_id, Order.user_id == user_id)
+    )
     if order is None:
         raise NotFoundError(ORDER_NOT_FOUND)
     return _with_payments(db, [order])[0]
@@ -212,7 +244,7 @@ def place_order(db: Session, *, user_id: int, data: OrderCreate) -> OrderWithPay
 
 
 def list_my_orders(
-        db: Session, *, user_id: int, page: int = 1, size: int = 20
+    db: Session, *, user_id: int, page: int = 1, size: int = 20
 ) -> tuple[list[OrderWithPayment], int]:
     total = db.scalar(select(func.count(Order.id)).where(Order.user_id == user_id)) or 0
     orders = list(
@@ -231,18 +263,24 @@ def cancel_order(db: Session, *, user_id: int, order_id: int) -> OrderWithPaymen
     current = _get_my_order(db, user_id, order_id)
     order, payment = current.order, current.payment
     if order.status != OrderStatus.PENDING or (
-            payment is not None and payment.status != PaymentStatus.PENDING
+        payment is not None and payment.status != PaymentStatus.PENDING
     ):
         raise ConflictError(ORDER_NOT_CANCELLABLE)
 
-    claimed = _set_status(db, Order, order.id, OrderStatus.PENDING, OrderStatus.CANCELLED)
+    claimed = _set_status(
+        db, Order, order.id, OrderStatus.PENDING, OrderStatus.CANCELLED
+    )
     if claimed and payment is not None:
         claimed = _set_status(
             db, Payment, payment.id, PaymentStatus.PENDING, PaymentStatus.CANCELLED
         )
     if not claimed:
         db.rollback()
-        logger.info("Blocked cancel of order %s for user %s: no longer pending", order_id, user_id)
+        logger.info(
+            "Blocked cancel of order %s for user %s: no longer pending",
+            order_id,
+            user_id,
+        )
         raise ConflictError(ORDER_NOT_CANCELLABLE)
 
     restored = [

@@ -1,12 +1,11 @@
 """Unit tests for cancellation requests (RN-12)."""
 
 import pytest
-from sqlalchemy import func, select
-
 from app.core.exceptions import ConflictError, NotFoundError
 from app.models import CancellationRequest, User
 from app.models.enums import CancellationStatus, SubscriptionStatus
 from app.services import cancellation_service
+from sqlalchemy import func, select
 
 
 def count_rows(db, model) -> int:
@@ -14,7 +13,7 @@ def count_rows(db, model) -> int:
 
 
 def test_rn12_create_pending_keeps_member_and_subscription_active(
-        db, make_user, make_plan, make_subscription
+    db, make_user, make_plan, make_subscription
 ):
     member = make_user()
     subscription = make_subscription(member, make_plan())
@@ -35,19 +34,23 @@ def test_rn12_create_pending_keeps_member_and_subscription_active(
     assert subscription.status == SubscriptionStatus.ACTIVE
 
 
-def test_rn12_second_pending_raises_conflict(db, make_user, make_plan, make_subscription):
+def test_rn12_second_pending_raises_conflict(
+    db, make_user, make_plan, make_subscription
+):
     member = make_user()
     make_subscription(member, make_plan())
     cancellation_service.create_cancellation_request(db, user=member, reason="Primera")
 
     with pytest.raises(ConflictError, match="pendiente"):
-        cancellation_service.create_cancellation_request(db, user=member, reason="Segunda")
+        cancellation_service.create_cancellation_request(
+            db, user=member, reason="Segunda"
+        )
 
     assert count_rows(db, CancellationRequest) == 1
 
 
 def test_rn12_simultaneous_request_stopped_by_unique_index_raises_conflict(
-        db, make_user, make_plan, make_subscription, monkeypatch
+    db, make_user, make_plan, make_subscription, monkeypatch
 ):
     member = make_user()
     subscription = make_subscription(member, make_plan())
@@ -58,7 +61,9 @@ def test_rn12_simultaneous_request_stopped_by_unique_index_raises_conflict(
         calls.append(subscription_id)
         return None if len(calls) == 1 else real_check(db_session, subscription_id)
 
-    monkeypatch.setattr(cancellation_service, "get_pending_for_subscription", stale_check)
+    monkeypatch.setattr(
+        cancellation_service, "get_pending_for_subscription", stale_check
+    )
 
     # Seed a pending row as if a concurrent request already committed.
     db.add(
@@ -76,18 +81,22 @@ def test_rn12_simultaneous_request_stopped_by_unique_index_raises_conflict(
     assert count_rows(db, CancellationRequest) == 1
 
 
-def test_create_without_active_subscription_raises_not_found(db, make_user, make_plan, make_subscription):
+def test_create_without_active_subscription_raises_not_found(
+    db, make_user, make_plan, make_subscription
+):
     member = make_user()
     make_subscription(member, make_plan(), status=SubscriptionStatus.CANCELLED)
 
     with pytest.raises(NotFoundError, match="suscripción activa"):
-        cancellation_service.create_cancellation_request(db, user=member, reason="Quiero irme")
+        cancellation_service.create_cancellation_request(
+            db, user=member, reason="Quiero irme"
+        )
 
     assert count_rows(db, CancellationRequest) == 0
 
 
 def test_can_request_again_after_previous_was_rejected(
-        db, make_user, make_plan, make_subscription
+    db, make_user, make_plan, make_subscription
 ):
     member = make_user()
     subscription = make_subscription(member, make_plan())
@@ -110,7 +119,7 @@ def test_can_request_again_after_previous_was_rejected(
 
 
 def test_get_my_cancellation_request_returns_latest(
-        db, make_user, make_plan, make_subscription
+    db, make_user, make_plan, make_subscription
 ):
     member = make_user()
     subscription = make_subscription(member, make_plan())

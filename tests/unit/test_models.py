@@ -1,11 +1,10 @@
 from datetime import date
 
 import pytest
-from sqlalchemy import func, inspect, select, text
-from sqlalchemy.exc import IntegrityError
-
 from app.models import MembershipPlan, Payment, Role, Subscription, User
 from app.models.enums import RoleName, SubscriptionStatus
+from sqlalchemy import func, inspect, select, text
+from sqlalchemy.exc import IntegrityError
 
 EXPECTED_TABLES = {
     "roles",

@@ -1,8 +1,8 @@
 """Unit tests for UserCreate name rules (HU-02.6)."""
-import pytest
-from pydantic import ValidationError
 
+import pytest
 from app.schemas.auth import UserCreate
+from pydantic import ValidationError
 
 # A valid body; each test changes only the field it cares about
 VALID_DATA = {
@@ -20,7 +20,9 @@ def build(**overrides):
 
 
 # parametrize runs the same test once per value in the list
-@pytest.mark.parametrize("name", ["Ana", "María José", "Ana-Belén", "O'Connor", "Begoña", "Zoë"])
+@pytest.mark.parametrize(
+    "name", ["Ana", "María José", "Ana-Belén", "O'Connor", "Begoña", "Zoë"]
+)
 def test_user_create_accepts_real_names(name):
     user = UserCreate(**build(first_name=name, last_name=name))
     assert user.first_name == name

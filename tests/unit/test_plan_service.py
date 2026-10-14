@@ -1,6 +1,7 @@
 from app.models.membership import MembershipPlan
 from app.services.plan_service import list_active_plans
 
+
 def test_list_active_plans_filters_and_sorts(db):
     expensive = MembershipPlan(
         name="Premium",

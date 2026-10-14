@@ -1,8 +1,8 @@
 import pytest
-from sqlalchemy import func, select
-
 from app.models import Order, Payment
 from app.models.enums import RoleName
+from sqlalchemy import func, select
+
 from tests.conftest import auth_header_for
 
 ORDERS_URL = "/api/v1/orders"
@@ -28,7 +28,7 @@ def cancel(client, headers, order_id):
 
 
 def test_place_order_returns_201_with_lines_total_and_pending_payment(
-        client, db, headers, make_product
+    client, db, headers, make_product
 ):
     whey = make_product(name="Proteína whey 1 kg", price_cents=3490, stock=5)
 
@@ -64,7 +64,9 @@ def test_prices_sent_by_the_client_are_ignored(client, db, headers, make_product
 
     assert response.status_code == 201
     assert response.json()["total_cents"] == 2500
-    payment = db.scalar(select(Payment).where(Payment.order_id == response.json()["id"]))
+    payment = db.scalar(
+        select(Payment).where(Payment.order_id == response.json()["id"])
+    )
     assert payment.base_amount_cents == 2500
 
 
@@ -84,7 +86,9 @@ def test_invalid_cart_returns_422(client, headers, items):
     assert response.status_code == 422
 
 
-def test_not_enough_stock_returns_409_and_changes_nothing(client, db, headers, make_product):
+def test_not_enough_stock_returns_409_and_changes_nothing(
+    client, db, headers, make_product
+):
     product = make_product(stock=1)
 
     response = place(client, headers, (product, 2))
@@ -102,14 +106,18 @@ def test_place_order_without_token_returns_401(client, make_product):
     assert response.status_code == 401
 
 
-@pytest.mark.parametrize("role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN])
+@pytest.mark.parametrize(
+    "role", [RoleName.TRAINER, RoleName.ADMIN, RoleName.SUPERADMIN]
+)
 def test_only_members_can_place_orders(client, auth_headers, make_product, role):
     response = place(client, auth_headers(role), (make_product(), 1))
 
     assert response.status_code == 403
 
 
-def test_my_orders_lists_only_mine_newest_first(client, headers, make_user, make_product):
+def test_my_orders_lists_only_mine_newest_first(
+    client, headers, make_user, make_product
+):
     product = make_product(stock=10)
     first = place(client, headers, (product, 1)).json()
     second = place(client, headers, (product, 2)).json()
@@ -134,7 +142,9 @@ def test_my_orders_as_admin_returns_403(client, auth_headers):
     assert response.status_code == 403
 
 
-def test_cancel_my_order_restores_stock_and_cancels_payment(client, db, headers, make_product):
+def test_cancel_my_order_restores_stock_and_cancels_payment(
+    client, db, headers, make_product
+):
     product = make_product(stock=5)
     order = place(client, headers, (product, 2)).json()
 
@@ -156,7 +166,9 @@ def test_cancel_twice_returns_409(client, headers, make_product):
     assert response.status_code == 409
 
 
-def test_cancel_someone_elses_order_returns_404(client, db, headers, make_user, make_product):
+def test_cancel_someone_elses_order_returns_404(
+    client, db, headers, make_user, make_product
+):
     product = make_product(stock=5)
     order = place(client, auth_header_for(make_user()), (product, 1)).json()
 

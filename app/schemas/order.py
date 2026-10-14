@@ -52,7 +52,8 @@ ORDER_PAGE_EXAMPLE = {"items": [ORDER_EXAMPLE], "total": 1, "page": 1, "size": 2
 class OrderLineIn(BaseModel):
     product_id: int = Field(ge=1)
     size: ProductSize | None = Field(
-        default=None, description="Required for clothing with sizes; leave it out for the rest"
+        default=None,
+        description="Required for clothing with sizes; leave it out for the rest",
     )
     quantity: int = Field(ge=1, le=MAX_LINE_QUANTITY)
 
@@ -67,7 +68,9 @@ class OrderCreate(BaseModel):
     def reject_repeated_lines(cls, items: list[OrderLineIn]) -> list[OrderLineIn]:
         keys = [(line.product_id, line.size) for line in items]
         if len(keys) != len(set(keys)):
-            raise ValueError("each product and size can only appear once; add up its quantity instead")
+            raise ValueError(
+                "each product and size can only appear once; add up its quantity instead"
+            )
         return items
 
 

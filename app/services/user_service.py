@@ -60,7 +60,7 @@ def list_users(
     """Users for administration, filtered and paginated. Returns (users of this page, total)."""
     conditions = []
     if role is not None:
-# The role name lives in the roles table, so filter through the relationship
+        # The role name lives in the roles table, so filter through the relationship
         conditions.append(User.role.has(Role.name == role))
     if is_active is not None:
         conditions.append(User.is_active == is_active)
@@ -80,7 +80,7 @@ def list_users(
     stmt = (
         select(User)
         .where(*conditions)
-# id breaks ties so pagination is stable
+        # id breaks ties so pagination is stable
         .order_by(User.last_name, User.first_name, User.id)
         .offset((page - 1) * size)
         .limit(size)
@@ -102,10 +102,18 @@ def change_role(db: Session, actor: User, user_id: int, new_role: RoleName) -> U
     if user.id == actor.id:
         raise ConflictError("No puedes cambiar tu propio rol.")
     # RN-18: only the superadmin gives or removes admin and superadmin
-    if actor.role.name != RoleName.SUPERADMIN and (old_role in STAFF_ROLES or new_role in STAFF_ROLES):
-        raise PermissionDeniedError("Solo la superadmin puede dar o quitar los roles de administración.")
+    if actor.role.name != RoleName.SUPERADMIN and (
+        old_role in STAFF_ROLES or new_role in STAFF_ROLES
+    ):
+        raise PermissionDeniedError(
+            "Solo la superadmin puede dar o quitar los roles de administración."
+        )
     # RN-19: there is always at least one superadmin
-    if old_role == RoleName.SUPERADMIN and new_role != RoleName.SUPERADMIN and _count_superadmins(db) == 1:
+    if (
+        old_role == RoleName.SUPERADMIN
+        and new_role != RoleName.SUPERADMIN
+        and _count_superadmins(db) == 1
+    ):
         raise ConflictError("Tiene que quedar al menos una superadmin.")
 
     role = db.scalar(select(Role).where(Role.name == new_role))
@@ -115,12 +123,22 @@ def change_role(db: Session, actor: User, user_id: int, new_role: RoleName) -> U
     if new_role == RoleName.TRAINER and user.trainer_profile is None:
         user.trainer_profile = TrainerProfile()
     db.commit()
-    logger.info("User %s changed the role of user %s from %s to %s", actor.id, user.id, old_role, new_role)
+    logger.info(
+        "User %s changed the role of user %s from %s to %s",
+        actor.id,
+        user.id,
+        old_role,
+        new_role,
+    )
     return user
 
 
 def _count_superadmins(db: Session) -> int:
-    return db.scalar(select(func.count(User.id)).join(User.role).where(Role.name == RoleName.SUPERADMIN))
+    return db.scalar(
+        select(func.count(User.id))
+        .join(User.role)
+        .where(Role.name == RoleName.SUPERADMIN)
+    )
 
 
 def get_user(db: Session, user_id: int) -> User:
@@ -133,7 +151,9 @@ def get_user(db: Session, user_id: int) -> User:
 def _check_can_manage(actor: User, user: User) -> None:
     """RN-18 for edits and deactivations: only the superadmin touches admin and superadmin accounts."""
     if actor.role.name != RoleName.SUPERADMIN and user.role.name in STAFF_ROLES:
-        raise PermissionDeniedError("Solo la superadmin puede editar o dar de baja a otras administradoras.")
+        raise PermissionDeniedError(
+            "Solo la superadmin puede editar o dar de baja a otras administradoras."
+        )
 
 
 def update_user(db: Session, actor: User, user_id: int, changes: UserUpdate) -> User:
@@ -166,10 +186,15 @@ def deactivate_user(db: Session, actor: User, user_id: int) -> None:
         subscription.status = SubscriptionStatus.CANCELLED
     user.is_active = False
     user.deactivated_at = now
-    affected_sessions = booking_service.cancel_future_bookings_for_user(db, user_id=user.id, now=now)
+    affected_sessions = booking_service.cancel_future_bookings_for_user(
+        db, user_id=user.id, now=now
+    )
     db.commit()
 
     booking_service.notify_sessions_updated(affected_sessions)
     logger.info(
-        "User %s deactivated user %s (%s sessions updated)", actor.id, user.id, len(affected_sessions)
+        "User %s deactivated user %s (%s sessions updated)",
+        actor.id,
+        user.id,
+        len(affected_sessions),
     )

@@ -1,9 +1,10 @@
 """Integration tests for GET /sessions (HU-10.2 / HU-10.3)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from app.models import Booking, ClassSession, ClassType
 from app.models.enums import BookingStatus, RoleName, SessionStatus
+
 from tests.conftest import auth_header_for
 
 SESSIONS_URL = "/api/v1/sessions"
@@ -20,7 +21,7 @@ def _seed_week(db, make_user):
     db.add_all([strength, olympic])
     db.flush()
 
-    monday = datetime(2026, 10, 5, 7, 0, tzinfo=timezone.utc)
+    monday = datetime(2026, 10, 5, 7, 0, tzinfo=UTC)
     open_session = ClassSession(
         class_type=strength,
         trainer=trainer,
@@ -50,7 +51,9 @@ def _seed_week(db, make_user):
     db.flush()
 
     member = make_user(RoleName.MEMBER)
-    db.add(Booking(user=member, class_session=full_session, status=BookingStatus.CONFIRMED))
+    db.add(
+        Booking(user=member, class_session=full_session, status=BookingStatus.CONFIRMED)
+    )
     db.commit()
 
     return {
@@ -239,7 +242,7 @@ def test_rn08_book_pt_without_plan_returns_403_api(
     session = ClassSession(
         class_type=pt_type,
         trainer=trainer,
-        starts_at=datetime(2026, 10, 12, 15, 0, tzinfo=timezone.utc),
+        starts_at=datetime(2026, 10, 12, 15, 0, tzinfo=UTC),
         duration_minutes=60,
         capacity=1,
     )

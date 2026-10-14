@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 class AppError(Exception):
-
     status_code = 400
     code = "bad_request"
     headers: dict[str, str] | None = None
@@ -18,7 +17,6 @@ class AppError(Exception):
 
 
 class UnauthorizedError(AppError):
-
     status_code = 401
     code = "unauthorized"
     headers = {"WWW-Authenticate": "Bearer"}
@@ -35,7 +33,6 @@ class PermissionDeniedError(AppError):
 
 
 class ConflictError(AppError):
-
     status_code = 409
     code = "conflict"
 
@@ -61,5 +58,8 @@ def register_exception_handlers(app: FastAPI) -> None:
         logger.exception("Unexpected error on %s %s", request.method, request.url.path)
         return JSONResponse(
             status_code=500,
-            content={"detail": "Ha ocurrido un error inesperado.", "code": "internal_error"},
+            content={
+                "detail": "Ha ocurrido un error inesperado.",
+                "code": "internal_error",
+            },
         )

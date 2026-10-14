@@ -49,13 +49,15 @@ ADMIN_AUTH_RESPONSES = {
     responses={
         **AUTH_RESPONSES,
         404: {"description": "The member has no active subscription"},
-        409: {"description": "The member already has a pending cancellation request (RN-12)"},
+        409: {
+            "description": "The member already has a pending cancellation request (RN-12)"
+        },
     },
 )
 def create_cancellation_request(
-        data: CancellationRequestCreate,
-        member: CurrentMember,
-        db: DbSession,
+    data: CancellationRequestCreate,
+    member: CurrentMember,
+    db: DbSession,
 ) -> CancellationRequestOut:
     request = cancellation_service.create_cancellation_request(
         db, user=member, reason=data.reason
@@ -73,7 +75,9 @@ def create_cancellation_request(
         404: {"description": "The member has no cancellation request"},
     },
 )
-def read_my_cancellation_request(member: CurrentMember, db: DbSession) -> CancellationRequestOut:
+def read_my_cancellation_request(
+    member: CurrentMember, db: DbSession
+) -> CancellationRequestOut:
     request = cancellation_service.get_my_cancellation_request(db, user_id=member.id)
     return CancellationRequestOut.from_request(request)
 
@@ -93,14 +97,14 @@ def read_my_cancellation_request(member: CurrentMember, db: DbSession) -> Cancel
     },
 )
 def list_cancellation_requests(
-        admin: CurrentAdmin,
-        db: DbSession,
-        status_filter: Annotated[
-            CancellationStatus | None,
-            Query(alias="status", description="Filter by request status"),
-        ] = None,
-        page: Annotated[int, Query(ge=1)] = 1,
-        size: Annotated[int, Query(ge=1, le=100)] = 20,
+    admin: CurrentAdmin,
+    db: DbSession,
+    status_filter: Annotated[
+        CancellationStatus | None,
+        Query(alias="status", description="Filter by request status"),
+    ] = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> CancellationRequestPage:
     del admin  # role gate only
     items, total = cancellation_service.list_cancellation_requests(
@@ -131,10 +135,10 @@ def list_cancellation_requests(
     },
 )
 def approve_cancellation_request(
-        request_id: int,
-        admin: CurrentAdmin,
-        db: DbSession,
-        data: Annotated[CancellationApprove | None, Body()] = None,
+    request_id: int,
+    admin: CurrentAdmin,
+    db: DbSession,
+    data: Annotated[CancellationApprove | None, Body()] = None,
 ) -> CancellationRequestOut:
     notes = data.admin_notes if data is not None else None
     if notes is not None:
@@ -161,10 +165,10 @@ def approve_cancellation_request(
     },
 )
 def reject_cancellation_request(
-        request_id: int,
-        data: CancellationReject,
-        admin: CurrentAdmin,
-        db: DbSession,
+    request_id: int,
+    data: CancellationReject,
+    admin: CurrentAdmin,
+    db: DbSession,
 ) -> CancellationRequestOut:
     request = cancellation_service.reject_cancellation_request(
         db, request_id=request_id, admin=admin, admin_notes=data.admin_notes

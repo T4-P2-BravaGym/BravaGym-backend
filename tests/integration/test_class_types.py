@@ -1,6 +1,7 @@
 """Integration tests for /class-types CRUD (HU-11.1)."""
 
 from app.models.enums import RoleName
+
 from tests.conftest import auth_header_for
 
 CLASS_TYPES_URL = "/api/v1/class-types"
