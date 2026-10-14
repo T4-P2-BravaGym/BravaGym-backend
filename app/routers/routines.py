@@ -1,4 +1,5 @@
 """Controller for routines: receives the request, checks permissions, calls the service, returns a schema."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
@@ -20,7 +21,9 @@ from app.services import routine_service
 router = APIRouter(prefix="/routines", tags=["routines"])
 
 
-CurrentTrainer = Annotated[User, Depends(require_roles(RoleName.TRAINER, RoleName.SUPERADMIN))]
+CurrentTrainer = Annotated[
+    User, Depends(require_roles(RoleName.TRAINER, RoleName.SUPERADMIN))
+]
 DbSession = Annotated[Session, Depends(get_db)]
 
 
@@ -51,7 +54,11 @@ def create_routine(data: RoutineCreate, trainer: CurrentTrainer, db: DbSession):
     return routine_service.create_routine(db, trainer, data)
 
 
-@router.get("", response_model=list[TrainerRoutineOut], summary="List routines, optionally by member")
+@router.get(
+    "",
+    response_model=list[TrainerRoutineOut],
+    summary="List routines, optionally by member",
+)
 def list_routines(
     _trainer: CurrentTrainer,
     db: DbSession,
@@ -76,7 +83,9 @@ def get_routine(routine_id: int, _trainer: CurrentTrainer, db: DbSession):
     summary="Update the name, start date or notes of a routine",
     responses={404: {"description": "The routine does not exist"}},
 )
-def update_routine(routine_id: int, data: RoutineUpdate, _trainer: CurrentTrainer, db: DbSession):
+def update_routine(
+    routine_id: int, data: RoutineUpdate, _trainer: CurrentTrainer, db: DbSession
+):
     return routine_service.update_routine(db, routine_id, data)
 
 
@@ -86,7 +95,9 @@ def update_routine(routine_id: int, data: RoutineUpdate, _trainer: CurrentTraine
     summary="Deactivate a routine (it is not deleted)",
     responses={404: {"description": "The routine does not exist"}},
 )
-def deactivate_routine(routine_id: int, _trainer: CurrentTrainer, db: DbSession) -> None:
+def deactivate_routine(
+    routine_id: int, _trainer: CurrentTrainer, db: DbSession
+) -> None:
     routine_service.deactivate_routine(db, routine_id)
 
 
@@ -100,7 +111,9 @@ def deactivate_routine(routine_id: int, _trainer: CurrentTrainer, db: DbSession)
         409: {"description": "That day and position are already taken"},
     },
 )
-def add_line(routine_id: int, line: RoutineLineIn, _trainer: CurrentTrainer, db: DbSession):
+def add_line(
+    routine_id: int, line: RoutineLineIn, _trainer: CurrentTrainer, db: DbSession
+):
     return routine_service.add_line(db, routine_id, line)
 
 
@@ -110,5 +123,7 @@ def add_line(routine_id: int, line: RoutineLineIn, _trainer: CurrentTrainer, db:
     summary="Remove an exercise line from a routine",
     responses={404: {"description": "The line is not in that routine"}},
 )
-def delete_line(routine_id: int, item_id: int, _trainer: CurrentTrainer, db: DbSession) -> None:
+def delete_line(
+    routine_id: int, item_id: int, _trainer: CurrentTrainer, db: DbSession
+) -> None:
     routine_service.delete_line(db, routine_id, item_id)
