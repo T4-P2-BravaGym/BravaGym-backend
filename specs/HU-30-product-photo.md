@@ -115,3 +115,4 @@ Cambios de esquema y configuración:
 | Orden: escribir el archivo nuevo, hacer commit y después borrar el viejo. Si el commit falla, se borra el nuevo | La base de datos nunca apunta a un archivo que no existe. En el peor caso queda un archivo huérfano, no una foto rota |
 | Subir o quitar la foto llama a `invalidate_products_cache()` | Si no, la tienda enseña la foto anterior hasta que caduca la caché (HU-28) |
 | En los tests, `MEDIA_ROOT` apunta a `tmp_path` | No se ensucia `media/` y se puede comprobar que el archivo existe o se ha borrado |
+| Servir una foto que existe no tiene test automático, solo el 404 | `StaticFiles` se monta al arrancar con la carpeta real; los tests guardan las fotos en `tmp_path`. Se comprueba a mano en el navegador |
