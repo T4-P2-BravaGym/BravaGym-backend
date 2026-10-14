@@ -5,9 +5,21 @@ from sqlalchemy import and_, case, exists, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
+from app.core.cache import (
+    invalidate_products_cache,
+    products_cache_key,
+    response_cache,
+)
 from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
 from app.models import Product, ProductCategory, ProductVariant
-from app.schemas.shop import CategoryIn, ProductCreate, ProductUpdate, SizeIn
+from app.schemas.shop import (
+    CategoryIn,
+    ProductCreate,
+    ProductOut,
+    ProductPage,
+    ProductUpdate,
+    SizeIn,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +118,51 @@ def list_products(
     return list(db.scalars(stmt).all()), int(total)
 
 
+def list_public_products(
+        db: Session,
+        *,
+        category_id: int | None = None,
+        min_price: int | None = None,
+        max_price: int | None = None,
+        q: str | None = None,
+        sort: ProductSort = ProductSort.NAME,
+        page: int = 1,
+        size: int = 20,
+) -> ProductPage:
+    """Public shop list; served from an in-memory TTL cache when possible (HU-28)."""
+    key = products_cache_key(
+        category_id=category_id,
+        min_price=min_price,
+        max_price=max_price,
+        q=q,
+        sort=sort.value,
+        page=page,
+        size=size,
+    )
+    cached = response_cache.get(key)
+    if cached is not None:
+        return ProductPage.model_validate(cached)
+
+    products, total = list_products(
+        db,
+        category_id=category_id,
+        min_price=min_price,
+        max_price=max_price,
+        q=q,
+        sort=sort,
+        page=page,
+        size=size,
+    )
+    page_payload = ProductPage(
+        items=[ProductOut.from_product(product) for product in products],
+        total=total,
+        page=page,
+        size=size,
+    )
+    response_cache.set(key, page_payload.model_dump(mode="json"))
+    return page_payload
+
+
 def get_product(db: Session, product_id: int) -> Product:
     product = db.get(Product, product_id)
     if product is None:
@@ -147,6 +204,7 @@ def create_product(db: Session, data: ProductCreate) -> Product:
     db.add(product)
     db.commit()
     db.refresh(product)
+    invalidate_products_cache()
     logger.info(
         "Created product %s in category %s (%s sizes)", product.id, category.id, len(data.sizes)
     )
@@ -169,6 +227,7 @@ def update_product(db: Session, product_id: int, data: ProductUpdate) -> Product
         setattr(product, field, value)
     db.commit()
     db.refresh(product)
+    invalidate_products_cache()
     logger.info("Updated product %s (fields: %s)", product.id, ", ".join(sorted(data.model_fields_set)))
     return product
 
@@ -180,6 +239,7 @@ def deactivate_product(db: Session, product_id: int) -> Product:
     product.is_active = False
     db.commit()
     db.refresh(product)
+    invalidate_products_cache()
     logger.info("Deactivated product %s", product.id)
     return product
 
@@ -204,6 +264,8 @@ def create_category(db: Session, data: CategoryIn) -> ProductCategory:
     db.add(category)
     _commit_category(db)
     db.refresh(category)
+    # Category name appears on product cards; keep public lists coherent.
+    invalidate_products_cache()
     logger.info("Created product category %s", category.id)
     return category
 
@@ -213,6 +275,7 @@ def update_category(db: Session, category_id: int, data: CategoryIn) -> ProductC
     category.name = data.name
     _commit_category(db)
     db.refresh(category)
+    invalidate_products_cache()
     logger.info("Renamed product category %s", category.id)
     return category
 
@@ -228,4 +291,5 @@ def delete_category(db: Session, category_id: int) -> None:
     except IntegrityError:
         db.rollback()
         raise ConflictError(CATEGORY_HAS_PRODUCTS) from None
+    invalidate_products_cache()
     logger.info("Deleted product category %s", category_id)

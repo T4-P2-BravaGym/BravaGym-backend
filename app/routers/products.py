@@ -14,7 +14,6 @@ from app.schemas.shop import (
     ProductAdminOut,
     ProductAdminPage,
     ProductCreate,
-    ProductOut,
     ProductPage,
     ProductUpdate,
 )
@@ -65,19 +64,13 @@ def list_products(
         page: Annotated[int, Query(ge=1)] = 1,
         size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> ProductPage:
-    products, total = shop_service.list_products(
+    return shop_service.list_public_products(
         db,
         category_id=category_id,
         min_price=min_price,
         max_price=max_price,
         q=q,
         sort=sort,
-        page=page,
-        size=size,
-    )
-    return ProductPage(
-        items=[ProductOut.from_product(product) for product in products],
-        total=total,
         page=page,
         size=size,
     )
