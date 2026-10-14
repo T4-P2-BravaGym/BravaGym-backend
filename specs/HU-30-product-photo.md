@@ -1,6 +1,6 @@
 # HU-30 · Foto de producto
 
-Issue: #160 · Entrega 2 · Tamaño M · Prioridad PX
+Issue: #160 · Entrega 2 · Tamaño M · Prioridad M
 
 ## Contexto
 
@@ -111,7 +111,7 @@ Cambios de esquema y configuración:
 | El tipo se detecta por los primeros bytes, sin Pillow | No añade dependencias y es lo que pide la issue |
 | La extensión sale del tipo detectado | `StaticFiles` pone el `Content-Type` por la extensión, así que la foto siempre se sirve con su tipo real |
 | Se leen como mucho 2 MB + 1 byte | Así se sabe si se pasa del límite sin cargar en memoria un archivo enorme |
-| Más de 2 MB devuelve 422, no 413 | Mismo formato `{detail, code}` y el front ya sabe titular un 422 |
+| Más de 2 MB devuelve 422, no 413, con `code` propio: `invalid_image` (tipo) e `image_too_large` (tamaño), dos subclases de `ValidationAppError` | Mismo formato `{detail, code}`, el front ya sabe titular un 422 y los tests distinguen los dos casos por el `code` |
 | Orden: escribir el archivo nuevo, hacer commit y después borrar el viejo. Si el commit falla, se borra el nuevo | La base de datos nunca apunta a un archivo que no existe. En el peor caso queda un archivo huérfano, no una foto rota |
 | Subir o quitar la foto llama a `invalidate_products_cache()` | Si no, la tienda enseña la foto anterior hasta que caduca la caché (HU-28) |
 | En los tests, `MEDIA_ROOT` apunta a `tmp_path` | No se ensucia `media/` y se puede comprobar que el archivo existe o se ha borrado |
