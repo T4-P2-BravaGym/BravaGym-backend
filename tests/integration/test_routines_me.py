@@ -46,14 +46,17 @@ def test_member_sees_her_routine_grouped_by_day_and_in_order(client, db, make_us
     assert body["trainer_name"] == f"{trainer.first_name} {trainer.last_name}"
     assert [day["day_number"] for day in body["days"]] == [1, 2]
     assert [line["position"] for line in body["days"][0]["lines"]] == [1, 2]
-    assert body["days"][0]["lines"][0] == {
+
+    first_line = body["days"][0]["lines"][0]
+    assert first_line.pop("id") > 0
+    assert first_line == {
         "position": 1,
         "exercise_name": "Remo",
         "sets": 3,
         "reps": 12,
         "rest_seconds": 60,
     }
-
+    
 
 def test_member_sees_only_her_active_routine(client, db, make_user):
     member = make_user(RoleName.MEMBER)
