@@ -1,0 +1,26 @@
+meta {
+  name: delete-exercises-exercise-id-success
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/exercises/{{managedExerciseId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenTrainer}}
+}
+
+tests {
+  test("Expected HTTP 204", function () {
+    expect(res.getStatus()).to.equal(204);
+  });
+}
+
+docs {
+  Operation: DELETE /api/v1/exercises/{exercise_id}. Expected HTTP 204. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

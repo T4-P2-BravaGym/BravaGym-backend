@@ -1,0 +1,32 @@
+meta {
+  name: patch-users-me-success
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/users/me
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenMember}}
+}
+
+body:json {
+  {
+    "first_name": "Lucía"
+  }
+}
+
+tests {
+  test("Expected HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Operation: PATCH /api/v1/users/me. Expected HTTP 200. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

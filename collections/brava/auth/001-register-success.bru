@@ -1,0 +1,51 @@
+meta {
+  name: register-success
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{newMemberEmail}}",
+    "password": "{{demoPassword}}",
+    "first_name": "Bruno",
+    "last_name": "Demo"
+  }
+}
+
+script:pre-request {
+  const now = new Date();
+  bru.setVar("runId", String(Date.now()));
+  bru.setVar("newMemberEmail", "bruno.member." + bru.getVar("runId") + "@example.com");
+  bru.setVar("managedUserEmail", "bruno.managed." + bru.getVar("runId") + "@example.com");
+  bru.setVar("today", now.toISOString().slice(0, 10));
+  const future = new Date(now);
+  future.setUTCDate(future.getUTCDate() + 30);
+  future.setUTCHours(10, 0, 0, 0);
+  bru.setVar("futureSession", future.toISOString());
+  future.setUTCHours(12, 0, 0, 0);
+  bru.setVar("futurePersonalSession", future.toISOString());
+  future.setUTCDate(future.getUTCDate() + 30);
+  bru.setVar("discountUntil", future.toISOString().slice(0, 10));
+}
+
+script:post-response {
+  if (res.getStatus() === 201) bru.setVar("newMemberId", res.getBody().id);
+}
+
+tests {
+  test("Expected HTTP 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}
+
+docs {
+  Run auth and earlier requests in collection order against a fresh local seed. See the repository README.
+}
+

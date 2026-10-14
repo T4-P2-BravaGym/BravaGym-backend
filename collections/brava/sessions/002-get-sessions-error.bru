@@ -1,0 +1,22 @@
+meta {
+  name: get-sessions-error
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/sessions?size=0
+  body: none
+  auth: none
+}
+
+tests {
+  test("Expected HTTP 422", function () {
+    expect(res.getStatus()).to.equal(422);
+  });
+}
+
+docs {
+  Error example for GET /api/v1/sessions: Invalid pagination size. Expected HTTP 422. A passing assertion confirms this intentional error. 
+}
+

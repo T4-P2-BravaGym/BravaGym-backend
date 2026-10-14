@@ -1,0 +1,32 @@
+meta {
+  name: post-cancellation-requests-request-id-reject-success
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/cancellation-requests/{{managedRequestId}}/reject
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenAdmin}}
+}
+
+body:json {
+  {
+    "admin_notes": "Solicitud de prueba rechazada"
+  }
+}
+
+tests {
+  test("Expected HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Operation: POST /api/v1/cancellation-requests/{request_id}/reject. Expected HTTP 200. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+
