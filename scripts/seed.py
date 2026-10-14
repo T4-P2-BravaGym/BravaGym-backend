@@ -1,11 +1,11 @@
 import os
 from datetime import date, datetime, time, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.database import Base, SessionLocal, engine
+from app.core.database import SessionLocal, engine
 from app.core.security import hash_password
 from app.models import (
     Booking,
@@ -257,10 +257,11 @@ def main() -> None:
     if get_settings().environment != "local":
         raise SystemExit("seed.py only runs with ENVIRONMENT=local. Never run it on real data.")
 
-    Base.metadata.create_all(bind=engine)
+    if not inspect(engine).has_table("alembic_version"):
+        raise SystemExit("The database has no tables. Run `alembic upgrade head` first.")
     with SessionLocal() as db:
         if db.scalar(select(Role.id).limit(1)) is not None:
-            raise SystemExit("The database already has data. Delete brava.db and run it again.")
+            raise SystemExit("The database already has data. Delete brava.db, run alembic upgrade head and try again.")
         seed(db)
         db.commit()
 
