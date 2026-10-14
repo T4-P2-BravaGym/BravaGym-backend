@@ -15,6 +15,16 @@ El flujo es el mismo en todas las historias, así que se describe aquí una vez 
 Herramientas de pago (Claude): se usan en modo mentora, para explicar y revisar.
 El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 
+## D-05 · Colección de Bruno — Beste Özaydın
+
+- **Herramienta y modelo:** OpenAI Codex, GPT-6, con explicación paso a paso, generación de archivos y ejecución autorizada. La modalidad de pago de la cuenta no está confirmada.
+- **Prompt clave:** "okay lets continue with the next one", tras describir #198 y su colección por tags, entorno local, login y ejemplos de éxito/error.
+- **Qué me explicó o propuso:** inventariar el OpenAPI, crear archivos `.bru` por tag, guardar tokens con `bru.setVar`, capturar ids de los recursos creados y ejecutar los ejemplos en orden sobre una base temporal con el seed. Se consultó la documentación oficial de Bruno para formato, scripts y variables.
+- **Qué acepté:** la spec previa, los ejemplos de todas las operaciones HTTP, logins por rol, el entorno local ficticio, las instrucciones del README y la verificación contra datos temporales. Autoricé a Codex a generar los archivos y ejecutar las herramientas; no se presenta como documentación escrita manualmente sin ayuda de IA.
+- **Qué descarté:** ejecutar sobre la base habitual, guardar JWT en archivos, ejecutar las peticiones en paralelo o inventar un error funcional para endpoints públicos que no lo tienen. En esos casos se documenta un método no permitido (405). La conexión WebSocket se verifica aparte del runner HTTP.
+- **Errores o alucinaciones:** en el primer intento, la configuración de login usaba `body: form-urlencoded`, que el runner no enviaba como formulario. El informe mostró cuerpo vacío y respuesta 422; se corrigió a `body: formUrlEncoded` conservando el bloque `body:form-urlencoded`, y se comprobó primero el login. También se comprobó que la CLI intentaba tratar el WebSocket como HTTP y se excluyó `realtime` del comando de ejecución, documentando la prueba separada.
+- **Cómo lo comprobé:** el inventario cubre las 73 operaciones HTTP con un ejemplo de éxito y otro de error, más preparación y dos ejemplos WebSocket. Bruno CLI 4.2.1 ejecutó 152 peticiones HTTP sobre SQLite temporal con sus 152 pruebas de estado en verde. Los archivos se validan con el parser oficial; el WebSocket se verifica por separado. La base local habitual no se modificó. Los resultados finales quedan en la PR y la aprobación corresponde a otra compañera.
+
 ## D-01 y D-02 · Specs, ontología y `AGENTS.md` — Damaris
 
 - **Herramienta y modelo:** Claude (de pago), en modo mentora en conversación. Alcance: solo documentación y revisión; no ha escrito ni ejecutado nada en el repo. Todo el texto lo he pegado y commiteado yo.
