@@ -77,8 +77,22 @@ class RoutineCreate(BaseModel):
                 "start_date": "2026-10-13",
                 "notes": "Subir peso cuando completes todas las series con buena técnica.",
                 "lines": [
-                    {"exercise_id": 1, "day_number": 1, "position": 1, "sets": 4, "reps": 6, "rest_seconds": 150},
-                    {"exercise_id": 2, "day_number": 1, "position": 2, "sets": 3, "reps": 10, "rest_seconds": 90},
+                    {
+                        "exercise_id": 1,
+                        "day_number": 1,
+                        "position": 1,
+                        "sets": 4,
+                        "reps": 6,
+                        "rest_seconds": 150,
+                    },
+                    {
+                        "exercise_id": 2,
+                        "day_number": 1,
+                        "position": 2,
+                        "sets": 3,
+                        "reps": 10,
+                        "rest_seconds": 90,
+                    },
                 ],
             }
         }

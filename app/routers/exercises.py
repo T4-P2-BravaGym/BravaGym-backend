@@ -1,4 +1,5 @@
 """Controller for exercises: receives the request, checks permissions, calls the service, returns a schema."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
@@ -15,7 +16,9 @@ router = APIRouter(prefix="/exercises", tags=["exercises"])
 
 # Reusable type aliases so every endpoint stays short (DRY)
 # Only trainers and superadmin manage the catalog (docs/api.md)
-CurrentTrainer = Annotated[User, Depends(require_roles(RoleName.TRAINER, RoleName.SUPERADMIN))]
+CurrentTrainer = Annotated[
+    User, Depends(require_roles(RoleName.TRAINER, RoleName.SUPERADMIN))
+]
 DbSession = Annotated[Session, Depends(get_db)]
 
 
@@ -49,9 +52,14 @@ def create_exercise(data: ExerciseCreate, _trainer: CurrentTrainer, db: DbSessio
     "/{exercise_id}",
     response_model=ExerciseOut,
     summary="Update an exercise",
-    responses={404: {"description": "The exercise does not exist"}, 409: {"description": "Duplicated name"}},
+    responses={
+        404: {"description": "The exercise does not exist"},
+        409: {"description": "Duplicated name"},
+    },
 )
-def update_exercise(exercise_id: int, data: ExerciseUpdate, _trainer: CurrentTrainer, db: DbSession):
+def update_exercise(
+    exercise_id: int, data: ExerciseUpdate, _trainer: CurrentTrainer, db: DbSession
+):
     return exercise_service.update_exercise(db, exercise_id, data)
 
 
@@ -59,7 +67,10 @@ def update_exercise(exercise_id: int, data: ExerciseUpdate, _trainer: CurrentTra
     "/{exercise_id}",
     status_code=status.HTTP_204_NO_CONTENT,  # 204 = done, nothing to return
     summary="Delete an exercise that no routine uses",
-    responses={404: {"description": "The exercise does not exist"}, 409: {"description": "A routine uses it"}},
+    responses={
+        404: {"description": "The exercise does not exist"},
+        409: {"description": "A routine uses it"},
+    },
 )
 def delete_exercise(exercise_id: int, _trainer: CurrentTrainer, db: DbSession) -> None:
     exercise_service.delete_exercise(db, exercise_id)

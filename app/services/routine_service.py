@@ -1,4 +1,5 @@
 """Routines (HU-17, HU-18); a new routine deactivates the previous one."""
+
 import logging
 from itertools import groupby
 
@@ -21,7 +22,9 @@ from app.schemas.routine import (
 
 logger = logging.getLogger(__name__)
 
-NO_ROUTINE = "Todavía no tienes una rutina asignada. Tu entrenadora te la preparará pronto."
+NO_ROUTINE = (
+    "Todavía no tienes una rutina asignada. Tu entrenadora te la preparará pronto."
+)
 ROUTINE_NOT_FOUND = "La rutina no existe."
 LINE_NOT_FOUND = "La línea no existe en esta rutina."
 MEMBER_NOT_FOUND = "La socia no existe."
@@ -73,7 +76,10 @@ def my_routine(db: Session, member: User) -> RoutineOut:
 
 # ---------- Trainer side (HU-17.2) ----------
 
-def create_routine(db: Session, trainer: User, data: RoutineCreate) -> TrainerRoutineOut:
+
+def create_routine(
+    db: Session, trainer: User, data: RoutineCreate
+) -> TrainerRoutineOut:
     """Creates a routine for a member and deactivates her previous one, in one transaction."""
     # Validate everything first: if something is wrong, nothing is written
     _get_member_or_404(db, data.member_id)
@@ -100,7 +106,9 @@ def create_routine(db: Session, trainer: User, data: RoutineCreate) -> TrainerRo
     _commit_or_conflict(db)
     logger.info(
         "Routine created: routine_id=%s member_id=%s trainer_id=%s",
-        routine.id, data.member_id, trainer.id,
+        routine.id,
+        data.member_id,
+        trainer.id,
     )
     return _to_trainer_out(routine)
 
@@ -118,7 +126,9 @@ def get_routine(db: Session, routine_id: int) -> TrainerRoutineOut:
     return _to_trainer_out(_get_routine_or_404(db, routine_id))
 
 
-def update_routine(db: Session, routine_id: int, data: RoutineUpdate) -> TrainerRoutineOut:
+def update_routine(
+    db: Session, routine_id: int, data: RoutineUpdate
+) -> TrainerRoutineOut:
     """Changes only the header fields the client sent."""
     routine = _get_routine_or_404(db, routine_id)
     for field, value in data.model_dump(exclude_unset=True).items():
@@ -141,7 +151,10 @@ def add_line(db: Session, routine_id: int, line: RoutineLineIn) -> TrainerRoutin
     routine = _get_routine_or_404(db, routine_id)
     _check_exercises_exist(db, {line.exercise_id})
     # Compare (day, position) pairs of the existing lines with the new one
-    if any((item.day_number, item.position) == (line.day_number, line.position) for item in routine.items):
+    if any(
+        (item.day_number, item.position) == (line.day_number, line.position)
+        for item in routine.items
+    ):
         raise ConflictError(DUPLICATED_SLOT)
     routine.items.append(RoutineExercise(**line.model_dump()))
     _commit_or_conflict(db)
@@ -161,7 +174,9 @@ def delete_line(db: Session, routine_id: int, item_id: int) -> None:
     db.commit()
     logger.info("Routine line deleted: routine_id=%s item_id=%s", routine_id, item_id)
 
+
 # ---------- Helpers ----------
+
 
 def _get_routine_or_404(db: Session, routine_id: int) -> Routine:
     routine = db.get(Routine, routine_id)
@@ -188,7 +203,9 @@ def _check_unique_slots(lines: list[RoutineLineIn]) -> None:
 
 def _check_exercises_exist(db: Session, exercise_ids: set[int]) -> None:
     """One query for all ids instead of one per line."""
-    found = set(db.scalars(select(Exercise.id).where(Exercise.id.in_(exercise_ids))).all())
+    found = set(
+        db.scalars(select(Exercise.id).where(Exercise.id.in_(exercise_ids))).all()
+    )
     if found != exercise_ids:
         raise NotFoundError(EXERCISE_NOT_FOUND)
 
@@ -206,4 +223,6 @@ def _to_trainer_out(routine: Routine) -> TrainerRoutineOut:
     """Reuses the member view (DRY) and adds what only the trainer needs."""
     base = _to_routine_out(routine)
     # ** unpacks the dict of base as keyword arguments
-    return TrainerRoutineOut(**base.model_dump(), member_id=routine.member_id, is_active=routine.is_active)
+    return TrainerRoutineOut(
+        **base.model_dump(), member_id=routine.member_id, is_active=routine.is_active
+    )

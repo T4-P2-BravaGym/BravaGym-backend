@@ -1,4 +1,5 @@
 """Exercise catalog (HU-17.1): create, list, update and delete exercises."""
+
 import logging
 
 from sqlalchemy import select
@@ -53,7 +54,9 @@ def delete_exercise(db: Session, exercise_id: int) -> None:
     """Deletes an exercise. 409 if a routine still uses it, so no routine loses a line"""
     exercise = get_exercise(db, exercise_id)
     in_use = db.scalar(
-        select(RoutineExercise.id).where(RoutineExercise.exercise_id == exercise_id).limit(1)
+        select(RoutineExercise.id)
+        .where(RoutineExercise.exercise_id == exercise_id)
+        .limit(1)
     )
     if in_use is not None:
         raise ConflictError(EXERCISE_IN_USE)
