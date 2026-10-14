@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # Only the frontend origin may call the API from a browser (never "*").
     cors_origins: list[str] = ["http://localhost:5173"]
 
+    # Public list cache for /plans and /products (HU-28). Seconds until expiry.
+    cache_ttl_seconds: int = 60
+
 
 @lru_cache
 def get_settings() -> Settings:

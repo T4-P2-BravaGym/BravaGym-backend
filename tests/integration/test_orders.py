@@ -43,6 +43,7 @@ def test_place_order_returns_201_with_lines_total_and_pending_payment(
         {
             "product_id": whey.id,
             "product_name": "Proteína whey 1 kg",
+            "size": None,
             "quantity": 2,
             "unit_price_cents": 3490,
             "subtotal_cents": 6980,

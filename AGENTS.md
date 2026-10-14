@@ -22,7 +22,7 @@ Somos un equipo de cuatro personas de un bootcamp y estamos aprendiendo. Dos de 
 - **Repos:**
   - `T4-P2-BravaGym/BravaGym-backend`: API.
   - `T4-P2-BravaGym/BravaGym-frontend`: web.
-- **Stack backend:** Python, FastAPI, SQLite, SQLAlchemy, Pydantic, pytest y Swagger (en `/docs`).
+- **Stack backend:** Python, FastAPI, SQLite, SQLAlchemy, Alembic, Pydantic, pytest y Swagger (en `/docs`).
 - **Stack frontend:** React con JavaScript (no TypeScript), Vite y SASS.
 - **Entregas:** el 9 de octubre (todo el CRUD) y el 19 de octubre (ampliación).
 - **Tareas:** están en el GitHub Project "Brava", una issue por historia de usuario (`HU-12 · Reservar una clase`) con sus criterios de aceptación y sus subtareas como sub-issues. Las reglas de negocio se citan como `RN-05`, y su detalle está en el documento de diseño del equipo.
@@ -55,6 +55,7 @@ En una API, la "vista" es la respuesta JSON. Así encaja MVC en nuestras carpeta
 | Controller | `app/routers/` | Recibe la petición, valida permisos, llama al servicio y devuelve el esquema | Reglas de negocio ni consultas complejas |
 | Servicios | `app/services/` | Reglas de negocio (aforo, plazo de 1 hora, stock, códigos…) | Saber nada de HTTP |
 | Núcleo | `app/core/` | Configuración, seguridad JWT, base de datos, logging | — |
+| Migraciones | `migrations/` | Una migración de Alembic por cada cambio de esquema | Editar migraciones ya mergeadas |
 
 Reglas del backend:
 
@@ -62,10 +63,11 @@ Reglas del backend:
 - **Permisos:** con la dependencia `require_roles("trainer", "superadmin")`, nunca con `if` sueltos en el endpoint.
 - **Errores:** códigos HTTP coherentes. 401 sin token; 403 sin permiso; 404 si no existe o no es suyo; 409 si choca con el estado (aforo, duplicado, plazo de 1 hora, stock); 422 si los datos son inválidos. El mensaje dice qué pasó, en español.
 - **Dinero:** en céntimos enteros (`price_cents`), nunca `float`.
+- **Migraciones:** cualquier cambio de modelo lleva su migración (`alembic revision --autogenerate`, revisada a mano) en el mismo commit que el modelo. Nunca se edita una migración ya mergeada: se crea otra. `alembic check` tiene que pasar.
 - **Fechas:** en UTC.
 - **Borrado:** usuarios y planes no se borran, se desactivan (`is_active = false`).
 - **Datos derivados:** las plazas libres, los totales y la posición en la lista de espera no se guardan; se calculan.
-- **Tests con pytest** para cada regla de negocio, con nombres que la citen: `test_rn05_cancel_less_than_one_hour_returns_409`. Las pruebas de tiempo se hacen con la hora congelada. La base de datos de los tests es SQLite en memoria (`conftest.py`).
+- **Tests con pytest** para cada regla de negocio, con nombres que la citen: `test_rn05_cancel_less_than_one_hour_returns_409`. Las pruebas de tiempo se hacen con la hora congelada. La base de datos de los tests es SQLite en memoria (`conftest.py`). Hay un test que comprueba que las migraciones coinciden con los modelos (`tests/integration/test_migrations.py`).
 - **Swagger:** cada endpoint lleva `summary`, `tags` y un ejemplo.
 - **Logging** en las operaciones que crean, cambian o borran datos.
 - **Secretos** en `.env`, que nunca se sube; `.env.example` sí se sube.
@@ -220,6 +222,7 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
   - Endpoint documentado en Swagger.
   - Log en las operaciones que cambian datos.
   - Pantalla conectada, si la tiene.
+  - Si cambia un modelo, la PR incluye su migración y `alembic check` pasa.
   - Mergeada a `dev`.
 
 ## 9. Cuando te pidan ayuda con una issue

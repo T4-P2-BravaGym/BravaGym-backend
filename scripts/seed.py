@@ -1,11 +1,11 @@
 import os
 from datetime import date, datetime, time, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.database import Base, SessionLocal, engine
+from app.core.database import SessionLocal, engine
 from app.core.security import hash_password
 from app.models import (
     Booking,
@@ -17,6 +17,7 @@ from app.models import (
     Payment,
     Product,
     ProductCategory,
+    ProductVariant,
     Role,
     Routine,
     RoutineExercise,
@@ -24,10 +25,16 @@ from app.models import (
     TrainerProfile,
     User,
 )
-from app.models.enums import PaymentStatus, RoleName
+from app.models.enums import PaymentStatus, RoleName, ProductSize
 from app.models.types import utc_now
 
 DEMO_PASSWORD = os.environ.get("SEED_PASSWORD", "BravaDemo2026!")
+
+def with_sizes(product: Product, **stock_by_size: int) -> Product:
+    product.variants = [
+        ProductVariant(size=ProductSize(size), stock=stock) for size, stock in stock_by_size.items()
+    ]
+    return product
 
 
 def next_monday(today: date) -> date:
@@ -218,8 +225,14 @@ def seed(db: Session) -> None:
         [
             Product(category=supplements, name="Proteína whey 1 kg", price_cents=3490, stock=20),
             Product(category=supplements, name="Creatina 300 g", price_cents=2290, stock=15),
-            Product(category=clothing, name="Camiseta Brava", price_cents=2200, stock=30),
-            Product(category=clothing, name="Leggings Brava", price_cents=3900, stock=25),
+            with_sizes(
+                Product(category=clothing, name="Camiseta Brava", price_cents=2200),
+                S=10, M=12, L=8,
+            ),
+            with_sizes(
+                Product(category=clothing, name="Leggings Brava", price_cents=3900),
+                S=8, M=10, L=0,
+            ),
             Product(
                 category=accessories, name="Cinturón de levantamiento", price_cents=4500, stock=10
             ),
@@ -244,10 +257,11 @@ def main() -> None:
     if get_settings().environment != "local":
         raise SystemExit("seed.py only runs with ENVIRONMENT=local. Never run it on real data.")
 
-    Base.metadata.create_all(bind=engine)
+    if not inspect(engine).has_table("alembic_version"):
+        raise SystemExit("The database has no tables. Run `alembic upgrade head` first.")
     with SessionLocal() as db:
         if db.scalar(select(Role.id).limit(1)) is not None:
-            raise SystemExit("The database already has data. Delete brava.db and run it again.")
+            raise SystemExit("The database already has data. Delete brava.db, run alembic upgrade head and try again.")
         seed(db)
         db.commit()
 

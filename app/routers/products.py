@@ -14,7 +14,6 @@ from app.schemas.shop import (
     ProductAdminOut,
     ProductAdminPage,
     ProductCreate,
-    ProductOut,
     ProductPage,
     ProductUpdate,
 )
@@ -65,19 +64,13 @@ def list_products(
         page: Annotated[int, Query(ge=1)] = 1,
         size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> ProductPage:
-    products, total = shop_service.list_products(
+    return shop_service.list_public_products(
         db,
         category_id=category_id,
         min_price=min_price,
         max_price=max_price,
         q=q,
         sort=sort,
-        page=page,
-        size=size,
-    )
-    return ProductPage(
-        items=[ProductOut.from_product(product) for product in products],
-        total=total,
         page=page,
         size=size,
     )
@@ -143,9 +136,13 @@ def list_products_for_admin(
     response_model=ProductAdminOut,
     status_code=status.HTTP_201_CREATED,
     summary="Create a product",
+    description=(
+            "Clothing can have sizes: send sizes with the stock of each one and leave stock "
+            "out (RN-20). The stock shown is then the total of the sizes."
+    ),
     responses={
         **AUTH_ERRORS,
-        422: {"description": "Negative price or stock, empty name or unknown category"},
+        422: {"description": "Negative price or stock, empty name, unknown category, repeated size or stock sent together with sizes"},
     },
 )
 def create_product(body: ProductCreate, _: ShopAdmin, db: DbSession) -> ProductAdminOut:
@@ -156,11 +153,15 @@ def create_product(body: ProductCreate, _: ShopAdmin, db: DbSession) -> ProductA
     "/{product_id}",
     response_model=ProductAdminOut,
     summary="Update a product",
-    description="Partial update. Send is_active=true to reactivate a product.",
+    description=(
+            "Partial update. Send is_active=true to reactivate a product. "
+            "sizes replaces the sizes: a size left out is hidden, not deleted, and [] removes them all. "
+            "A product with sizes does not accept stock (422)."
+    ),
     responses={
         **AUTH_ERRORS,
         404: {"description": "Product not found"},
-        422: {"description": "Invalid values, null in a required field or unknown category"},
+        422: {"description": "Invalid values, null in a required field, unknown category, repeated size or stock on a product with sizes"},
     },
 )
 def update_product(

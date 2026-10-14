@@ -12,11 +12,12 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.cache import response_cache
 from app.core.database import Base, enable_sqlite_foreign_keys, get_db
 from app.core.security import create_access_token, hash_password
 from app.main import app
-from app.models import MembershipPlan, Product, ProductCategory, Role, Subscription, User
-from app.models.enums import RoleName, SubscriptionStatus
+from app.models import MembershipPlan, Product, ProductCategory, ProductVariant, Role, Subscription, User
+from app.models.enums import ProductSize, RoleName, SubscriptionStatus
 
 TEST_PASSWORD = "Secret123!"
 _email_counter = count(1)
@@ -33,6 +34,15 @@ enable_sqlite_foreign_keys(test_engine)
 TestingSessionLocal = sessionmaker(
     bind=test_engine, autoflush=False, expire_on_commit=False
 )
+
+
+@pytest.fixture(autouse=True)
+def clear_response_cache():
+    response_cache.clear()
+    response_cache.default_ttl_seconds = 60
+    yield
+    response_cache.clear()
+    response_cache.default_ttl_seconds = 60
 
 
 @pytest.fixture
@@ -170,14 +180,19 @@ def make_product(db, make_category):
             price_cents: int = 1000,
             stock: int = 10,
             is_active: bool = True,
+            sizes: dict[str, int] | None = None,
     ) -> Product:
         product = Product(
             category=category or make_category(),
             name=name or f"Product {next(_product_counter)}",
             price_cents=price_cents,
-            stock=stock,
+            stock=0 if sizes else stock,
             is_active=is_active,
         )
+        if sizes:
+            product.variants = [
+                ProductVariant(size=ProductSize(size), stock=units) for size, units in sizes.items()
+            ]
         db.add(product)
         db.commit()
         return product

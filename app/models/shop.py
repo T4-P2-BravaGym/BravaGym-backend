@@ -1,16 +1,17 @@
 from datetime import datetime
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import CheckConstraint, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models.enums import OrderStatus
+from app.models.enums import OrderStatus, ProductSize
 from app.models.types import db_enum, utc_now
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.models.user import User
+
+_SIZE_ORDER = list(ProductSize)
 
 
 class ProductCategory(Base):
@@ -36,6 +37,42 @@ class Product(Base):
     is_active: Mapped[bool] = mapped_column(default=True)
 
     category: Mapped["ProductCategory"] = relationship()
+    variants: Mapped[list["ProductVariant"]] = relationship(
+        back_populates="product", cascade="all, delete-orphan"
+    )
+
+    @property
+    def active_variants(self) -> list["ProductVariant"]:
+        return sorted(
+            (variant for variant in self.variants if variant.is_active),
+            key=lambda variant: _SIZE_ORDER.index(variant.size),
+        )
+
+    @property
+    def has_sizes(self) -> bool:
+        return any(variant.is_active for variant in self.variants)
+
+    @property
+    def available_stock(self) -> int:
+        if self.has_sizes:
+            return sum(variant.stock for variant in self.active_variants)
+        return self.stock
+
+
+class ProductVariant(Base):
+    __tablename__ = "product_variants"
+    __table_args__ = (
+        UniqueConstraint("product_id", "size", name="uq_product_variants_product_size"),
+        CheckConstraint("stock >= 0", name="ck_product_variants_stock"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), index=True)
+    size: Mapped[ProductSize] = mapped_column(db_enum(ProductSize))
+    stock: Mapped[int] = mapped_column(default=0)
+    is_active: Mapped[bool] = mapped_column(default=True)
+
+    product: Mapped["Product"] = relationship(back_populates="variants")
 
 
 class Order(Base):
@@ -51,10 +88,13 @@ class Order(Base):
         back_populates="order", cascade="all, delete-orphan"
     )
 
+
 class OrderItem(Base):
     __tablename__ = "order_items"
     __table_args__ = (
-        UniqueConstraint("order_id", "product_id", name="uq_order_items_order_product"),
+        UniqueConstraint(
+            "order_id", "product_id", "variant_id", name="uq_order_items_order_product_variant"
+        ),
         CheckConstraint("quantity > 0", name="ck_order_items_quantity"),
         CheckConstraint("unit_price_cents >= 0", name="ck_order_items_price"),
     )
@@ -62,8 +102,11 @@ class OrderItem(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"))
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    variant_id: Mapped[int | None] = mapped_column(ForeignKey("product_variants.id"))
+    size: Mapped[ProductSize | None] = mapped_column(db_enum(ProductSize))
     quantity: Mapped[int]
     unit_price_cents: Mapped[int]
 
     order: Mapped["Order"] = relationship(back_populates="items")
     product: Mapped["Product"] = relationship()
+    variant: Mapped[Optional["ProductVariant"]] = relationship()

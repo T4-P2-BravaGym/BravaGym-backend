@@ -3,7 +3,6 @@
 import pytest
 from sqlalchemy import func, select
 
-from app.main import app
 from app.models import CancellationRequest
 from app.models.enums import CancellationStatus, RoleName, SubscriptionStatus
 from tests.conftest import auth_header_for
@@ -70,17 +69,13 @@ def test_rn12_no_endpoint_lets_a_member_delete_herself(client, make_user):
         ("post", "/api/v1/auth/delete"),
     ]:
         response = getattr(client, method)(path, headers=headers)
-        assert response.status_code == 405 or response.status_code == 404, (
+        assert response.status_code in (403, 404, 405), (
             f"{method.upper()} {path} unexpectedly returned {response.status_code}"
         )
 
-    delete_routes = [
-        (route.path, sorted(route.methods or []))
-        for route in app.routes
-        if getattr(route, "methods", None) and "DELETE" in route.methods
-        and str(route.path).startswith("/api/v1/users")
-    ]
-    assert delete_routes == []
+    # HU-31 added DELETE /users/{id}, but only for admins: a member still cannot delete herself
+    response = client.delete(f"/api/v1/users/{member.id}", headers=headers)
+    assert response.status_code == 403
 
 
 def test_get_me_returns_latest_request(client, db, make_user, make_plan, make_subscription):

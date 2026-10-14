@@ -1,15 +1,15 @@
-"""Controller for users: receives the request, checks permissions, calls the service, returns a schema (HU-04, HU-05, HU-06).
+"""Controller for users: receives the request, checks permissions, calls the service, returns a schema (HU-04, HU-05, HU-06, HU-31).
 """
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_roles
 from app.models.enums import RoleName
 from app.models.user import User
-from app.schemas.user import RoleUpdate, UserOut, UserPage, UserUpdate
+from app.schemas.user import RoleUpdate, UserAdminUpdate, UserOut, UserPage, UserUpdate
 from app.services import user_service
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -95,3 +95,40 @@ def update_me(
 )
 def change_role(user_id: int, data: RoleUpdate, actor: CurrentAdmin, db: DbSession) -> UserOut:
     return user_service.change_role(db, actor, user_id, data.role)
+
+
+# The /{user_id} routes go after /me: FastAPI would read "me" as an id otherwise
+ADMIN_ERRORS = {
+    401: {"description": "Not logged in"},
+    403: {"description": "Not admin, or an admin trying to manage an admin or superadmin"},
+    404: {"description": "The user does not exist"},
+}
+
+
+@router.get("/{user_id}", response_model=UserOut, summary="Get a user (admin)", responses=ADMIN_ERRORS)
+def get_user(user_id: int, admin: CurrentAdmin, db: DbSession) -> UserOut:
+    return user_service.get_user(db, user_id)
+
+
+@router.patch(
+    "/{user_id}",
+    response_model=UserOut,
+    summary="Edit a user's name, phone and email (admin)",
+    responses={**ADMIN_ERRORS, 409: {"description": "Email already in use"}},
+)
+def update_user(user_id: int, changes: UserAdminUpdate, admin: CurrentAdmin, db: DbSession) -> UserOut:
+    return user_service.update_user(db, admin, user_id, changes)
+
+
+@router.delete(
+    "/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Deactivate a user (soft delete, admin)",
+    description=(
+        "Sets is_active=false and deactivated_at, cancels her active subscription and future "
+        "bookings (as an approved cancellation, HU-20). The row is kept and she can no longer log in."
+    ),
+    responses={**ADMIN_ERRORS, 409: {"description": "Deactivating yourself, or the last superadmin"}},
+)
+def deactivate_user(user_id: int, admin: CurrentAdmin, db: DbSession) -> None:
+    user_service.deactivate_user(db, admin, user_id)
