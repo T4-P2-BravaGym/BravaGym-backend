@@ -93,3 +93,9 @@ class RoleUpdate(BaseModel):
     model_config = ConfigDict(json_schema_extra={"example": {"role": "trainer"}})
 
     role: RoleName    
+
+
+class UserAdminUpdate(UserUpdate):
+    """What an admin can change in another user's profile (HU-31): the same fields as her own
+    profile. Never role (that is PATCH /users/{id}/role), is_active (that is DELETE) or password."""
+
