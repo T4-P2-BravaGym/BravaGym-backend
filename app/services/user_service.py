@@ -1,4 +1,4 @@
-"""Profile, user list, role changes and admin user management (HU-04, HU-05, HU-06, HU-31).
+"""Profile, password, user list, role changes and admin user management (HU-04, HU-05, HU-06, HU-31, HU-32).
 
 Business rules RN-18, RN-19: docs/business-rules.md.
 """
@@ -9,10 +9,18 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ConflictError, NotFoundError, PermissionDeniedError
+from app.core.exceptions import (
+    AppError,
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+)
+from app.core.rate_limit import password_change_limiter, password_change_rate_key
+from app.core.security import hash_password, verify_password
 from app.models import Role, TrainerProfile, User
 from app.models.enums import RoleName, SubscriptionStatus
 from app.models.types import utc_now
+from app.schemas.auth import PasswordChange
 from app.schemas.user import UserUpdate
 from app.services import booking_service
 from app.services.auth_service import get_user_by_email, normalize_email
@@ -21,6 +29,7 @@ from app.services.subscription_service import get_active_subscription
 logger = logging.getLogger(__name__)
 
 EMAIL_TAKEN = "Ya existe una cuenta con ese email."
+WRONG_PASSWORD = "La contraseña actual no es correcta."
 
 
 def update_me(db: Session, user: User, changes: UserUpdate) -> User:
@@ -28,6 +37,22 @@ def update_me(db: Session, user: User, changes: UserUpdate) -> User:
     _apply_profile_changes(db, user, changes)
     logger.info("User %s updated her profile", user.id)
     return user
+
+
+def change_password(db: Session, user: User, data: PasswordChange) -> None:
+    """HU-32: 400 if the current password is wrong (not 401: the front logs out on a 401).
+    After 5 wrong tries in 15 minutes, 429 like the login (HU-34)."""
+    key = password_change_rate_key(user.id)
+    password_change_limiter.assert_allowed(key)
+    if not verify_password(data.current_password, user.password_hash):
+        password_change_limiter.record(key)
+        logger.info("User %s failed to change her password", user.id)
+        raise AppError(WRONG_PASSWORD)  # the base AppError is a 400
+
+    user.password_hash = hash_password(data.new_password)
+    db.commit()
+    password_change_limiter.reset(key)
+    logger.info("User %s changed her password", user.id)
 
 
 def _apply_profile_changes(db: Session, user: User, changes: UserUpdate) -> None:
