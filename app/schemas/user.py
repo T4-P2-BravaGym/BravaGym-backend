@@ -78,6 +78,21 @@ class UserPage(Page[UserOut]):
     )
 
 
+class MemberOption(BaseModel):
+    """A member as trainers see her in a picker: only id and name, no contact data."""
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {"id": 7, "first name": "Lucía", "last name": "García"}
+        },
+    )
+
+    id: int
+    first_name: str
+    last_name: str
+
+
 class UserUpdate(BaseModel):
     """What a user can change in her own profile. Never role or is_active."""
 

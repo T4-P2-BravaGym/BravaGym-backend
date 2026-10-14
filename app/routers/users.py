@@ -9,7 +9,14 @@ from app.core.database import get_db
 from app.core.deps import CurrentUser, require_roles
 from app.models.enums import RoleName
 from app.models.user import User
-from app.schemas.user import RoleUpdate, UserAdminUpdate, UserOut, UserPage, UserUpdate
+from app.schemas.user import (
+    MemberOption,
+    RoleUpdate,
+    UserAdminUpdate,
+    UserOut,
+    UserPage,
+    UserUpdate,
+)
 from app.services import user_service
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -60,6 +67,24 @@ def list_users(
         page=page,
         size=size,
     )
+
+
+@router.get(
+    "/members",
+    response_model=list[MemberOption],
+    summary="List active member for trainers (id and name only)",
+    responses={
+        401: {"description": "Missing, invalid or expired token"},
+        403: {"description": "Only trainers and superadmin can list members"},
+    },
+)
+def list_members(
+    _trainer: Annotated[
+        User, Depends(require_roles(RoleName.TRAINER, RoleName.SUPERADMIN))
+    ],
+    db: DbSession,
+) -> list[MemberOption]:
+    return user_service.list_active_members(db)
 
 
 @router.get(
