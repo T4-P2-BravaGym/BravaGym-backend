@@ -6,21 +6,28 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.cache import PLANS_CACHE_KEY, invalidate_plans_cache, response_cache
 from app.core.exceptions import ConflictError, NotFoundError
 from app.models.membership import MembershipPlan
-from app.schemas.plan import PlanCreate, PlanUpdate
+from app.schemas.plan import PlanCreate, PlanOut, PlanUpdate
 
 logger = logging.getLogger(__name__)
 
 
-def list_active_plans(db: Session) -> list[MembershipPlan]:
+def list_active_plans(db: Session) -> list[PlanOut]:
+    """Public pricing list; served from an in-memory TTL cache when possible (HU-28)."""
+    cached = response_cache.get(PLANS_CACHE_KEY)
+    if cached is not None:
+        return [PlanOut.model_validate(item) for item in cached]
+
     query = (
         select(MembershipPlan)
         .where(MembershipPlan.is_active.is_(True))
         .order_by(MembershipPlan.monthly_price_cents)
     )
-
-    return list(db.scalars(query).all())
+    plans = [PlanOut.model_validate(plan) for plan in db.scalars(query).all()]
+    response_cache.set(PLANS_CACHE_KEY, [plan.model_dump(mode="json") for plan in plans])
+    return plans
 
 
 def list_admin_plans(db: Session, *, page: int = 1, size: int = 20):
@@ -54,6 +61,7 @@ def create_plan(db: Session, data: PlanCreate) -> MembershipPlan:
         raise ConflictError("Ya existe un plan con ese nombre.") from None
 
     db.refresh(plan)
+    invalidate_plans_cache()
     logger.info("Membership plan %s created", plan.id)
     return plan
 
@@ -90,6 +98,7 @@ def update_plan(
         raise ConflictError("Ya existe un plan con ese nombre.") from None
 
     db.refresh(plan)
+    invalidate_plans_cache()
     logger.info("Membership plan %s updated", plan.id)
     return plan
 
@@ -104,6 +113,7 @@ def deactivate_plan(db: Session, plan_id: int) -> MembershipPlan:
     plan.is_active = False
     db.commit()
     db.refresh(plan)
+    invalidate_plans_cache()
 
     logger.info("Membership plan %s deactivated", plan.id)
     return plan

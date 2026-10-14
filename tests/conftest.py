@@ -12,6 +12,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.cache import response_cache
 from app.core.database import Base, enable_sqlite_foreign_keys, get_db
 from app.core.security import create_access_token, hash_password
 from app.main import app
@@ -33,6 +34,15 @@ enable_sqlite_foreign_keys(test_engine)
 TestingSessionLocal = sessionmaker(
     bind=test_engine, autoflush=False, expire_on_commit=False
 )
+
+
+@pytest.fixture(autouse=True)
+def clear_response_cache():
+    response_cache.clear()
+    response_cache.default_ttl_seconds = 60
+    yield
+    response_cache.clear()
+    response_cache.default_ttl_seconds = 60
 
 
 @pytest.fixture

@@ -1,1 +1,1 @@
-"""Cross-cutting pieces: settings, database, security, logging and errors."""
+"""Cross-cutting pieces: settings, database, security, logging, cache and errors."""

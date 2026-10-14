@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import models
+from app.core.cache import configure_response_cache
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
@@ -9,6 +10,7 @@ from app.routers import api_routers
 
 settings = get_settings()
 setup_logging(settings.debug)
+configure_response_cache(settings.cache_ttl_seconds)
 
 
 
