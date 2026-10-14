@@ -70,7 +70,7 @@ def test_member_sees_her_routine_grouped_by_day_and_in_order(client, db, make_us
         "reps": 12,
         "rest_seconds": 60,
     }
-    
+
 
 def test_member_sees_only_her_active_routine(client, db, make_user):
     member = make_user(RoleName.MEMBER)
