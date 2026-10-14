@@ -65,6 +65,8 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | GET | `/products`, `/product-categories` | Público | Filtros `category_id`, `min_price`, `max_price` (en céntimos, límites incluidos) y `q`; orden `sort`: `name` (por defecto), `price_asc` o `price_desc` |
 | GET | `/products/admin` | Admin, superadmin | Listado del panel: incluye inactivos (siempre al final) y `is_active`; filtros `category_id`, `q`, `status` (`active`, `inactive`, `out_of_stock`) y `sort`|
 | POST / PATCH / DELETE | `/products[/{id}]`, `/product-categories[/{id}]` | Admin, superadmin | DELETE de producto = desactivar siempre (PATCH `is_active=true` lo reactiva); DELETE de categoría con productos → 409; la ropa lleva `sizes: [{size, stock}]` en lugar de `stock` (RN-20) |
+| PUT | `/products/{id}/image` | Admin, superadmin | Foto del producto (HU-30, RN-21): multipart con el campo `file`; JPEG, PNG o WebP de hasta 2 MB, con el tipo comprobado por el contenido (si no → 422 `invalid_image` o `image_too_large`); sustituye la anterior y borra su archivo; devuelve el producto con `image_url` |
+| DELETE | `/products/{id}/image` | Admin, superadmin | Quita la foto y borra su archivo; sin foto no cambia nada (200) |
 | POST | `/orders` | Member | RN-17; cuerpo `{items: [{product_id, size?, quantity}]}` (los precios salen siempre de la BD); descuenta stock y crea el pago `pending`; sin stock o producto no disponible → 409; la ropa con tallas exige `size` (RN-20, si falta o no se vende → 422) |
 | GET | `/orders/me` | Member | Paginado, los más recientes primero; con sus líneas, total y estado del pago |
 | POST | `/orders/{id}/cancel` | Member (propio, `pending`) | Repone el stock y pasa el pago a `cancelled`; ajeno → 404; ya no `pending` → 409 |
@@ -75,3 +77,5 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | GET | `/payments` | Admin, superadmin | Filtros `status`, `from`, `to`, `user_id`, `concept` |
 | GET | `/payments/export` | Admin, superadmin | CSV con los mismos filtros |
 | POST | `/payments/{id}/refund` | Admin, superadmin | RN-16 |
+
+Excepción a `/api/v1`: las fotos se sirven en `/media/products/{archivo}` (público), que es la ruta que devuelve `image_url`. Son archivos, no API.

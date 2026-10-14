@@ -69,7 +69,7 @@ Cambios de esquema y configuración:
 - **`ProductForm`:**
     - Campo "Foto (opcional)" con vista previa, botón "Quitar foto" y el texto "JPEG, PNG o WebP, hasta 2 MB".
     - El atributo `accept` solo filtra el selector de archivos: la validación sigue siendo de la API.
-    - La vista previa usa `URL.createObjectURL`, y la URL se libera al cambiar de archivo o al desmontar.
+    - La vista previa se lee con `FileReader` (una `data:` URL), así que no hay URL que liberar al cambiar de archivo ni al desmontar. 
     - Sigue sin llamar a la API: `onSubmit(body, image)`, donde `image` es `{ file }`, `{ remove: true }` o `null`.
     - `toProductBody` no cambia: la foto no va en el cuerpo.
 - **`ProductsTab`:**
@@ -95,9 +95,7 @@ Cambios de esquema y configuración:
 
 ## Preguntas abiertas
 
-- ¿Volvemos a codificar la foto con Pillow? Comprobar la cabecera no garantiza que el resto del archivo sea una imagen. Propuesta: no en esta entrega, y anotarlo en la retrospectiva.
-- Comprobar en `docs/business-rules.md` que el número RN-21 está libre y añadir allí la regla.
-- Añadir "foto de producto" = `image_path` / `image_url` al glosario de `specs/ontology.md`.
+- ¿Volvemos a codificar la foto con Pillow? Comprobar la cabecera no garantiza que el resto del archivo sea una imagen. Decidido: no en esta entrega; se anota en la retrospectiva.
 
 ## Decisiones
 

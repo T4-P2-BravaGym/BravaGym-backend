@@ -2,7 +2,7 @@
 
 Las entidades del proyecto, sus relaciones y el vocabulario, en un solo sitio. Es lo que lee un agente antes de programar para no inventarse nombres ni reglas.
 
-> **Estado: por rellenar (D-01).** Sale de `docs/er.md` (las 18 tablas y sus relaciones) y de `docs/business-rules.md` (RN-01 a RN-20). Se reparte entre el equipo por áreas; cada una rellena las entidades de las historias que ha hecho. Mientras esté incompleta, `docs/er.md` y `docs/business-rules.md` son la fuente buena.
+> **Estado: por rellenar (D-01).** Sale de `docs/er.md` (las 18 tablas y sus relaciones) y de `docs/business-rules.md` (RN-01 a RN-21). Se reparte entre el equipo por áreas; cada una rellena las entidades de las historias que ha hecho. Mientras esté incompleta, `docs/er.md` y `docs/business-rules.md` son la fuente buena.
 
 ## Glosario español ↔ código
 
@@ -22,6 +22,7 @@ El nombre que se usa hablando y el que se usa en el código. En la app la socia 
 | rutina | `routine` |
 | pedido | `order` |
 | talla | `product_variant` |
+| foto de producto | `products.image_path` (nombre del archivo) / `image_url` (en la API) |
 | código de descuento | `discount_code` |
 
 <!-- TODO(D-01): completar con el resto de términos. -->
@@ -55,4 +56,4 @@ Qué es, en una frase de negocio.
 
 ## Reglas de negocio
 
-Las RN-01 a RN-20 viven en `docs/business-rules.md`. Aquí solo se citan desde cada entidad, para no tener la misma regla escrita en dos sitios.
+Las RN-01 a RN-21 viven en `docs/business-rules.md`. Aquí solo se citan desde cada entidad, para no tener la misma regla escrita en dos sitios.
