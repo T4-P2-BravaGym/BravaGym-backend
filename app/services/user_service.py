@@ -91,6 +91,16 @@ def list_users(
 STAFF_ROLES = {RoleName.ADMIN, RoleName.SUPERADMIN}
 
 
+def list_active_members(db: Session) -> list[User]:
+    """Active members ordered by name, for the trainer's routine editor."""
+    stmt = (
+        select(User)
+        .where(User.is_active.is_(True), User.role.has(Role.name == RoleName.MEMBER))
+        .order_by(User.first_name, User.last_name, User.id)
+    )
+    return list(db.scalars(stmt).all())
+
+
 def change_role(db: Session, actor: User, user_id: int, new_role: RoleName) -> User:
     """Change another user's role following RN-18 and RN-19."""
     user = db.get(User, user_id)
