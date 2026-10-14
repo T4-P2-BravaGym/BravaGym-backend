@@ -48,16 +48,12 @@ Aquí escribes el código tú, pero el alcance lo pone la spec y la persona resp
 - **Comandos:**
 
 ```bash
-  source .venv/bin/activate              # con fish: source .venv/bin/activate.fish
-  pip install -r requirements-dev.txt
-  alembic upgrade head                   # crea o actualiza las tablas
-  python -m scripts.seed                 # datos de prueba (solo con ENVIRONMENT=local)
-  uvicorn app.main:app --reload          # http://localhost:8000/docs
-  pytest                                 # todos los tests
-  pytest tests/unit/test_x.py -k nombre  # un test concreto
-  alembic revision --autogenerate -m "short description"
-  alembic check                          # falla si hay un cambio de modelo sin migración
-  pip-audit -r requirements.txt
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload
+pytest
 ```
 
 Antes de abrir una PR: `alembic check`, `pytest` y `pip-audit -r requirements.txt`.
