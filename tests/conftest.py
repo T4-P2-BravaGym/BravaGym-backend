@@ -14,6 +14,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.cache import response_cache
 from app.core.database import Base, enable_sqlite_foreign_keys, get_db
+from app.core.rate_limit import login_attempt_limiter, register_attempt_limiter
 from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.models import MembershipPlan, Product, ProductCategory, ProductVariant, Role, Subscription, User
@@ -43,6 +44,17 @@ def clear_response_cache():
     yield
     response_cache.clear()
     response_cache.default_ttl_seconds = 60
+
+
+@pytest.fixture(autouse=True)
+def clear_auth_rate_limiters():
+    login_attempt_limiter.clear()
+    login_attempt_limiter.configure(max_attempts=5, window_seconds=900)
+    register_attempt_limiter.clear()
+    register_attempt_limiter.configure(max_attempts=10, window_seconds=3600)
+    yield
+    login_attempt_limiter.clear()
+    register_attempt_limiter.clear()
 
 
 @pytest.fixture
