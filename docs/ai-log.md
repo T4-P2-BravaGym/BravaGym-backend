@@ -88,7 +88,7 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 
 ## HU-08 · Gestión de planes — Beste Özaydın
 
-- **Herramienta y modelo:** OpenAI Codex; esta revisión documental se realizó con GPT-6. Recibí ayuda de IA siguiendo cada paso. No se conserva en esta entrada el identificador exacto del modelo de las conversaciones originales ni se ha confirmado la modalidad de pago; no se atribuyen esos datos sin evidencia.
+- **Herramienta y modelo:** Codex / ChatGPT, confirmado por Beste para la implementación original; esta revisión documental se realizó con OpenAI Codex, GPT-6. Recibí ayuda de IA siguiendo cada paso. El modelo exacto de las conversaciones originales y la modalidad de pago no están confirmados; no se atribuyen esos datos sin evidencia.
 - **Prompt clave:** para completar y explicar la documentación: "please do everything one by one and tell me whet you do". Para describir el acompañamiento: "say that I got help from ai following each step". Son los prompts de la revisión del 14 de octubre, no una reconstrucción del prompt original de implementación.
 - **Qué me explicó o propuso:** cómo distinguir la historia #42, las subtareas #43 y #44 y la PR #178; la diferencia entre `Refs` y `Closes`; y los requisitos de spec, bitácora, Swagger, tests y revisión. La ayuda fue paso a paso, con explicaciones y comprobaciones de los archivos y de GitHub.
 - **Qué acepté:** documentar la historia completa en una spec del backend, registrar el alcance real de la ayuda de IA y comprobar los endpoints, permisos y borrado lógico antes de cerrar la historia. En esta revisión autoricé expresamente que Codex escribiera la documentación y ejecutara los comandos; estos archivos no se presentan como escritos manualmente sin ayuda.
