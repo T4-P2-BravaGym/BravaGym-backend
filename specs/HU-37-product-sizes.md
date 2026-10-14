@@ -78,7 +78,7 @@ Ninguno nuevo. Cambia lo que mandan y devuelven los que ya existían:
 | Método | Ruta | Quién | Qué cambia | Errores |
 | --- | --- | --- | --- | --- |
 | GET | `/products` | Público | `ProductOut` lleva `sizes` (tallas activas con su stock) y `stock` es la suma de las activas | — |
-| GET | `/products/admin` | Admin | Igual, en `ProductAdminOut` <!-- TODO: confirmar si aquí está el filtro out_of_stock --> | 401, 403 |
+| GET | `/products/admin` | Admin | Igual, en `ProductAdminOut`; el valor `out_of_stock` del parámetro `status` usa el mismo stock calculado | 401, 403 |
 | POST | `/products` | Admin | `ProductCreate` acepta `sizes` (máximo 5); entonces no se manda `stock` | 401, 403, 422 |
 | PATCH | `/products/{id}` | Admin | `ProductUpdate.sizes` **sustituye** la lista: la talla que no venga se oculta, `[]` las quita todas | 401, 403, 404, 422 |
 | POST | `/orders` | Member | Cada línea acepta `size` | 401, 403, 409, 422 |
