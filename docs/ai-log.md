@@ -77,6 +77,16 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Errores o alucinaciones:** nada inventado sobre el proyecto: antes de proponer leyó los modelos, el `AGENTS.md` y el código existente. Los errores fueron míos al copiar y los pillaron los tests: usé `RoutineUpdate` en vez de `RoutineCreate` en el `POST` (500 en todos los tests de crear), puse mal una llave en la ruta `/{routine_id}/exercises` (404) y escribí `firts_line` en un test. También tuve que ajustar el test de la HU-18, porque las líneas ahora devuelven su `id`.
 - **Cómo lo comprobé:** `pytest` (permisos, 409, 404, 422 y la desactivación de la rutina anterior), ruff y el flujo en Swagger: crear ejercicios, crear una rutina y repetir día y posición para ver el 409. Pendiente: el editor en el frontend (frontend#16).
 
+## HU-07 · Página de pricing — Beste Özaydın
+
+- **Herramienta y modelo:** Codex / ChatGPT. Recibí ayuda de IA siguiendo cada paso. Esta documentación retrospectiva se preparó con OpenAI Codex, GPT-6; el modelo exacto y la modalidad de pago de las conversaciones originales no están confirmados.
+- **Prompt clave:** no se conserva aquí el prompt literal de la implementación original. En la revisión documental pedí "please do everything one by one and tell me whet you do" y confirmé continuar con la spec y la bitácora de HU-07. Se distingue esta revisión del trabajo original para no reconstruir prompts como si fueran citas.
+- **Qué me explicó o propuso:** en esta revisión, contrastar los criterios de #38 con las PR backend #141 y frontend #41 y documentar el catálogo público, los planes activos ordenados por precio, el precio en euros y los estados de la pantalla. La ayuda se explicó paso a paso.
+- **Qué acepté:** documentar la implementación existente en una spec compartida, reutilizar las pruebas existentes como evidencia y registrar el alcance de la ayuda. Autoricé a Codex a escribir estos documentos y ejecutar las comprobaciones; no se presentan como trabajo escrito sin ayuda de IA.
+- **Qué descarté:** rehacer una funcionalidad ya terminada o añadir comportamiento nuevo dentro de una tarea documental. No se conserva una lista verificable de propuestas descartadas durante la implementación original.
+- **Errores o alucinaciones:** en esta revisión no se reconstruyen decisiones, errores ni conversaciones históricas que no se pueden verificar. La ausencia de spec y entrada de bitácora se detectó al revisar los archivos de `dev`, aunque #38 ya estaba cerrado.
+- **Cómo lo comprobé:** se leyeron los criterios de #38, los archivos incluidos en backend #141 y frontend #41 y el código de planes y de `Pricing`. Las comprobaciones actuales y sus resultados se registran en la PR documental; no se atribuyen a pruebas manuales históricas que esta sesión no haya observado.
+
 ## HU-05 · Gestión de roles — Esra
 
 - **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Me explicaba cada paso en el chat y yo escribía o pegaba el código, ejecutaba los comandos y hacía los commits. Cubre el backend (PR #159) y el selector de rol del frontend (subtarea HU-05.5).
