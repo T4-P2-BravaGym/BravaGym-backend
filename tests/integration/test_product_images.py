@@ -1,5 +1,4 @@
 import pytest
-
 from app.core.config import get_settings
 from app.models.enums import RoleName
 from app.services.product_image_service import (
@@ -7,6 +6,7 @@ from app.services.product_image_service import (
     INVALID_IMAGE,
     MAX_IMAGE_BYTES,
 )
+
 from tests.image_samples import EXE, JPEG, PDF, PNG, SVG, WEBP
 
 PRODUCTS_URL = "/api/v1/products"
