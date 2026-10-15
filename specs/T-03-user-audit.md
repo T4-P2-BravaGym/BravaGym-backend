@@ -54,5 +54,15 @@ queda para después; ver "Fuera de alcance".
 - El perfil público de la entrenadora (HU-15): vive en `trainer_profiles`, no en `users`.
 - Mostrar "Última modificación" en el panel de administración (subtarea opcional).
 
+## Decisiones
+
+| Decisión | Por qué |
+| --- | --- |
+| Un solo ayudante `_mark_updated(user, actor)` en `user_service` | Quién y cuándo se rellena igual en los cinco cambios (DRY). |
+| Se llama justo antes del `commit` y después de todas las comprobaciones | Un cambio rechazado (403, 409, 400) no llega a esa línea; y si el `commit` falla, el `rollback` lo deshace. |
+| `_apply_profile_changes` recibe `actor` como argumento con nombre | Lo comparten HU-04 (ella misma) y HU-31 (la admin); así no se pueden confundir. |
+| Un `PATCH` sin campos no cuenta como cambio | No se modificó nada; antes hacía un `commit` vacío. |
+| `created_by_id` existe pero hoy siempre queda vacío | Las cuentas se crean en el registro o en el seed; no hay un endpoint para que admin cree usuarias. |
+| La migración apaga las foreign keys de SQLite mientras reconstruye `users` | Para añadir una FK, SQLite copia la tabla y borra la vieja, y no puede borrarla mientras otras tablas apuntan a ella. Con datos reales, la migración fallaba; con la base vacía (CI) no se veía. |
 
 
