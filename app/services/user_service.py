@@ -1,4 +1,5 @@
 """Profile, password, user list, role changes and admin user management (HU-04, HU-05, HU-06, HU-31, HU-32).
+Every change records who made it and when (T-03).
 
 Business rules RN-18, RN-19: docs/business-rules.md.
 """
@@ -32,9 +33,15 @@ EMAIL_TAKEN = "Ya existe una cuenta con ese email."
 WRONG_PASSWORD = "La contraseña actual no es correcta."
 
 
+def _mark_updated(user: User, actor: User) -> None:
+    """T-03: who changed this account last, and when. Call it right before the commit."""
+    user.updated_at = utc_now()
+    user.updated_by_id = actor.id
+
+
 def update_me(db: Session, user: User, changes: UserUpdate) -> User:
     """Change only the fields the user sent. 409 if the new email belongs to someone else."""
-    _apply_profile_changes(db, user, changes)
+    _apply_profile_changes(db, user, changes, actor=user)
     logger.info("User %s updated her profile", user.id)
     return user
 
@@ -50,14 +57,19 @@ def change_password(db: Session, user: User, data: PasswordChange) -> None:
         raise AppError(WRONG_PASSWORD)  # the base AppError is a 400
 
     user.password_hash = hash_password(data.new_password)
+    _mark_updated(user, user)
     db.commit()
     password_change_limiter.reset(key)
     logger.info("User %s changed her password", user.id)
 
 
-def _apply_profile_changes(db: Session, user: User, changes: UserUpdate) -> None:
+def _apply_profile_changes(
+    db: Session, user: User, changes: UserUpdate, *, actor: User
+) -> None:
     """Shared by update_me (HU-04) and update_user (HU-31): only the fields sent, email checked."""
     data = changes.model_dump(exclude_unset=True)
+    if not data:
+        return  # nothing sent, nothing changed (T-03: not a modification)
     if "email" in data:
         data["email"] = normalize_email(data["email"])
         owner = get_user_by_email(db, data["email"])
@@ -66,6 +78,7 @@ def _apply_profile_changes(db: Session, user: User, changes: UserUpdate) -> None
 
     for field, value in data.items():
         setattr(user, field, value)
+    _mark_updated(user, actor)
     try:
         db.commit()
     except IntegrityError:
@@ -157,6 +170,7 @@ def change_role(db: Session, actor: User, user_id: int, new_role: RoleName) -> U
     user.role = role
     if new_role == RoleName.TRAINER and user.trainer_profile is None:
         user.trainer_profile = TrainerProfile()
+    _mark_updated(user, actor)
     db.commit()
     logger.info(
         "User %s changed the role of user %s from %s to %s",
@@ -195,7 +209,7 @@ def update_user(db: Session, actor: User, user_id: int, changes: UserUpdate) -> 
     """An admin edits another user's name, phone or email (HU-31)."""
     user = get_user(db, user_id)
     _check_can_manage(actor, user)
-    _apply_profile_changes(db, user, changes)
+    _apply_profile_changes(db, user, changes, actor=actor)
     logger.info("User %s updated the profile of user %s", actor.id, user.id)
     return user
 
@@ -221,6 +235,7 @@ def deactivate_user(db: Session, actor: User, user_id: int) -> None:
         subscription.status = SubscriptionStatus.CANCELLED
     user.is_active = False
     user.deactivated_at = now
+    _mark_updated(user, actor)
     affected_sessions = booking_service.cancel_future_bookings_for_user(
         db, user_id=user.id, now=now
     )
