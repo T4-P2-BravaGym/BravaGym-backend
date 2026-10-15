@@ -87,6 +87,16 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Errores o alucinaciones:** nada inventado sobre el proyecto: antes de proponer leyó los modelos, el `AGENTS.md` y el código existente. Los errores fueron míos al copiar y los pillaron los tests: usé `RoutineUpdate` en vez de `RoutineCreate` en el `POST` (500 en todos los tests de crear), puse mal una llave en la ruta `/{routine_id}/exercises` (404) y escribí `firts_line` en un test. También tuve que ajustar el test de la HU-18, porque las líneas ahora devuelven su `id`.
 - **Cómo lo comprobé:** `pytest` (permisos, 409, 404, 422 y la desactivación de la rutina anterior), ruff y el flujo en Swagger: crear ejercicios, crear una rutina y repetir día y posición para ver el 409. Pendiente: el editor en el frontend (frontend#16).
 
+## T-07 · Separar dependencias de test — Beste Özaydın
+
+- **Herramienta y modelo:** OpenAI Codex, GPT-6, con explicaciones paso a paso y ejecución autorizada. La modalidad de pago de la cuenta no está confirmada.
+- **Prompt clave:** "ok do it", tras leer la issue #192 y explicar que se escribiría la spec, se quitarían las dos dependencias de ejecución, se comprobaría instalación y tests y se abriría una PR.
+- **Qué me explicó o propuso:** la diferencia entre dependencias de ejecución y de desarrollo; retirar las declaraciones de `pytest` y `freezegun` de `requirements.txt`, conservándolas en `requirements-dev.txt`.
+- **Qué acepté:** el cambio mínimo descrito en la issue y la spec previa. Autoricé a Codex a editar los archivos y ejecutar las comprobaciones; el agente escribió esta documentación y el cambio de configuración.
+- **Qué descarté:** ampliar la tarea a Docker, cambiar versiones o modificar pruebas.
+- **Errores o alucinaciones:** no se detectaron errores en la propuesta de separación; los resultados de instalación y pruebas se registran en la PR.
+- **Cómo lo comprobé:** instalación desde `requirements-dev.txt`, suite existente y comprobación del diff y del salto de línea final. Los resultados concretos se adjuntan a la PR antes de solicitar revisión humana.
+
 ## HU-07 · Página de pricing — Beste Özaydın
 
 - **Herramienta y modelo:** Codex / ChatGPT. Recibí ayuda de IA siguiendo cada paso. Esta documentación retrospectiva se preparó con OpenAI Codex, GPT-6; el modelo exacto y la modalidad de pago de las conversaciones originales no están confirmados.
