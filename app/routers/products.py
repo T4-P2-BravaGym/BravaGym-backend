@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -17,7 +17,7 @@ from app.schemas.shop import (
     ProductPage,
     ProductUpdate,
 )
-from app.services import shop_service
+from app.services import product_image_service, shop_service
 from app.services.shop_service import ProductSort, ProductStatus
 
 router = APIRouter(prefix="/products", tags=["shop"])
@@ -182,6 +182,42 @@ def update_product(
 )
 def deactivate_product(product_id: int, _: ShopAdmin, db: DbSession) -> ProductAdminOut:
     return ProductAdminOut.from_product(shop_service.deactivate_product(db, product_id))
+
+@router.put(
+    "/{product_id}/image",
+    response_model=ProductAdminOut,
+    summary="Upload or replace the product photo",
+    description=(
+            "Multipart form with a file field. JPEG, PNG or WebP up to 2 MB: the type is "
+            "read from the file content, not from its name. Replaces the previous photo "
+            "and deletes its file. The response has image_url (/media/...)."
+    ),
+    responses={
+        **AUTH_ERRORS,
+        404: {"description": "Product not found"},
+        422: {"description": "Not a JPEG, PNG or WebP image (code invalid_image) or larger than 2 MB (code image_too_large)"},
+    },
+)
+def upload_product_image(
+        product_id: int,
+        file: Annotated[UploadFile, File(description="JPEG, PNG or WebP, up to 2 MB")],
+        _: ShopAdmin,
+        db: DbSession,
+) -> ProductAdminOut:
+    product = product_image_service.set_product_image(db, product_id, file.file)
+    return ProductAdminOut.from_product(product)
+
+
+@router.delete(
+    "/{product_id}/image",
+    response_model=ProductAdminOut,
+    summary="Remove the product photo",
+    description="Deletes the photo and its file. Without a photo it changes nothing (200).",
+    responses={**AUTH_ERRORS, 404: {"description": "Product not found"}},
+)
+def delete_product_image(product_id: int, _: ShopAdmin, db: DbSession) -> ProductAdminOut:
+    product = product_image_service.remove_product_image(db, product_id)
+    return ProductAdminOut.from_product(product)
 
 
 @categories_router.post(
