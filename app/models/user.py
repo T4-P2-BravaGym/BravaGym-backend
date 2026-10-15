@@ -1,4 +1,4 @@
-"""Users, roles and trainer profiles (HU-01, HU-02, HU-05, HU-15)."""
+"""Users, roles and trainer profiles (HU-01, HU-02, HU-05, HU-15, T-03)."""
 
 from datetime import datetime
 from typing import Optional
@@ -31,6 +31,10 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
     deactivated_at: Mapped[datetime | None]
+    # T-03: who created the account and who changed it last, and when (empty until someone does)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    updated_at: Mapped[datetime | None]
+    updated_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
 
     role: Mapped["Role"] = relationship(lazy="joined")
     trainer_profile: Mapped[Optional["TrainerProfile"]] = relationship(
