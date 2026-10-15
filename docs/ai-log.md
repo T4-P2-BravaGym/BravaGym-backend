@@ -139,3 +139,23 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** todo lo anterior; ajustar el test de la HU-19, que ahora tiene que aceptar que exista un `DELETE` solo para administración.
 - **Qué descarté:** sacar una función común con la baja de la HU-20, porque tocaba `cancellation_service.py` de otra compañera; queda como propuesta.
 - **Errores o alucinaciones:** al revisar el diff me dio números de línea equivocados; lo vi al comprobarlos yo. En el front, la primera columna de acciones usaba `max-content` y los botones se descolocaban en las filas sin "Editar"; se cambió por huecos fijos.
+
+## HU-30 · Foto de producto — Damaris
+
+- **Herramienta y modelo:** Claude (de pago), en modo mentora. Leyó el código con mi permiso, solo lectura. El código lo escribí y lo commiteé yo.
+- **Prompt de partida:** "vamos a trabajar en la HU-30", con el contexto del proyecto cargado y dos condiciones: la spec antes de tocar código y el cambio de esquema en una migración de Alembic (T-01), no borrando `brava.db`.
+- **Qué salió de la conversación y acepté:**
+  - La foto en su propio endpoint (`PUT` y `DELETE /products/{id}/image`), para no tocar el cuerpo JSON del producto ni las tallas de la HU-37.
+  - El tipo comprobado por los primeros bytes y no por la extensión.
+  - El nombre del archivo generado en el servidor.
+  - El orden escribir el archivo nuevo → commit → borrar el viejo, para que nunca quede una foto rota.
+  - Invalidar la caché de la tienda (HU-28) al subir o quitar la foto.
+  - En el front, la foto como segundo argumento de `onSubmit`, para que `toProductBody` no cambie.
+- **Qué corregí o descarté:**
+  - La issue decía "borrar `brava.db`"; con Alembic va en una migración.
+  - Dos tests comparaban el JSON entero del producto y hubo que añadirles `image_url`.
+  - Al pasar `pytest` salieron dos `ResourceWarning` que venían de la T-01: el test de migraciones y `migrations/env.py` dejaban abierta la conexión de SQLite, y Python 3.14 avisa. Lo arreglé aparte, con `engine.dispose()` y `NullPool`.
+  - La vista previa de la spec usaba `URL.createObjectURL` y la cambié por `FileReader`, que no necesita liberar nada.
+  - Al actualizar el Sandbox no se me dijo que las fichas nuevas sustituían a las viejas y salieron repetidas.
+  - Descarté volver a codificar la foto con Pillow para esta entrega (queda en la retrospectiva).
+- **Cómo lo comprobé:** `pytest` (tipos válidos y falsos, límite de 2 MB, sustitución, borrado, fallo al guardar, 401 y 403), `alembic check`, `npm run build` y el flujo a mano: subir, cambiar y quitar la foto en el panel, verla en la tienda y probar un PDF renombrado a `.jpg`.

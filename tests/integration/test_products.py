@@ -52,6 +52,7 @@ def test_get_products_returns_only_safe_fields(client, shop):
             "category_name": "Suplementos",
             "name": "Proteína whey 1 kg",
             "description": None,
+            "image_url": None,
             "price_cents": 3490,
             "sizes": [],
             "stock": 20,
