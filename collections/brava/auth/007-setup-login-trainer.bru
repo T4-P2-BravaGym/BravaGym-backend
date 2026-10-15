@@ -1,0 +1,31 @@
+meta {
+  name: setup-login-trainer
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  username: {{trainerEmail}}
+  password: {{demoPassword}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) bru.setVar("tokenTrainer", res.getBody().access_token);
+}
+
+tests {
+  test("Expected HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Run auth and earlier requests in collection order against a fresh local seed. See the repository README.
+}
+

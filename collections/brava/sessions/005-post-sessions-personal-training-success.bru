@@ -1,0 +1,37 @@
+meta {
+  name: post-sessions-personal-training-success
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/sessions/personal-training
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenTrainer}}
+}
+
+body:json {
+  {
+    "class_type_id": "{{seedPersonalTypeId}}",
+    "starts_at": "{{futurePersonalSession}}"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) bru.setVar("personalSessionId", res.getBody().id);
+}
+
+tests {
+  test("Expected HTTP 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}
+
+docs {
+  Operation: POST /api/v1/sessions/personal-training. Expected HTTP 201. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

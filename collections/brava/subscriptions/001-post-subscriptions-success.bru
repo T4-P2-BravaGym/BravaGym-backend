@@ -1,0 +1,32 @@
+meta {
+  name: post-subscriptions-success
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/subscriptions
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenNewMember}}
+}
+
+body:json {
+  {
+    "plan_id": "{{seedPlanId}}"
+  }
+}
+
+tests {
+  test("Expected HTTP 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}
+
+docs {
+  Operation: POST /api/v1/subscriptions. Expected HTTP 201. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

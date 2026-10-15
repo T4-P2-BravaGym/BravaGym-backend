@@ -1,0 +1,26 @@
+meta {
+  name: delete-class-types-class-type-id-error
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/class-types/{{managedClassTypeId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for DELETE /api/v1/class-types/{class_type_id}: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

@@ -1,0 +1,32 @@
+meta {
+  name: patch-discount-codes-code-id-error
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/discount-codes/{{managedCodeId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+body:json {
+  {
+    "percent_off": 15
+  }
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for PATCH /api/v1/discount-codes/{code_id}: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

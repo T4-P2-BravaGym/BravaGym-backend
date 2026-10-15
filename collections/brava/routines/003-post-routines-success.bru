@@ -1,0 +1,48 @@
+meta {
+  name: post-routines-success
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/routines
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenTrainer}}
+}
+
+body:json {
+  {
+    "member_id": "{{seedMemberId}}",
+    "name": "Bruno routine {{runId}}",
+    "start_date": "{{today}}",
+    "lines": [
+      {
+        "exercise_id": "{{seedExerciseId}}",
+        "day_number": 1,
+        "position": 1,
+        "sets": 3,
+        "reps": 8,
+        "rest_seconds": 60
+      }
+    ]
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) bru.setVar("managedRoutineId", res.getBody().id);
+}
+
+tests {
+  test("Expected HTTP 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}
+
+docs {
+  Operation: POST /api/v1/routines. Expected HTTP 201. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

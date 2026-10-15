@@ -1,0 +1,26 @@
+meta {
+  name: post-orders-order-id-cancel-error
+  type: http
+  seq: 24
+}
+
+post {
+  url: {{baseUrl}}/api/v1/orders/{{managedOrderId}}/cancel
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for POST /api/v1/orders/{order_id}/cancel: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

@@ -15,6 +15,16 @@ El flujo es el mismo en todas las historias, así que se describe aquí una vez 
 Herramientas de pago (Claude): se usan en modo mentora, para explicar y revisar.
 El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 
+## D-05 · Colección de Bruno — Beste Özaydın
+
+- **Herramienta y modelo:** OpenAI Codex, GPT-6, con explicación paso a paso, generación de archivos y ejecución autorizada. La modalidad de pago de la cuenta no está confirmada.
+- **Prompt clave:** "okay lets continue with the next one", tras describir #198 y su colección por tags, entorno local, login y ejemplos de éxito/error.
+- **Qué me explicó o propuso:** inventariar el OpenAPI, crear archivos `.bru` por tag, guardar tokens con `bru.setVar`, capturar ids de los recursos creados y ejecutar los ejemplos en orden sobre una base temporal con el seed. Se consultó la documentación oficial de Bruno para formato, scripts y variables.
+- **Qué acepté:** la spec previa, los ejemplos de todas las operaciones HTTP, logins por rol, el entorno local ficticio, las instrucciones del README y la verificación contra datos temporales. Autoricé a Codex a generar los archivos y ejecutar las herramientas; no se presenta como documentación escrita manualmente sin ayuda de IA.
+- **Qué descarté:** ejecutar sobre la base habitual, guardar JWT en archivos, ejecutar las peticiones en paralelo o inventar un error funcional para endpoints públicos que no lo tienen. En esos casos se documenta un método no permitido (405). La conexión WebSocket se verifica aparte del runner HTTP.
+- **Errores o alucinaciones:** en el primer intento, la configuración de login usaba `body: form-urlencoded`, que el runner no enviaba como formulario. El informe mostró cuerpo vacío y respuesta 422; se corrigió a `body: formUrlEncoded` conservando el bloque `body:form-urlencoded`, y se comprobó primero el login. También se comprobó que la CLI intentaba tratar el WebSocket como HTTP y se excluyó `realtime` del comando de ejecución, documentando la prueba separada.
+- **Cómo lo comprobé:** el inventario cubre las 73 operaciones HTTP con un ejemplo de éxito y otro de error, más preparación y dos ejemplos WebSocket. Bruno CLI 4.2.1 ejecutó 152 peticiones HTTP sobre SQLite temporal con sus 152 pruebas de estado en verde. Los archivos se validan con el parser oficial; el WebSocket se verifica por separado. La base local habitual no se modificó. Los resultados finales quedan en la PR y la aprobación corresponde a otra compañera.
+
 ## D-01 y D-02 · Specs, ontología y `AGENTS.md` — Damaris
 
 - **Herramienta y modelo:** Claude (de pago), en modo mentora en conversación. Alcance: solo documentación y revisión; no ha escrito ni ejecutado nada en el repo. Todo el texto lo he pegado y commiteado yo.
@@ -87,6 +97,16 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Errores o alucinaciones:** no se detectaron errores en la propuesta de separación; los resultados de instalación y pruebas se registran en la PR.
 - **Cómo lo comprobé:** instalación desde `requirements-dev.txt`, suite existente y comprobación del diff y del salto de línea final. Los resultados concretos se adjuntan a la PR antes de solicitar revisión humana.
 
+## HU-07 · Página de pricing — Beste Özaydın
+
+- **Herramienta y modelo:** Codex / ChatGPT. Recibí ayuda de IA siguiendo cada paso. Esta documentación retrospectiva se preparó con OpenAI Codex, GPT-6; el modelo exacto y la modalidad de pago de las conversaciones originales no están confirmados.
+- **Prompt clave:** no se conserva aquí el prompt literal de la implementación original. En la revisión documental pedí "please do everything one by one and tell me whet you do" y confirmé continuar con la spec y la bitácora de HU-07. Se distingue esta revisión del trabajo original para no reconstruir prompts como si fueran citas.
+- **Qué me explicó o propuso:** en esta revisión, contrastar los criterios de #38 con las PR backend #141 y frontend #41 y documentar el catálogo público, los planes activos ordenados por precio, el precio en euros y los estados de la pantalla. La ayuda se explicó paso a paso.
+- **Qué acepté:** documentar la implementación existente en una spec compartida, reutilizar las pruebas existentes como evidencia y registrar el alcance de la ayuda. Autoricé a Codex a escribir estos documentos y ejecutar las comprobaciones; no se presentan como trabajo escrito sin ayuda de IA.
+- **Qué descarté:** rehacer una funcionalidad ya terminada o añadir comportamiento nuevo dentro de una tarea documental. No se conserva una lista verificable de propuestas descartadas durante la implementación original.
+- **Errores o alucinaciones:** en esta revisión no se reconstruyen decisiones, errores ni conversaciones históricas que no se pueden verificar. La ausencia de spec y entrada de bitácora se detectó al revisar los archivos de `dev`, aunque #38 ya estaba cerrado.
+- **Cómo lo comprobé:** se leyeron los criterios de #38, los archivos incluidos en backend #141 y frontend #41 y el código de planes y de `Pricing`. Las comprobaciones actuales y sus resultados se registran en la PR documental; no se atribuyen a pruebas manuales históricas que esta sesión no haya observado.
+
 ## HU-05 · Gestión de roles — Esra
 
 - **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Me explicaba cada paso en el chat y yo escribía o pegaba el código, ejecutaba los comandos y hacía los commits. Cubre el backend (PR #159) y el selector de rol del frontend (subtarea HU-05.5).
@@ -96,6 +116,15 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué descarté:** borrar el perfil de entrenadora al volver a socia; se conserva para no perder su bio. Tampoco cambié los permisos de tipos de clase que vimos de paso, porque son de la HU-11.
 - **Errores o alucinaciones:** en los primeros tests salía un 500 en vez de 200, porque la base de datos de test no tenía los roles creados; lo arreglamos con una fixture `all_roles`. Al revisar el diff me dio números de línea equivocados; lo vi al comprobarlos yo.
 
+## HU-08 · Gestión de planes — Beste Özaydın
+
+- **Herramienta y modelo:** Codex / ChatGPT, confirmado por Beste para la implementación original; esta revisión documental se realizó con OpenAI Codex, GPT-6. Recibí ayuda de IA siguiendo cada paso. El modelo exacto de las conversaciones originales y la modalidad de pago no están confirmados; no se atribuyen esos datos sin evidencia.
+- **Prompt clave:** para completar y explicar la documentación: "please do everything one by one and tell me whet you do". Para describir el acompañamiento: "say that I got help from ai following each step". Son los prompts de la revisión del 14 de octubre, no una reconstrucción del prompt original de implementación.
+- **Qué me explicó o propuso:** cómo distinguir la historia #42, las subtareas #43 y #44 y la PR #178; la diferencia entre `Refs` y `Closes`; y los requisitos de spec, bitácora, Swagger, tests y revisión. La ayuda fue paso a paso, con explicaciones y comprobaciones de los archivos y de GitHub.
+- **Qué acepté:** documentar la historia completa en una spec del backend, registrar el alcance real de la ayuda de IA y comprobar los endpoints, permisos y borrado lógico antes de cerrar la historia. En esta revisión autoricé expresamente que Codex escribiera la documentación y ejecutara los comandos; estos archivos no se presentan como escritos manualmente sin ayuda.
+- **Qué descarté:** cerrar #42 inmediatamente tras cerrar las subtareas, porque faltaban la spec y esta entrada. No se dispone de un registro completo de decisiones descartadas durante la implementación original.
+- **Errores o alucinaciones:** la IA interpretó inicialmente los issues abiertos como posible trabajo sin implementar; al consultar GitHub comprobó que las PR backend #178 y frontend #63 ya estaban aprobadas y mergeadas. También indicó que faltaban ejemplos Swagger tras revisar solo el router; al leer `app/schemas/plan.py` comprobó que ya existían y evitó un cambio innecesario.
+- **Cómo lo comprobé:** las PR #178 y frontend #63 contienen la implementación; las subtareas #43, #44 y frontend #7 están cerradas. Pasaron las 45 pruebas de planes en el checkout previo y, en la rama documental basada en `dev`, las 614 pruebas completas con cobertura del 96,78 %. También pasaron Ruff, la comprobación de formato, la aplicación de migraciones y `alembic check` en una base temporal; `pip-audit -r requirements.txt` no encontró vulnerabilidades conocidas. Se verificaron los ejemplos de los esquemas en el OpenAPI generado. El CI de `dev` estaba en verde. La aprobación final corresponde a otra compañera.
 ## HU-04 · Ver y editar mi perfil — Esra
 
 - **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí o pegué el código, ejecuté los comandos y hice los commits.

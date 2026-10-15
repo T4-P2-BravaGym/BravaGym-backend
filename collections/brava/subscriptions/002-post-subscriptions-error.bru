@@ -1,0 +1,32 @@
+meta {
+  name: post-subscriptions-error
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/subscriptions
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+body:json {
+  {
+    "plan_id": "{{seedPlanId}}"
+  }
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for POST /api/v1/subscriptions: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

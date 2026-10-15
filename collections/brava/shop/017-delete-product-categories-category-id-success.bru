@@ -1,0 +1,26 @@
+meta {
+  name: delete-product-categories-category-id-success
+  type: http
+  seq: 17
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/product-categories/{{managedCategoryId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenAdmin}}
+}
+
+tests {
+  test("Expected HTTP 204", function () {
+    expect(res.getStatus()).to.equal(204);
+  });
+}
+
+docs {
+  Operation: DELETE /api/v1/product-categories/{category_id}. Expected HTTP 204. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

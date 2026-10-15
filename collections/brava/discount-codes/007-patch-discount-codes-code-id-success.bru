@@ -1,0 +1,32 @@
+meta {
+  name: patch-discount-codes-code-id-success
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/discount-codes/{{managedCodeId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenAdmin}}
+}
+
+body:json {
+  {
+    "percent_off": 15
+  }
+}
+
+tests {
+  test("Expected HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Operation: PATCH /api/v1/discount-codes/{code_id}. Expected HTTP 200. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

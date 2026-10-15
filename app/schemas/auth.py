@@ -1,8 +1,24 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 NAME_PATTERN = r"^[^\W\d_]+(?:[ '\-][^\W\d_]+)*$"
+PASSWORD_TOO_LONG = "La contraseña es demasiado larga."
+SAME_PASSWORD = "La contraseña nueva tiene que ser distinta de la actual."
+
+
+def check_fits_bcrypt(value: str) -> str:
+    """bcrypt only accepts up to 72 bytes; "ñ" or emojis use more than one byte each."""
+    if len(value.encode("utf-8")) > 72:
+        raise ValueError(PASSWORD_TOO_LONG)
+    return value
 
 
 class UserCreate(BaseModel):
@@ -31,10 +47,34 @@ class UserCreate(BaseModel):
     @field_validator("password")
     @classmethod
     def password_fits_bcrypt(cls, value: str) -> str:
-        # bcrypt only accepts up to 72 bytes; "ñ" or emojis use more than one byte each
-        if len(value.encode("utf-8")) > 72:
-            raise ValueError("La contraseña es demasiado larga.")
-        return value
+        return check_fits_bcrypt(value)
+
+
+class PasswordChange(BaseModel):
+    """Body for POST /users/me/password (HU-32). Passwords are never returned or logged."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "current_password": "BravaDemo2026!",
+                "new_password": "OtraClave2026!",
+            }
+        }
+    )
+
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=8)
+
+    @field_validator("new_password")
+    @classmethod
+    def new_password_fits_bcrypt(cls, value: str) -> str:
+        return check_fits_bcrypt(value)
+
+    @model_validator(mode="after")
+    def check_new_is_different(self) -> "PasswordChange":
+        if self.new_password == self.current_password:
+            raise ValueError(SAME_PASSWORD)
+        return self
 
 
 class LoginResponse(BaseModel):
