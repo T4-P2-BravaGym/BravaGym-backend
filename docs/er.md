@@ -137,6 +137,7 @@ erDiagram
         int category_id FK
         string name
         text description
+        string image_path
         int price_cents
         int stock
         bool is_active

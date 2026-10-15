@@ -16,6 +16,9 @@ htmlcov/
 *.db
 *.sqlite3
 
+# Uploaded files
+media/
+
 # Editors and OS
 .vscode/
 .idea/
