@@ -73,7 +73,9 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | CRUD | `/discount-codes` | Admin, superadmin |  |
 | GET | `/discount-codes/{code}/validate` | Member | RN-14; devuelve el porcentaje |
 | GET | `/payments/me` | Member | Filtro `status` |
-| POST | `/payments/{id}/pay` | Member (propio) | Cuerpo opcional `{discount_code}`; RN-14 a RN-16 |
+| POST | `/payments/{id}/pay` | Member (propio) | Cuerpo opcional `{discount_code}`; RN-14 a RN-16 (simulado) |
+| POST | `/payments/{id}/checkout` | Member (propio) | Stripe Checkout (HU-29); sin `STRIPE_SECRET_KEY` → 503 |
+| POST | `/webhooks/stripe` | Stripe (firma) | Marca `paid` + `provider_ref` (HU-29) |
 | GET | `/payments` | Admin, superadmin | Filtros `status`, `from`, `to`, `user_id`, `concept` |
 | GET | `/payments/export` | Admin, superadmin | CSV con los mismos filtros |
 | POST | `/payments/{id}/refund` | Admin, superadmin | RN-16 |
