@@ -54,6 +54,7 @@ coinciden, el aviso sale sin llamar a la API. Estados: "Guardando…" en el bot�
 - Cerrar las demás sesiones abiertas: el token actual sigue valiendo hasta que caduca.
 - Que administración cambie la contraseña de otra usuaria (HU-31 lo excluye).
 - Reglas de contraseña más fuertes (mayúsculas, símbolos): se usan las del registro.
+- La pantalla para entrenadoras y administración: hoy "Mi perfil" solo está en el área de socia. La API ya deja cambiar la contraseña a cualquier rol; abrir la pantalla a los demás roles es una decisión del equipo.
 
 ## Decisiones
 
@@ -67,3 +68,6 @@ coinciden, el aviso sale sin llamar a la API. Estados: "Guardando…" en el bot�
 | El límite se cuenta por id de usuaria, no por IP | La usuaria ya está identificada; así los fallos de una no bloquean a otra. |
 | Un cambio correcto pone el contador a cero | Igual que el login: los fallos antiguos no cuentan después de acertar. |
 | La respuesta es 204 sin cuerpo | No hace falta devolver nada y así nada de la contraseña sale en la respuesta. |
+| El formulario es un componente aparte (`ChangePasswordForm`) dentro de "Mi perfil" | Cada formulario guarda su propio estado y la página no crece. |
+| El front comprueba las mismas reglas antes de llamar a la API | Un 422 de la API llega como un mensaje genérico; así cada error dice qué corregir. La API sigue siendo la que protege. |
+| Al cambiarla, los campos se vacían | Las contraseñas no se quedan en pantalla. |
