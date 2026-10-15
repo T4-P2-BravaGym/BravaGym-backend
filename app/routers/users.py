@@ -1,4 +1,4 @@
-"""Controller for users: receives the request, checks permissions, calls the service, returns a schema (HU-04, HU-05, HU-06, HU-31)."""
+"""Controller for users: receives the request, checks permissions, calls the service, returns a schema (HU-04, HU-05, HU-06, HU-31, HU-32)."""
 
 from typing import Annotated
 
@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.core.deps import CurrentUser, require_roles
 from app.models.enums import RoleName
 from app.models.user import User
+from app.schemas.auth import PasswordChange
 from app.schemas.user import (
     MemberOption,
     RoleUpdate,
@@ -112,6 +113,25 @@ def update_me(
     db: DbSession,
 ) -> UserOut:
     return user_service.update_me(db, current_user, changes)
+
+
+@router.post(
+    "/me/password",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Change my password",
+    responses={
+        400: {"description": "The current password is wrong"},
+        401: {"description": "Not logged in"},
+        422: {
+            "description": "New password too short, too long or the same as the current one"
+        },
+        429: {"description": "Too many wrong current passwords, see Retry-After"},
+    },
+)
+def change_my_password(
+    data: PasswordChange, current_user: CurrentUser, db: DbSession
+) -> None:
+    user_service.change_password(db, current_user, data)
 
 
 @router.patch(
