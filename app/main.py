@@ -1,11 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app import models
 from app.core.cache import configure_response_cache
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
+from app.core.media import MEDIA_URL_PREFIX, PRODUCT_IMAGES_DIR
 from app.core.rate_limit import configure_auth_rate_limits
 from app.routers import api_routers
 
@@ -18,8 +20,6 @@ configure_auth_rate_limits(
     register_max_attempts=settings.auth_register_max_attempts,
     register_window_seconds=settings.auth_register_window_seconds,
 )
-
-
 
 
 app = FastAPI(
@@ -41,6 +41,8 @@ register_exception_handlers(app)
 for router in api_routers:
     app.include_router(router, prefix="/api/v1")
 
+(settings.media_root / PRODUCT_IMAGES_DIR).mkdir(parents=True, exist_ok=True)
+app.mount(MEDIA_URL_PREFIX, StaticFiles(directory=settings.media_root), name="media")
 
 @app.get("/health", tags=["health"], summary="Health check")
 def health() -> dict[str, str]:

@@ -9,6 +9,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.core.media import product_image_url
 from app.models.enums import ProductSize
 from app.schemas.common import Page
 
@@ -31,6 +32,7 @@ PRODUCT_EXAMPLE = {
     "category_name": "Suplementos",
     "name": "Proteína whey 1 kg",
     "description": "Sabor vainilla.",
+    "image_url": "/media/products/3f2a9c1e5b7d4e0f8a6b2c4d9e1f7a3b.webp",
     "price_cents": 3490,
     "stock": 20,
     "sizes": [],
@@ -43,6 +45,7 @@ CLOTHING_EXAMPLE = {
     "category_name": "Ropa",
     "name": "Camiseta Brava",
     "description": None,
+    "image_url": None,
     "price_cents": 2200,
     "stock": 30,
     "sizes": [
@@ -114,6 +117,7 @@ def _product_fields(product: "Product") -> dict[str, Any]:
         "category_name": product.category.name,
         "name": product.name,
         "description": product.description,
+        "image_url": product_image_url(product.image_path),
         "price_cents": product.price_cents,
         "stock": product.available_stock,
         "sizes": [
@@ -131,6 +135,11 @@ class ProductOut(BaseModel):
     category_name: str = Field(max_length=60)
     name: str = Field(max_length=120)
     description: str | None
+    image_url: str | None = Field(
+        default=None,
+        description="Path of the product photo on the API host (/media/...). "
+                    "Null when the product has no photo.",
+    )
     price_cents: int = Field(ge=0)
     stock: int = Field(
         ge=0, description="Units on sale (for clothing, the total of its sizes)"
