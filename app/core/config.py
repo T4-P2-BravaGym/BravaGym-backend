@@ -1,9 +1,5 @@
-"""Application settings, read from environment variables (and the .env file).
-
-If a required variable is missing (for example SECRET_KEY), the app refuses to start
-and Pydantic prints which one is missing (HU-00).
-"""
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -35,6 +31,9 @@ class Settings(BaseSettings):
     auth_login_window_seconds: int = 900
     auth_register_max_attempts: int = 10
     auth_register_window_seconds: int = 3600
+
+    # Uploaded files (HU-30), relative to where uvicorn starts (the repo root).
+    media_root: Path = Path("media")
 
 
 @lru_cache

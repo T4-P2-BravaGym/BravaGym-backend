@@ -95,3 +95,77 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** el endpoint, las reglas y los tests tal como están; en el front, el selector solo en filas que puedo gestionar, activas y que no son mías, la confirmación antes de cambiar y el aviso "X ahora es Y".
 - **Qué descarté:** borrar el perfil de entrenadora al volver a socia; se conserva para no perder su bio. Tampoco cambié los permisos de tipos de clase que vimos de paso, porque son de la HU-11.
 - **Errores o alucinaciones:** en los primeros tests salía un 500 en vez de 200, porque la base de datos de test no tenía los roles creados; lo arreglamos con una fixture `all_roles`. Al revisar el diff me dio números de línea equivocados; lo vi al comprobarlos yo.
+
+## HU-04 · Ver y editar mi perfil — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí o pegué el código, ejecuté los comandos y hice los commits.
+- **Prompt clave:** "vamos a trabajar en la HU-04", con el contexto del proyecto cargado.
+- **Qué me explicó o propuso:** el esquema `UserUpdate` sin rol ni estado, `GET` y `PATCH /users/me` con `exclude_unset`, el email en minúsculas con 409 si es de otra, y la pantalla "Mi perfil".
+- **Qué acepté:** todo lo anterior y probar a mano en Swagger con Lucía antes de los tests. En el TODO compartido, quitar solo la parte ya hecha en vez de borrarlo, porque HU-05 y HU-06 aún no tenían dueña.
+- **Qué descarté:** `git add` de una carpeta entera; añado los archivos por su nombre para no colar cambios de otra historia.
+- **Errores o alucinaciones:** al verificar el borrador salió que un nombre `null` daba 500 en vez de 422; se arregló en el esquema y se añadió un test.
+
+## HU-15 · Conocer a las entrenadoras — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código y los commits.
+- **Prompt clave:** "vamos a trabajar en la HU-15", y para la subtarea "Mi perfil público": "que quede como en el diseño".
+- **Qué me explicó o propuso:** `GET /trainers` con un esquema propio sin contacto, `PATCH /trainers/me/profile` que crea el perfil si falta, y en el front la cuadrícula de `TrainerCard` y la pantalla de la entrenadora.
+- **Qué acepté:** empezar la página con datos de prueba para aprender `map` y `key`, y cambiarlos después por la API; no crear un `GET /trainers/me` y buscar su tarjeta en el listado.
+- **Qué descarté:** la primera versión de "Mi perfil público", con un formulario y una tarjeta de vista previa aparte; no era el diseño y la rehicimos como la tarjeta del diseño.
+- **Errores o alucinaciones:** nada inventado sobre el proyecto; el desvío del diseño lo detecté comparando con el archivo de diseño.
+
+## HU-16 · Plazas libres en tiempo real — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código y los commits.
+- **Prompt clave:** "vamos a trabajar en la HU-16", con el contexto del proyecto cargado.
+- **Qué me explicó o propuso:** un gestor de websockets por clase, el puente `notify_from_sync` entre los servicios síncronos y el event loop, avisar después del `commit`, un mensaje sin datos personales, y en el front `watchSession` y el hook `useSessionUpdates`.
+- **Qué acepté:** el diseño completo y probarlo con dos ventanas (Lucía y Carmen) viendo cambiar las plazas.
+- **Qué descarté:** mandar el número de plazas dentro del mensaje; la página vuelve a pedirlo a la API.
+- **Errores o alucinaciones:** nada inventado. Al probar, cancelar fallaba en "Mis reservas", pero era un fallo de otra historia (el front leía `class_session`); se avisó a su dueña en vez de tocar su código. Mis errores al copiar (un `assert` que faltaba, el hook con el nombre mal escrito y un archivo sin guardar) los pillaron los tests y la revisión.
+
+## HU-18 · Ver mi rutina — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código y los commits.
+- **Prompt clave:** "vamos a trabajar en la HU-18", con el contexto del proyecto cargado.
+- **Qué me explicó o propuso:** `GET /routines/me` con la socia sacada del token, los días agrupados en la API, 404 con mensaje amable sin rutina, y en el front una pestaña por día como en el diseño.
+- **Qué acepté:** todo lo anterior; y en el front, tratar el 404 como estado vacío y no como error.
+- **Qué descarté:** fijar siempre 7 días; se muestran solo los días que tiene la rutina.
+- **Errores o alucinaciones:** el primer borrador agrupaba con `groupby` sin ordenar antes, y un día podía salir partido; se añadió el orden explícito. Un archivo de estilos de otra historia entró por error en el dal y lo saqué antes de la PR.
+
+## HU-25 · Códigos de descuento — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código y los commits.
+- **Prompt clave:** "vamos a trabajar en la HU-25", con el contexto del proyecto cargado.
+- **Qué me explicó o propuso:** el CRUD de `discount_codes` con borrado lógico, `uses` calculado con los pagos `paid`, `get_valid_code` con un 422 por cada motivo de RN-14, reutilizado al pagar, y el panel "Ofertas y códigos".
+- **Qué acepté:** todo lo anterior y los tests de fechas y `max_uses` con freezegun.
+- **Qué descarté:** añadir reglas sobre SQL injection a la documentación; el proyecto ya usa el ORM y no hace falta.
+- **Errores o alucinaciones:** en los tests usó el código `VERANO20` con fechas de octubre; lo vi yo y lo cambiamos por un nombre que no dependa de la estación. Al copiar el router se me quedó fuera la línea `router = APIRouter(...)` y lo detectó la revisión.
+
+## HU-31 · Gestión de usuarias para administración — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código y los commits.
+- **Prompt clave:** "vamos a trabajar en la HU-31; antes, escribamos la spec".
+- **Qué me explicó o propuso:** `GET`, `PATCH` y `DELETE /users/{id}` con RN-18 también al editar, la baja con la cadena de la HU-20, reutilizar `_apply_profile_changes` de la HU-04, y en el front la columna Acciones, el panel de ver y editar y el modal de baja.
+- **Qué acepté:** todo lo anterior; ajustar el test de la HU-19, que ahora tiene que aceptar que exista un `DELETE` solo para administración.
+- **Qué descarté:** sacar una función común con la baja de la HU-20, porque tocaba `cancellation_service.py` de otra compañera; queda como propuesta.
+- **Errores o alucinaciones:** al revisar el diff me dio números de línea equivocados; lo vi al comprobarlos yo. En el front, la primera columna de acciones usaba `max-content` y los botones se descolocaban en las filas sin "Editar"; se cambió por huecos fijos.
+
+## HU-30 · Foto de producto — Damaris
+
+- **Herramienta y modelo:** Claude (de pago), en modo mentora. Leyó el código con mi permiso, solo lectura. El código lo escribí y lo commiteé yo.
+- **Prompt de partida:** "vamos a trabajar en la HU-30", con el contexto del proyecto cargado y dos condiciones: la spec antes de tocar código y el cambio de esquema en una migración de Alembic (T-01), no borrando `brava.db`.
+- **Qué salió de la conversación y acepté:**
+  - La foto en su propio endpoint (`PUT` y `DELETE /products/{id}/image`), para no tocar el cuerpo JSON del producto ni las tallas de la HU-37.
+  - El tipo comprobado por los primeros bytes y no por la extensión.
+  - El nombre del archivo generado en el servidor.
+  - El orden escribir el archivo nuevo → commit → borrar el viejo, para que nunca quede una foto rota.
+  - Invalidar la caché de la tienda (HU-28) al subir o quitar la foto.
+  - En el front, la foto como segundo argumento de `onSubmit`, para que `toProductBody` no cambie.
+- **Qué corregí o descarté:**
+  - La issue decía "borrar `brava.db`"; con Alembic va en una migración.
+  - Dos tests comparaban el JSON entero del producto y hubo que añadirles `image_url`.
+  - Al pasar `pytest` salieron dos `ResourceWarning` que venían de la T-01: el test de migraciones y `migrations/env.py` dejaban abierta la conexión de SQLite, y Python 3.14 avisa. Lo arreglé aparte, con `engine.dispose()` y `NullPool`.
+  - La vista previa de la spec usaba `URL.createObjectURL` y la cambié por `FileReader`, que no necesita liberar nada.
+  - Al actualizar el Sandbox no se me dijo que las fichas nuevas sustituían a las viejas y salieron repetidas.
+  - Descarté volver a codificar la foto con Pillow para esta entrega (queda en la retrospectiva).
+- **Cómo lo comprobé:** `pytest` (tipos válidos y falsos, límite de 2 MB, sustitución, borrado, fallo al guardar, 401 y 403), `alembic check`, `npm run build` y el flujo a mano: subir, cambiar y quitar la foto en el panel, verla en la tienda y probar un PDF renombrado a `.jpg`.
