@@ -1,0 +1,41 @@
+meta {
+  name: post-orders-success
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{baseUrl}}/api/v1/orders
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenMember}}
+}
+
+body:json {
+  {
+    "items": [
+      {
+        "product_id": "{{seedProductId}}",
+        "quantity": 1
+      }
+    ]
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) bru.setVar("managedOrderId", res.getBody().id);
+}
+
+tests {
+  test("Expected HTTP 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}
+
+docs {
+  Operation: POST /api/v1/orders. Expected HTTP 201. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

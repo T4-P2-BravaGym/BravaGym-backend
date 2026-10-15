@@ -1,0 +1,44 @@
+meta {
+  name: post-routines-error
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/routines
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+body:json {
+  {
+    "member_id": "{{seedMemberId}}",
+    "name": "Bruno routine {{runId}}",
+    "start_date": "{{today}}",
+    "lines": [
+      {
+        "exercise_id": "{{seedExerciseId}}",
+        "day_number": 1,
+        "position": 1,
+        "sets": 3,
+        "reps": 8,
+        "rest_seconds": 60
+      }
+    ]
+  }
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for POST /api/v1/routines: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

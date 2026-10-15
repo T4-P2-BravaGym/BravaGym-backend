@@ -1,0 +1,26 @@
+meta {
+  name: delete-class-types-class-type-id-success
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/class-types/{{managedClassTypeId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenTrainer}}
+}
+
+tests {
+  test("Expected HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Operation: DELETE /api/v1/class-types/{class_type_id}. Expected HTTP 200. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

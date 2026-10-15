@@ -1,0 +1,35 @@
+meta {
+  name: post-sessions-error
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/sessions
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+body:json {
+  {
+    "class_type_id": "{{seedClassTypeId}}",
+    "starts_at": "{{futureSession}}",
+    "capacity": 12,
+    "duration_minutes": 60
+  }
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for POST /api/v1/sessions: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

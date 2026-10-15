@@ -1,0 +1,1230 @@
+[
+  {
+    "file": "auth/001-register-success.bru",
+    "operation": "POST /api/v1/auth/register",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "expected_status": 201
+  },
+  {
+    "file": "auth/002-register-error-invalid-email.bru",
+    "operation": "POST /api/v1/auth/register",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "expected_status": 422
+  },
+  {
+    "file": "auth/003-login-success.bru",
+    "operation": "POST /api/v1/auth/login",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "expected_status": 200
+  },
+  {
+    "file": "auth/004-login-error-wrong-password.bru",
+    "operation": "POST /api/v1/auth/login",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "expected_status": 401
+  },
+  {
+    "file": "auth/005-setup-managed-user.bru",
+    "operation": null,
+    "kind": "setup",
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "expected_status": 201
+  },
+  {
+    "file": "auth/006-setup-login-admin.bru",
+    "operation": null,
+    "kind": "setup",
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "expected_status": 200
+  },
+  {
+    "file": "auth/007-setup-login-trainer.bru",
+    "operation": null,
+    "kind": "setup",
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "expected_status": 200
+  },
+  {
+    "file": "auth/008-setup-login-superadmin.bru",
+    "operation": null,
+    "kind": "setup",
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "expected_status": 200
+  },
+  {
+    "file": "auth/009-setup-login-newmember.bru",
+    "operation": null,
+    "kind": "setup",
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "expected_status": 200
+  },
+  {
+    "file": "users/001-get-users-success.bru",
+    "operation": "GET /api/v1/users",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/users",
+    "expected_status": 200
+  },
+  {
+    "file": "users/002-get-users-error.bru",
+    "operation": "GET /api/v1/users",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/users",
+    "expected_status": 401
+  },
+  {
+    "file": "users/003-get-users-members-success.bru",
+    "operation": "GET /api/v1/users/members",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/users/members",
+    "expected_status": 200
+  },
+  {
+    "file": "users/004-get-users-members-error.bru",
+    "operation": "GET /api/v1/users/members",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/users/members",
+    "expected_status": 401
+  },
+  {
+    "file": "users/005-get-users-me-success.bru",
+    "operation": "GET /api/v1/users/me",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/users/me",
+    "expected_status": 200
+  },
+  {
+    "file": "users/006-get-users-me-error.bru",
+    "operation": "GET /api/v1/users/me",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/users/me",
+    "expected_status": 401
+  },
+  {
+    "file": "users/007-patch-users-me-success.bru",
+    "operation": "PATCH /api/v1/users/me",
+    "kind": "success",
+    "method": "PATCH",
+    "path": "/api/v1/users/me",
+    "expected_status": 200
+  },
+  {
+    "file": "users/008-patch-users-me-error.bru",
+    "operation": "PATCH /api/v1/users/me",
+    "kind": "error",
+    "method": "PATCH",
+    "path": "/api/v1/users/me",
+    "expected_status": 401
+  },
+  {
+    "file": "users/009-patch-users-user-id-role-success.bru",
+    "operation": "PATCH /api/v1/users/{user_id}/role",
+    "kind": "success",
+    "method": "PATCH",
+    "path": "/api/v1/users/{{managedUserId}}/role",
+    "expected_status": 200
+  },
+  {
+    "file": "users/010-patch-users-user-id-role-error.bru",
+    "operation": "PATCH /api/v1/users/{user_id}/role",
+    "kind": "error",
+    "method": "PATCH",
+    "path": "/api/v1/users/{{managedUserId}}/role",
+    "expected_status": 401
+  },
+  {
+    "file": "users/011-get-users-user-id-success.bru",
+    "operation": "GET /api/v1/users/{user_id}",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/users/{{managedUserId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "users/012-get-users-user-id-error.bru",
+    "operation": "GET /api/v1/users/{user_id}",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/users/{{managedUserId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "users/013-patch-users-user-id-success.bru",
+    "operation": "PATCH /api/v1/users/{user_id}",
+    "kind": "success",
+    "method": "PATCH",
+    "path": "/api/v1/users/{{managedUserId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "users/014-patch-users-user-id-error.bru",
+    "operation": "PATCH /api/v1/users/{user_id}",
+    "kind": "error",
+    "method": "PATCH",
+    "path": "/api/v1/users/{{managedUserId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "users/015-delete-users-user-id-success.bru",
+    "operation": "DELETE /api/v1/users/{user_id}",
+    "kind": "success",
+    "method": "DELETE",
+    "path": "/api/v1/users/{{managedUserId}}",
+    "expected_status": 204
+  },
+  {
+    "file": "users/016-delete-users-user-id-error.bru",
+    "operation": "DELETE /api/v1/users/{user_id}",
+    "kind": "error",
+    "method": "DELETE",
+    "path": "/api/v1/users/{{managedUserId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "trainers/001-get-trainers-success.bru",
+    "operation": "GET /api/v1/trainers",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/trainers",
+    "expected_status": 200
+  },
+  {
+    "file": "trainers/002-get-trainers-error.bru",
+    "operation": "GET /api/v1/trainers",
+    "kind": "error",
+    "method": "PUT",
+    "path": "/api/v1/trainers",
+    "expected_status": 405
+  },
+  {
+    "file": "trainers/003-patch-trainers-me-profile-success.bru",
+    "operation": "PATCH /api/v1/trainers/me/profile",
+    "kind": "success",
+    "method": "PATCH",
+    "path": "/api/v1/trainers/me/profile",
+    "expected_status": 200
+  },
+  {
+    "file": "trainers/004-patch-trainers-me-profile-error.bru",
+    "operation": "PATCH /api/v1/trainers/me/profile",
+    "kind": "error",
+    "method": "PATCH",
+    "path": "/api/v1/trainers/me/profile",
+    "expected_status": 401
+  },
+  {
+    "file": "plans/001-get-plans-success.bru",
+    "operation": "GET /api/v1/plans",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/plans",
+    "expected_status": 200
+  },
+  {
+    "file": "plans/002-get-plans-error.bru",
+    "operation": "GET /api/v1/plans",
+    "kind": "error",
+    "method": "PUT",
+    "path": "/api/v1/plans",
+    "expected_status": 405
+  },
+  {
+    "file": "plans/003-post-plans-success.bru",
+    "operation": "POST /api/v1/plans",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/plans",
+    "expected_status": 201
+  },
+  {
+    "file": "plans/004-post-plans-error.bru",
+    "operation": "POST /api/v1/plans",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/plans",
+    "expected_status": 401
+  },
+  {
+    "file": "plans/005-get-plans-admin-success.bru",
+    "operation": "GET /api/v1/plans/admin",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/plans/admin",
+    "expected_status": 200
+  },
+  {
+    "file": "plans/006-get-plans-admin-error.bru",
+    "operation": "GET /api/v1/plans/admin",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/plans/admin",
+    "expected_status": 401
+  },
+  {
+    "file": "plans/007-patch-plans-plan-id-success.bru",
+    "operation": "PATCH /api/v1/plans/{plan_id}",
+    "kind": "success",
+    "method": "PATCH",
+    "path": "/api/v1/plans/{{managedPlanId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "plans/008-patch-plans-plan-id-error.bru",
+    "operation": "PATCH /api/v1/plans/{plan_id}",
+    "kind": "error",
+    "method": "PATCH",
+    "path": "/api/v1/plans/{{managedPlanId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "plans/009-delete-plans-plan-id-success.bru",
+    "operation": "DELETE /api/v1/plans/{plan_id}",
+    "kind": "success",
+    "method": "DELETE",
+    "path": "/api/v1/plans/{{managedPlanId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "plans/010-delete-plans-plan-id-error.bru",
+    "operation": "DELETE /api/v1/plans/{plan_id}",
+    "kind": "error",
+    "method": "DELETE",
+    "path": "/api/v1/plans/{{managedPlanId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "subscriptions/001-post-subscriptions-success.bru",
+    "operation": "POST /api/v1/subscriptions",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/subscriptions",
+    "expected_status": 201
+  },
+  {
+    "file": "subscriptions/002-post-subscriptions-error.bru",
+    "operation": "POST /api/v1/subscriptions",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/subscriptions",
+    "expected_status": 401
+  },
+  {
+    "file": "subscriptions/003-get-subscriptions-me-success.bru",
+    "operation": "GET /api/v1/subscriptions/me",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/subscriptions/me",
+    "expected_status": 200
+  },
+  {
+    "file": "subscriptions/004-get-subscriptions-me-error.bru",
+    "operation": "GET /api/v1/subscriptions/me",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/subscriptions/me",
+    "expected_status": 401
+  },
+  {
+    "file": "class-types/001-get-class-types-success.bru",
+    "operation": "GET /api/v1/class-types",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/class-types",
+    "expected_status": 200
+  },
+  {
+    "file": "class-types/002-get-class-types-error.bru",
+    "operation": "GET /api/v1/class-types",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/class-types?size=0",
+    "expected_status": 422
+  },
+  {
+    "file": "class-types/003-post-class-types-success.bru",
+    "operation": "POST /api/v1/class-types",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/class-types",
+    "expected_status": 201
+  },
+  {
+    "file": "class-types/004-post-class-types-error.bru",
+    "operation": "POST /api/v1/class-types",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/class-types",
+    "expected_status": 401
+  },
+  {
+    "file": "class-types/005-patch-class-types-class-type-id-success.bru",
+    "operation": "PATCH /api/v1/class-types/{class_type_id}",
+    "kind": "success",
+    "method": "PATCH",
+    "path": "/api/v1/class-types/{{managedClassTypeId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "class-types/006-patch-class-types-class-type-id-error.bru",
+    "operation": "PATCH /api/v1/class-types/{class_type_id}",
+    "kind": "error",
+    "method": "PATCH",
+    "path": "/api/v1/class-types/{{managedClassTypeId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "class-types/007-delete-class-types-class-type-id-success.bru",
+    "operation": "DELETE /api/v1/class-types/{class_type_id}",
+    "kind": "success",
+    "method": "DELETE",
+    "path": "/api/v1/class-types/{{managedClassTypeId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "class-types/008-delete-class-types-class-type-id-error.bru",
+    "operation": "DELETE /api/v1/class-types/{class_type_id}",
+    "kind": "error",
+    "method": "DELETE",
+    "path": "/api/v1/class-types/{{managedClassTypeId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "sessions/001-get-sessions-success.bru",
+    "operation": "GET /api/v1/sessions",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/sessions",
+    "expected_status": 200
+  },
+  {
+    "file": "sessions/002-get-sessions-error.bru",
+    "operation": "GET /api/v1/sessions",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/sessions?size=0",
+    "expected_status": 422
+  },
+  {
+    "file": "sessions/003-post-sessions-success.bru",
+    "operation": "POST /api/v1/sessions",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/sessions",
+    "expected_status": 201
+  },
+  {
+    "file": "sessions/004-post-sessions-error.bru",
+    "operation": "POST /api/v1/sessions",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/sessions",
+    "expected_status": 401
+  },
+  {
+    "file": "sessions/005-post-sessions-personal-training-success.bru",
+    "operation": "POST /api/v1/sessions/personal-training",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/sessions/personal-training",
+    "expected_status": 201
+  },
+  {
+    "file": "sessions/006-post-sessions-personal-training-error.bru",
+    "operation": "POST /api/v1/sessions/personal-training",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/sessions/personal-training",
+    "expected_status": 401
+  },
+  {
+    "file": "sessions/007-patch-sessions-session-id-success.bru",
+    "operation": "PATCH /api/v1/sessions/{session_id}",
+    "kind": "success",
+    "method": "PATCH",
+    "path": "/api/v1/sessions/{{managedSessionId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "sessions/008-patch-sessions-session-id-error.bru",
+    "operation": "PATCH /api/v1/sessions/{session_id}",
+    "kind": "error",
+    "method": "PATCH",
+    "path": "/api/v1/sessions/{{managedSessionId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "sessions/009-post-sessions-session-id-cancel-success.bru",
+    "operation": "POST /api/v1/sessions/{session_id}/cancel",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/sessions/{{personalSessionId}}/cancel",
+    "expected_status": 200
+  },
+  {
+    "file": "sessions/010-post-sessions-session-id-cancel-error.bru",
+    "operation": "POST /api/v1/sessions/{session_id}/cancel",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/sessions/{{personalSessionId}}/cancel",
+    "expected_status": 401
+  },
+  {
+    "file": "sessions/011-get-sessions-session-id-bookings-success.bru",
+    "operation": "GET /api/v1/sessions/{session_id}/bookings",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/sessions/{{managedSessionId}}/bookings",
+    "expected_status": 200
+  },
+  {
+    "file": "sessions/012-get-sessions-session-id-bookings-error.bru",
+    "operation": "GET /api/v1/sessions/{session_id}/bookings",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/sessions/{{managedSessionId}}/bookings",
+    "expected_status": 401
+  },
+  {
+    "file": "sessions/013-post-sessions-session-id-bookings-success.bru",
+    "operation": "POST /api/v1/sessions/{session_id}/bookings",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/sessions/{{managedSessionId}}/bookings",
+    "expected_status": 201
+  },
+  {
+    "file": "sessions/014-post-sessions-session-id-bookings-error.bru",
+    "operation": "POST /api/v1/sessions/{session_id}/bookings",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/sessions/{{managedSessionId}}/bookings",
+    "expected_status": 401
+  },
+  {
+    "file": "bookings/001-get-bookings-me-success.bru",
+    "operation": "GET /api/v1/bookings/me",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/bookings/me",
+    "expected_status": 200
+  },
+  {
+    "file": "bookings/002-get-bookings-me-error.bru",
+    "operation": "GET /api/v1/bookings/me",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/bookings/me",
+    "expected_status": 401
+  },
+  {
+    "file": "bookings/003-post-bookings-booking-id-cancel-success.bru",
+    "operation": "POST /api/v1/bookings/{booking_id}/cancel",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/bookings/{{managedBookingId}}/cancel",
+    "expected_status": 200
+  },
+  {
+    "file": "bookings/004-post-bookings-booking-id-cancel-error.bru",
+    "operation": "POST /api/v1/bookings/{booking_id}/cancel",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/bookings/{{managedBookingId}}/cancel",
+    "expected_status": 401
+  },
+  {
+    "file": "exercises/001-get-exercises-success.bru",
+    "operation": "GET /api/v1/exercises",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/exercises",
+    "expected_status": 200
+  },
+  {
+    "file": "exercises/002-get-exercises-error.bru",
+    "operation": "GET /api/v1/exercises",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/exercises",
+    "expected_status": 401
+  },
+  {
+    "file": "exercises/003-post-exercises-success.bru",
+    "operation": "POST /api/v1/exercises",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/exercises",
+    "expected_status": 201
+  },
+  {
+    "file": "exercises/004-post-exercises-error.bru",
+    "operation": "POST /api/v1/exercises",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/exercises",
+    "expected_status": 401
+  },
+  {
+    "file": "exercises/005-get-exercises-exercise-id-success.bru",
+    "operation": "GET /api/v1/exercises/{exercise_id}",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/exercises/{{managedExerciseId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "exercises/006-get-exercises-exercise-id-error.bru",
+    "operation": "GET /api/v1/exercises/{exercise_id}",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/exercises/{{managedExerciseId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "exercises/007-patch-exercises-exercise-id-success.bru",
+    "operation": "PATCH /api/v1/exercises/{exercise_id}",
+    "kind": "success",
+    "method": "PATCH",
+    "path": "/api/v1/exercises/{{managedExerciseId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "exercises/008-patch-exercises-exercise-id-error.bru",
+    "operation": "PATCH /api/v1/exercises/{exercise_id}",
+    "kind": "error",
+    "method": "PATCH",
+    "path": "/api/v1/exercises/{{managedExerciseId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "exercises/009-delete-exercises-exercise-id-success.bru",
+    "operation": "DELETE /api/v1/exercises/{exercise_id}",
+    "kind": "success",
+    "method": "DELETE",
+    "path": "/api/v1/exercises/{{managedExerciseId}}",
+    "expected_status": 204
+  },
+  {
+    "file": "exercises/010-delete-exercises-exercise-id-error.bru",
+    "operation": "DELETE /api/v1/exercises/{exercise_id}",
+    "kind": "error",
+    "method": "DELETE",
+    "path": "/api/v1/exercises/{{managedExerciseId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "routines/001-get-routines-me-success.bru",
+    "operation": "GET /api/v1/routines/me",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/routines/me",
+    "expected_status": 200
+  },
+  {
+    "file": "routines/002-get-routines-me-error.bru",
+    "operation": "GET /api/v1/routines/me",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/routines/me",
+    "expected_status": 401
+  },
+  {
+    "file": "routines/003-post-routines-success.bru",
+    "operation": "POST /api/v1/routines",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/routines",
+    "expected_status": 201
+  },
+  {
+    "file": "routines/004-post-routines-error.bru",
+    "operation": "POST /api/v1/routines",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/routines",
+    "expected_status": 401
+  },
+  {
+    "file": "routines/005-get-routines-success.bru",
+    "operation": "GET /api/v1/routines",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/routines",
+    "expected_status": 200
+  },
+  {
+    "file": "routines/006-get-routines-error.bru",
+    "operation": "GET /api/v1/routines",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/routines",
+    "expected_status": 401
+  },
+  {
+    "file": "routines/007-get-routines-routine-id-success.bru",
+    "operation": "GET /api/v1/routines/{routine_id}",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/routines/{{managedRoutineId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "routines/008-get-routines-routine-id-error.bru",
+    "operation": "GET /api/v1/routines/{routine_id}",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/routines/{{managedRoutineId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "routines/009-patch-routines-routine-id-success.bru",
+    "operation": "PATCH /api/v1/routines/{routine_id}",
+    "kind": "success",
+    "method": "PATCH",
+    "path": "/api/v1/routines/{{managedRoutineId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "routines/010-patch-routines-routine-id-error.bru",
+    "operation": "PATCH /api/v1/routines/{routine_id}",
+    "kind": "error",
+    "method": "PATCH",
+    "path": "/api/v1/routines/{{managedRoutineId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "routines/011-post-routines-routine-id-exercises-success.bru",
+    "operation": "POST /api/v1/routines/{routine_id}/exercises",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/routines/{{managedRoutineId}}/exercises",
+    "expected_status": 201
+  },
+  {
+    "file": "routines/012-post-routines-routine-id-exercises-error.bru",
+    "operation": "POST /api/v1/routines/{routine_id}/exercises",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/routines/{{managedRoutineId}}/exercises",
+    "expected_status": 401
+  },
+  {
+    "file": "routines/013-delete-routines-routine-id-exercises-item-id-success.bru",
+    "operation": "DELETE /api/v1/routines/{routine_id}/exercises/{item_id}",
+    "kind": "success",
+    "method": "DELETE",
+    "path": "/api/v1/routines/{{managedRoutineId}}/exercises/{{managedItemId}}",
+    "expected_status": 204
+  },
+  {
+    "file": "routines/014-delete-routines-routine-id-exercises-item-id-error.bru",
+    "operation": "DELETE /api/v1/routines/{routine_id}/exercises/{item_id}",
+    "kind": "error",
+    "method": "DELETE",
+    "path": "/api/v1/routines/{{managedRoutineId}}/exercises/{{managedItemId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "routines/015-delete-routines-routine-id-success.bru",
+    "operation": "DELETE /api/v1/routines/{routine_id}",
+    "kind": "success",
+    "method": "DELETE",
+    "path": "/api/v1/routines/{{managedRoutineId}}",
+    "expected_status": 204
+  },
+  {
+    "file": "routines/016-delete-routines-routine-id-error.bru",
+    "operation": "DELETE /api/v1/routines/{routine_id}",
+    "kind": "error",
+    "method": "DELETE",
+    "path": "/api/v1/routines/{{managedRoutineId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "shop/001-get-products-success.bru",
+    "operation": "GET /api/v1/products",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/products",
+    "expected_status": 200
+  },
+  {
+    "file": "shop/002-get-products-error.bru",
+    "operation": "GET /api/v1/products",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/products?size=0",
+    "expected_status": 422
+  },
+  {
+    "file": "shop/003-post-products-success.bru",
+    "operation": "POST /api/v1/products",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/products",
+    "expected_status": 201
+  },
+  {
+    "file": "shop/004-post-products-error.bru",
+    "operation": "POST /api/v1/products",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/products",
+    "expected_status": 401
+  },
+  {
+    "file": "shop/005-get-products-admin-success.bru",
+    "operation": "GET /api/v1/products/admin",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/products/admin",
+    "expected_status": 200
+  },
+  {
+    "file": "shop/006-get-products-admin-error.bru",
+    "operation": "GET /api/v1/products/admin",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/products/admin",
+    "expected_status": 401
+  },
+  {
+    "file": "shop/007-patch-products-product-id-success.bru",
+    "operation": "PATCH /api/v1/products/{product_id}",
+    "kind": "success",
+    "method": "PATCH",
+    "path": "/api/v1/products/{{managedProductId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "shop/008-patch-products-product-id-error.bru",
+    "operation": "PATCH /api/v1/products/{product_id}",
+    "kind": "error",
+    "method": "PATCH",
+    "path": "/api/v1/products/{{managedProductId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "shop/009-delete-products-product-id-success.bru",
+    "operation": "DELETE /api/v1/products/{product_id}",
+    "kind": "success",
+    "method": "DELETE",
+    "path": "/api/v1/products/{{managedProductId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "shop/010-delete-products-product-id-error.bru",
+    "operation": "DELETE /api/v1/products/{product_id}",
+    "kind": "error",
+    "method": "DELETE",
+    "path": "/api/v1/products/{{managedProductId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "shop/011-get-product-categories-success.bru",
+    "operation": "GET /api/v1/product-categories",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/product-categories",
+    "expected_status": 200
+  },
+  {
+    "file": "shop/012-get-product-categories-error.bru",
+    "operation": "GET /api/v1/product-categories",
+    "kind": "error",
+    "method": "PUT",
+    "path": "/api/v1/product-categories",
+    "expected_status": 405
+  },
+  {
+    "file": "shop/013-post-product-categories-success.bru",
+    "operation": "POST /api/v1/product-categories",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/product-categories",
+    "expected_status": 201
+  },
+  {
+    "file": "shop/014-post-product-categories-error.bru",
+    "operation": "POST /api/v1/product-categories",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/product-categories",
+    "expected_status": 401
+  },
+  {
+    "file": "shop/015-patch-product-categories-category-id-success.bru",
+    "operation": "PATCH /api/v1/product-categories/{category_id}",
+    "kind": "success",
+    "method": "PATCH",
+    "path": "/api/v1/product-categories/{{managedCategoryId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "shop/016-patch-product-categories-category-id-error.bru",
+    "operation": "PATCH /api/v1/product-categories/{category_id}",
+    "kind": "error",
+    "method": "PATCH",
+    "path": "/api/v1/product-categories/{{managedCategoryId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "shop/017-delete-product-categories-category-id-success.bru",
+    "operation": "DELETE /api/v1/product-categories/{category_id}",
+    "kind": "success",
+    "method": "DELETE",
+    "path": "/api/v1/product-categories/{{managedCategoryId}}",
+    "expected_status": 204
+  },
+  {
+    "file": "shop/018-delete-product-categories-category-id-error.bru",
+    "operation": "DELETE /api/v1/product-categories/{category_id}",
+    "kind": "error",
+    "method": "DELETE",
+    "path": "/api/v1/product-categories/{{managedCategoryId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "shop/019-post-orders-success.bru",
+    "operation": "POST /api/v1/orders",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/orders",
+    "expected_status": 201
+  },
+  {
+    "file": "shop/020-post-orders-error.bru",
+    "operation": "POST /api/v1/orders",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/orders",
+    "expected_status": 401
+  },
+  {
+    "file": "shop/021-get-orders-me-success.bru",
+    "operation": "GET /api/v1/orders/me",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/orders/me",
+    "expected_status": 200
+  },
+  {
+    "file": "shop/022-get-orders-me-error.bru",
+    "operation": "GET /api/v1/orders/me",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/orders/me",
+    "expected_status": 401
+  },
+  {
+    "file": "shop/023-post-orders-order-id-cancel-success.bru",
+    "operation": "POST /api/v1/orders/{order_id}/cancel",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/orders/{{managedOrderId}}/cancel",
+    "expected_status": 200
+  },
+  {
+    "file": "shop/024-post-orders-order-id-cancel-error.bru",
+    "operation": "POST /api/v1/orders/{order_id}/cancel",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/orders/{{managedOrderId}}/cancel",
+    "expected_status": 401
+  },
+  {
+    "file": "discount-codes/001-get-discount-codes-success.bru",
+    "operation": "GET /api/v1/discount-codes",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/discount-codes",
+    "expected_status": 200
+  },
+  {
+    "file": "discount-codes/002-get-discount-codes-error.bru",
+    "operation": "GET /api/v1/discount-codes",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/discount-codes",
+    "expected_status": 401
+  },
+  {
+    "file": "discount-codes/003-post-discount-codes-success.bru",
+    "operation": "POST /api/v1/discount-codes",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/discount-codes",
+    "expected_status": 201
+  },
+  {
+    "file": "discount-codes/004-post-discount-codes-error.bru",
+    "operation": "POST /api/v1/discount-codes",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/discount-codes",
+    "expected_status": 401
+  },
+  {
+    "file": "discount-codes/005-get-discount-codes-code-validate-success.bru",
+    "operation": "GET /api/v1/discount-codes/{code}/validate",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/discount-codes/{{seedDiscountCode}}/validate",
+    "expected_status": 200
+  },
+  {
+    "file": "discount-codes/006-get-discount-codes-code-validate-error.bru",
+    "operation": "GET /api/v1/discount-codes/{code}/validate",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/discount-codes/{{seedDiscountCode}}/validate",
+    "expected_status": 401
+  },
+  {
+    "file": "discount-codes/007-patch-discount-codes-code-id-success.bru",
+    "operation": "PATCH /api/v1/discount-codes/{code_id}",
+    "kind": "success",
+    "method": "PATCH",
+    "path": "/api/v1/discount-codes/{{managedCodeId}}",
+    "expected_status": 200
+  },
+  {
+    "file": "discount-codes/008-patch-discount-codes-code-id-error.bru",
+    "operation": "PATCH /api/v1/discount-codes/{code_id}",
+    "kind": "error",
+    "method": "PATCH",
+    "path": "/api/v1/discount-codes/{{managedCodeId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "discount-codes/009-delete-discount-codes-code-id-success.bru",
+    "operation": "DELETE /api/v1/discount-codes/{code_id}",
+    "kind": "success",
+    "method": "DELETE",
+    "path": "/api/v1/discount-codes/{{managedCodeId}}",
+    "expected_status": 204
+  },
+  {
+    "file": "discount-codes/010-delete-discount-codes-code-id-error.bru",
+    "operation": "DELETE /api/v1/discount-codes/{code_id}",
+    "kind": "error",
+    "method": "DELETE",
+    "path": "/api/v1/discount-codes/{{managedCodeId}}",
+    "expected_status": 401
+  },
+  {
+    "file": "payments/001-get-payments-me-success.bru",
+    "operation": "GET /api/v1/payments/me",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/payments/me",
+    "expected_status": 200
+  },
+  {
+    "file": "payments/002-get-payments-me-error.bru",
+    "operation": "GET /api/v1/payments/me",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/payments/me",
+    "expected_status": 401
+  },
+  {
+    "file": "payments/003-get-payments-success.bru",
+    "operation": "GET /api/v1/payments",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/payments",
+    "expected_status": 200
+  },
+  {
+    "file": "payments/004-get-payments-error.bru",
+    "operation": "GET /api/v1/payments",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/payments",
+    "expected_status": 401
+  },
+  {
+    "file": "payments/005-get-payments-export-success.bru",
+    "operation": "GET /api/v1/payments/export",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/payments/export",
+    "expected_status": 200
+  },
+  {
+    "file": "payments/006-get-payments-export-error.bru",
+    "operation": "GET /api/v1/payments/export",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/payments/export",
+    "expected_status": 401
+  },
+  {
+    "file": "payments/007-post-payments-payment-id-pay-success.bru",
+    "operation": "POST /api/v1/payments/{payment_id}/pay",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/payments/{{pendingPaymentId}}/pay",
+    "expected_status": 200
+  },
+  {
+    "file": "payments/008-post-payments-payment-id-pay-error.bru",
+    "operation": "POST /api/v1/payments/{payment_id}/pay",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/payments/{{pendingPaymentId}}/pay",
+    "expected_status": 401
+  },
+  {
+    "file": "payments/009-post-payments-payment-id-refund-success.bru",
+    "operation": "POST /api/v1/payments/{payment_id}/refund",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/payments/{{pendingPaymentId}}/refund",
+    "expected_status": 200
+  },
+  {
+    "file": "payments/010-post-payments-payment-id-refund-error.bru",
+    "operation": "POST /api/v1/payments/{payment_id}/refund",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/payments/{{pendingPaymentId}}/refund",
+    "expected_status": 401
+  },
+  {
+    "file": "cancellation-requests/001-post-cancellation-requests-success.bru",
+    "operation": "POST /api/v1/cancellation-requests",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/cancellation-requests",
+    "expected_status": 201
+  },
+  {
+    "file": "cancellation-requests/002-post-cancellation-requests-error.bru",
+    "operation": "POST /api/v1/cancellation-requests",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/cancellation-requests",
+    "expected_status": 401
+  },
+  {
+    "file": "cancellation-requests/003-get-cancellation-requests-success.bru",
+    "operation": "GET /api/v1/cancellation-requests",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/cancellation-requests",
+    "expected_status": 200
+  },
+  {
+    "file": "cancellation-requests/004-get-cancellation-requests-error.bru",
+    "operation": "GET /api/v1/cancellation-requests",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/cancellation-requests",
+    "expected_status": 401
+  },
+  {
+    "file": "cancellation-requests/005-get-cancellation-requests-me-success.bru",
+    "operation": "GET /api/v1/cancellation-requests/me",
+    "kind": "success",
+    "method": "GET",
+    "path": "/api/v1/cancellation-requests/me",
+    "expected_status": 200
+  },
+  {
+    "file": "cancellation-requests/006-get-cancellation-requests-me-error.bru",
+    "operation": "GET /api/v1/cancellation-requests/me",
+    "kind": "error",
+    "method": "GET",
+    "path": "/api/v1/cancellation-requests/me",
+    "expected_status": 401
+  },
+  {
+    "file": "cancellation-requests/007-post-cancellation-requests-request-id-reject-success.bru",
+    "operation": "POST /api/v1/cancellation-requests/{request_id}/reject",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/cancellation-requests/{{managedRequestId}}/reject",
+    "expected_status": 200
+  },
+  {
+    "file": "cancellation-requests/008-post-cancellation-requests-request-id-reject-error.bru",
+    "operation": "POST /api/v1/cancellation-requests/{request_id}/reject",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/cancellation-requests/{{managedRequestId}}/reject",
+    "expected_status": 401
+  },
+  {
+    "file": "cancellation-requests/009-setup-second-cancellation-request.bru",
+    "operation": null,
+    "kind": "setup",
+    "method": "POST",
+    "path": "/api/v1/cancellation-requests",
+    "expected_status": 201
+  },
+  {
+    "file": "cancellation-requests/010-post-cancellation-requests-request-id-approve-success.bru",
+    "operation": "POST /api/v1/cancellation-requests/{request_id}/approve",
+    "kind": "success",
+    "method": "POST",
+    "path": "/api/v1/cancellation-requests/{{managedRequestId}}/approve",
+    "expected_status": 200
+  },
+  {
+    "file": "cancellation-requests/011-post-cancellation-requests-request-id-approve-error.bru",
+    "operation": "POST /api/v1/cancellation-requests/{request_id}/approve",
+    "kind": "error",
+    "method": "POST",
+    "path": "/api/v1/cancellation-requests/{{managedRequestId}}/approve",
+    "expected_status": 401
+  },
+  {
+    "file": "health/001-get-health-success.bru",
+    "operation": "GET /health",
+    "kind": "success",
+    "method": "GET",
+    "path": "/health",
+    "expected_status": 200
+  },
+  {
+    "file": "health/002-get-health-error.bru",
+    "operation": "GET /health",
+    "kind": "error",
+    "method": "PUT",
+    "path": "/health",
+    "expected_status": 405
+  },
+  {
+    "file": "realtime/001-sessions-success.bru",
+    "operation": "WS /api/v1/ws/sessions/{session_id}",
+    "kind": "success",
+    "expected": "accepted"
+  },
+  {
+    "file": "realtime/002-sessions-error-invalid-id.bru",
+    "operation": "WS /api/v1/ws/sessions/{session_id}",
+    "kind": "error",
+    "expected": "rejected"
+  }
+]

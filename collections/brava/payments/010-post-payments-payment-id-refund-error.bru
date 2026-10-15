@@ -1,0 +1,26 @@
+meta {
+  name: post-payments-payment-id-refund-error
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/payments/{{pendingPaymentId}}/refund
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for POST /api/v1/payments/{payment_id}/refund: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+
