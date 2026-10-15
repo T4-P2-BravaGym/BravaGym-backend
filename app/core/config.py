@@ -35,6 +35,18 @@ class Settings(BaseSettings):
     # Uploaded files (HU-30), relative to where uvicorn starts (the repo root).
     media_root: Path = Path("media")
 
+    # Stripe (HU-29). Empty / missing secret → simulated pay only (HU-24).
+    stripe_secret_key: str | None = None
+    stripe_publishable_key: str | None = None
+    stripe_webhook_secret: str | None = None
+    stripe_success_url: str = "http://localhost:5173/member/payments?stripe=success"
+    stripe_cancel_url: str = "http://localhost:5173/member/payments?stripe=cancel"
+
+    @property
+    def stripe_enabled(self) -> bool:
+        """True when a Stripe secret key is configured (test or live)."""
+        return bool(self.stripe_secret_key and self.stripe_secret_key.strip())
+
 
 @lru_cache
 def get_settings() -> Settings:

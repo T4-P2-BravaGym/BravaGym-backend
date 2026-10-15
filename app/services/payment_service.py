@@ -1,4 +1,4 @@
-"""Simulated payments: member pay (HU-24) and admin list/export/refund (HU-26, RN-14 to RN-16).
+"""Member/admin payments (HU-24, HU-26) and shared helpers for Stripe (HU-29).
 
 Amounts are computed on the server. Business rules RN-xx: docs/business-rules.md.
 """
@@ -14,7 +14,7 @@ from sqlalchemy.sql import ColumnElement
 
 from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
 from app.models import Order, Payment, User
-from app.models.enums import OrderStatus, PaymentStatus
+from app.models.enums import OrderStatus, PaymentMethod, PaymentStatus
 from app.models.types import utc_now
 from app.schemas.payment import PaymentConcept
 from app.services import discount_service
@@ -220,7 +220,7 @@ def iter_payments_csv(payments: list[Payment]) -> Iterator[str]:
         buffer.truncate(0)
 
 
-def _get_own_payment_or_404(db: Session, user_id: int, payment_id: int) -> Payment:
+def get_own_payment_or_404(db: Session, user_id: int, payment_id: int) -> Payment:
     """404 if missing or not owned by this member (no IDOR leak)."""
     payment = db.scalar(
         _payment_query().where(Payment.id == payment_id, Payment.user_id == user_id)
@@ -230,30 +230,19 @@ def _get_own_payment_or_404(db: Session, user_id: int, payment_id: int) -> Payme
     return payment
 
 
-def _get_payment_or_404(db: Session, payment_id: int) -> Payment:
+def get_payment_or_404(db: Session, payment_id: int) -> Payment:
     payment = db.scalar(_payment_query().where(Payment.id == payment_id))
     if payment is None:
         raise NotFoundError(PAYMENT_NOT_FOUND)
     return payment
 
 
-def pay_payment(
+def apply_optional_discount(
     db: Session,
-    member: User,
-    payment_id: int,
-    discount_code_text: str | None = None,
-) -> Payment:
-    """RN-16: pending → paid. Optional discount via discount_service.get_valid_code (RN-14, RN-15).
-
-    Cancelled (and any non-pending) payments → 409. Order-linked payments also mark the
-    order as paid in the same transaction.
-    """
-    payment = _get_own_payment_or_404(db, member.id, payment_id)
-
-    # Includes cancelled, paid, failed, refunded — same 409 as any non-pending.
-    if payment.status != PaymentStatus.PENDING:
-        raise ConflictError(PAYMENT_NOT_PENDING)
-
+    payment: Payment,
+    discount_code_text: str | None,
+) -> None:
+    """RN-14 / RN-15: set discount_code_id and final_amount_cents on a pending payment."""
     if discount_code_text:
         code = discount_service.get_valid_code(db, discount_code_text)
         payment.discount_code_id = code.id
@@ -264,8 +253,20 @@ def pay_payment(
         payment.discount_code_id = None
         payment.final_amount_cents = payment.base_amount_cents
 
+
+def mark_payment_paid(
+    db: Session,
+    payment: Payment,
+    *,
+    method: PaymentMethod,
+    provider_ref: str | None = None,
+) -> Payment:
+    """RN-16: pending → paid (+ order if linked). Caller must ensure status is pending."""
     payment.status = PaymentStatus.PAID
     payment.paid_at = utc_now()
+    payment.method = method
+    if provider_ref is not None:
+        payment.provider_ref = provider_ref
 
     if payment.order_id is not None:
         order = db.get(Order, payment.order_id)
@@ -275,9 +276,29 @@ def pay_payment(
 
     db.commit()
     db.refresh(payment)
+    return get_payment_or_404(db, payment.id)
 
-    # Re-load with relationship for the response schema.
-    payment = _get_own_payment_or_404(db, member.id, payment.id)
+
+def pay_payment(
+    db: Session,
+    member: User,
+    payment_id: int,
+    discount_code_text: str | None = None,
+) -> Payment:
+    """RN-16: pending → paid (simulated). Optional discount (RN-14, RN-15).
+
+    Cancelled (and any non-pending) payments → 409. Order-linked payments also mark the
+    order as paid in the same transaction.
+    """
+    payment = get_own_payment_or_404(db, member.id, payment_id)
+
+    # Includes cancelled, paid, failed, refunded — same 409 as any non-pending.
+    if payment.status != PaymentStatus.PENDING:
+        raise ConflictError(PAYMENT_NOT_PENDING)
+
+    apply_optional_discount(db, payment, discount_code_text)
+    payment = mark_payment_paid(db, payment, method=PaymentMethod.SIMULATED)
+
     logger.info(
         "User %s paid payment %s (final_amount_cents=%s, discount_code_id=%s, order_id=%s)",
         member.id,
@@ -291,7 +312,7 @@ def pay_payment(
 
 def refund_payment(db: Session, admin: User, payment_id: int) -> Payment:
     """RN-16: admin marks a paid payment as refunded. Non-paid → 409; missing → 404."""
-    payment = _get_payment_or_404(db, payment_id)
+    payment = get_payment_or_404(db, payment_id)
 
     if payment.status != PaymentStatus.PAID:
         raise ConflictError(PAYMENT_NOT_PAID)
@@ -300,7 +321,7 @@ def refund_payment(db: Session, admin: User, payment_id: int) -> Payment:
     db.commit()
     db.refresh(payment)
 
-    payment = _get_payment_or_404(db, payment.id)
+    payment = get_payment_or_404(db, payment.id)
     logger.info(
         "Admin %s refunded payment %s (user_id=%s, final_amount_cents=%s)",
         admin.id,

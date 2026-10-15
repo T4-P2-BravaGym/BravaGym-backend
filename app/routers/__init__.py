@@ -15,6 +15,7 @@ from app.routers import (
     subscriptions,
     trainers,
     users,
+    webhooks,
 )
 
 api_routers = [
@@ -34,5 +35,6 @@ api_routers = [
     orders.router,
     discount_codes.router,
     payments.router,
+    webhooks.router,
     realtime.router,
 ]
