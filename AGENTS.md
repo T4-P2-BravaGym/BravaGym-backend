@@ -234,6 +234,7 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
 - **Definition of Done** de cada historia:
   - Spec en `specs/` escrita y enlazada en la PR.
   - PR revisada por otra compañera.
+  - Tests en verde en GitHub Actions, incluidos los de permisos e IDOR.
   - La cobertura no baja del 80 % (la CI falla por debajo).
   - Checklist de seguridad del apartado 7 cumplido.
   - Endpoint documentado en Swagger.
