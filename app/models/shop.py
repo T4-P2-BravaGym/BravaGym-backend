@@ -37,6 +37,7 @@ class Product(Base):
     price_cents: Mapped[int]
     stock: Mapped[int] = mapped_column(default=0)
     is_active: Mapped[bool] = mapped_column(default=True)
+    image_path: Mapped[str | None] = mapped_column(String(64))
 
     category: Mapped["ProductCategory"] = relationship()
     variants: Mapped[list["ProductVariant"]] = relationship(

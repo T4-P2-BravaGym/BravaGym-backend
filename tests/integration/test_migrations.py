@@ -20,6 +20,9 @@ def test_migrations_match_the_models(tmp_path):
     command.upgrade(config, "head")
 
     engine = create_engine(url)
-    with engine.connect() as connection:
-        context = MigrationContext.configure(connection)
-        assert compare_metadata(context, Base.metadata) == []
+    try:
+        with engine.connect() as connection:
+            context = MigrationContext.configure(connection)
+            assert compare_metadata(context, Base.metadata) == []
+    finally:
+        engine.dispose()
