@@ -1,7 +1,7 @@
 """add audit columns to users
 
 Revision ID: 01a8afa11746
-Revises: 98483f6ea5a8
+Revises: c683ea94b021
 Create Date: 2026-10-15 23:20:32.752250
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '01a8afa11746'
-down_revision: Union[str, Sequence[str], None] = '98483f6ea5a8'
+down_revision: Union[str, Sequence[str], None] = 'c683ea94b021'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
