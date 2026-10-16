@@ -238,7 +238,7 @@ def test_without_token_returns_401(client, product, images_dir, method):
 
 
 def test_a_failed_save_leaves_no_file_behind(
-        client, admin_headers, product, images_dir, db, monkeypatch
+    client, admin_headers, product, images_dir, db, monkeypatch
 ):
     def broken_commit():
         raise RuntimeError("database is down")

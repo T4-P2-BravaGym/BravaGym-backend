@@ -70,7 +70,7 @@ class UnexpectedErrorMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(
-            self, request: Request, call_next: RequestResponseEndpoint
+        self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         try:
             return await call_next(request)
