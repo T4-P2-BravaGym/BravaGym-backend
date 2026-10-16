@@ -119,6 +119,7 @@ def register(
     summary="Log in and get an access token",
     responses={
         401: {"description": "Wrong email or password, or inactive user"},
+        403: {"description": "Untrusted browser origin"},
         429: {
             "description": "Too many failed login attempts for this email and IP",
             "content": {
