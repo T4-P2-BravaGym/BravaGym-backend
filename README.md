@@ -74,6 +74,20 @@ Login, refresh y logout comprueban el origen del navegador. Solo se admiten los 
 
 Las revocaciones de access caducadas se limpian al emitir, renovar o cerrar una sesión. Los JWT antiguos sin `jti` y `type` dejan de aceptarse: será necesario iniciar sesión de nuevo.
 
+## Recuperar contraseña (HU-35)
+
+Aplicar `alembic upgrade head` antes de usar los nuevos endpoints. `POST /api/v1/auth/password-reset` recibe `{email}` y devuelve siempre el mismo 202 para emails válidos, existan o no y estén activos o no. Entrada malformada recibe 422 sin reflejar valores sensibles. No devuelve tokens. La entrega corre como tarea de fondo de FastAPI, con una sesión SQLAlchemy propia y una interfaz `EmailSender` inyectada.
+
+En desarrollo (`ENVIRONMENT=local`), se escribe un JSON privado por mensaje en `OUTBOX_DIR` (por defecto `outbox/`, ignorado por Git). Leer el enlace del campo `body` de ese archivo y abrirlo en el navegador; no buscarlo en la consola: nunca se imprime. No subir ni compartir estos mensajes. El directorio usa 0700 y los archivos 0600, con nombres aleatorios, y no se sirven por HTTP. Este adaptador no envía correo real. Fuera de local se usa un transporte no disponible que registra un fallo seguro, sin crear outbox ni simular un envío: hay que inyectar un `EmailSender` real para habilitar entrega en producción.
+
+`FRONTEND_URL` es el origen configurado del frontend (local: `http://localhost:5173`). Se valida HTTP(S), sin credenciales, rutas, query ni fragmento; HTTPS es obligatorio fuera de local. No se construye desde Host. Para probar en otro puerto/host, ajustar también CORS y `VITE_API_URL`; usar el mismo hostname en frontend y API. El enlace apunta a `/nueva-contrasena#token=...`; React retira el fragmento del historial y guarda el token solo en memoria. Si se recarga después, hay que volver a abrir el enlace o solicitar otro.
+
+El token usa `secrets.token_urlsafe(32)`, se guarda solo como SHA-256 y caduca a los 30 minutos UTC. `POST /api/v1/auth/password-reset/confirm` recibe `{token,new_password}` y devuelve 204 sin cuerpo; token inválido, caducado o usado devuelve el mismo 400. Las respuestas de recuperación usan `Cache-Control: no-store`. Se mantiene la política de ocho caracteres y máximo 72 bytes UTF-8 de bcrypt.
+
+Un reset consume el token, invalida los demás enlaces pendientes, actualiza la contraseña y su auditoría e incrementa `users.session_version` en una transacción. Todos los access y refresh anteriores quedan rechazados: los nuevos JWT llevan `ver`, comprobado contra esa cuenta al autenticar, renovar o cerrar sesión. Los JWT históricos sin `ver` equivalen a versión 0 solo hasta el primer reset. La usuaria inicia sesión normalmente con su nueva contraseña; no hay login automático.
+
+El limitador de entrega permite tres intentos por email normalizado cada quince minutos, también para emails desconocidos, sin cambiar el 202. Reutiliza el limitador en memoria del proyecto: solo coordina un proceso Uvicorn; no es un límite distribuido. Las tareas de fondo tampoco son una cola duradera: pueden perderse al detener el proceso; un fallo de entrega conserva el 202 genérico y se puede volver a solicitar un enlace. No se activa verificación opcional de email.
+
 ## Límite de intentos (login y registro)
 
 `POST /auth/login` y `POST /auth/register` usan un limitador **en memoria** (`app/core/rate_limit.py`, HU-34): marcas de tiempo por clave (email+IP en login, IP en registro). Los umbrales van en `.env` (`AUTH_LOGIN_*`, `AUTH_REGISTER_*`). Si se supera el límite, la API responde **429** con cabecera `Retry-After`.

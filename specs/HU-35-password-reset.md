@@ -73,7 +73,7 @@ Nueva tabla propuesta `password_reset_tokens`: id, user_id con FK e índice, tok
 
 ## Preguntas abiertas
 
-- Sin decisiones de producto pendientes. Antes del código se revisa el plan de implementación.
+- Diseño y plan aprobados por Beste; se ejecuta en este chat con revisión independiente al final.
 - Producción requiere un adaptador real de correo y una URL HTTPS del frontend; esta entrega ofrece exclusivamente el adaptador de desarrollo solicitado.
 
 ## Decisiones
@@ -89,3 +89,6 @@ Nueva tabla propuesta `password_reset_tokens`: id, user_id con FK e índice, tok
 | Enlace de URL configurada y token en fragmento | Evitar Host injection y reducir exposición del token en logs del servidor web. |
 
 Referencia para la revisión: https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html
+
+
+Validación de implementación: pytest/freezegun y Vitest existentes; migración reversible comprobada sobre SQLite temporal con una usuaria ficticia. Flujo HTTP real comprobado con outbox local y rechazo posterior de access/refresh previos. Revisión independiente completada y corrección de Cache-Control en errores 400 cubierta por regresión. No se afirma despliegue de producción ni revisión humana/merge realizados.

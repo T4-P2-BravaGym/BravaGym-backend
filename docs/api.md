@@ -81,3 +81,12 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | POST | `/payments/{id}/refund` | Admin, superadmin | RN-16 |
 
 Excepción a `/api/v1`: las fotos se sirven en `/media/products/{archivo}` (público), que es la ruta que devuelve `image_url`. Son archivos, no API.
+
+## Recuperación de contraseña (HU-35)
+
+| Método | Ruta (prefijo `/api/v1`) | Quién | Resultado |
+| --- | --- | --- | --- |
+| POST | `/auth/password-reset` | Público | 202 genérico para emails válidos; 422 entrada inválida |
+| POST | `/auth/password-reset/confirm` | Público con token en el body | 204 al cambiar; 400 enlace inválido/caducado/usado; 422 entrada inválida |
+
+Solicitud: `{"email":"lucia@example.com"}`. Respuesta: `{"detail":"Si existe una cuenta activa con ese email, recibirás un enlace para recuperar tu contraseña."}`. Confirmación: `{"token":"<opaque reset token>","new_password":"OtraClave2026!"}`. La contraseña y los tokens no se reflejan en errores ni logs. Ambos endpoints llevan `Cache-Control: no-store`; el token no es un access ni refresh. Se invalidan todas las sesiones y enlaces anteriores y se exige un nuevo login. En desarrollo, el enlace solo está en el mensaje privado de outbox (ver README); no hay SMTP de producción en esta entrega.

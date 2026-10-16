@@ -132,7 +132,7 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
 - **Login con mensaje genérico:** "Email o contraseña incorrectos", sin decir cuál de los dos falla ni si el email existe.
 - **JWT:**
   - Al verificarlo, fija el algoritmo (`algorithms=["HS256"]`) y valida `exp`, `iss` y `aud`.
-  - El payload contiene `sub` (id), `role`, `jti` (identificador único), `type` (`access` o `refresh`) y los claims estándar `exp`, `iss` y `aud`. No incluye contraseñas ni datos personales adicionales: se puede leer, no está cifrado. Un refresh token no autoriza peticiones a recursos protegidos.
+  - El payload contiene `sub` (id), `role`, `jti` (identificador único), `type` (`access` o `refresh`), `ver` (versión de sesión) y los claims estándar `exp`, `iss` y `aud`. No incluye contraseñas ni datos personales adicionales: se puede leer, no está cifrado. Un refresh token no autoriza peticiones a recursos protegidos.
   - `SECRET_KEY` larga y aleatoria, en `.env`.
 - **Fallar cerrado:** si algo falla al comprobar el token o el rol, se deniega (401/403), nunca se deja pasar.
 
@@ -274,3 +274,10 @@ Reglas:
 - **Si usas una herramienta de pago** (Claude, Cursor…), dilo y di para qué: la asignatura pide delimitar su alcance.
 - **Nunca pegues en la bitácora** un prompt con secretos, claves ni datos reales de personas.
 - **Si no usaste IA** en esa historia, basta con poner "sin IA".
+
+
+### Recuperación de contraseña (HU-35)
+
+- Reset: tokens opacos de un solo uso, hash en BD, 30 minutos. Solicitud 202 genérica; confirmación 204 o 400 genérico para enlaces inválidos. No exponer entradas sensibles en errores 422.
+- La confirmación incrementa `users.session_version`; autenticar, refrescar y hacer logout contrastan `ver` con la BD. Tokens históricos sin `ver` solo equivalen a versión 0. Revocar refresh sin invalidar access no cumple el cierre global aprobado.
+- EmailSender de desarrollo escribe únicamente en outbox privado ignorado por Git; nunca logs, JSON de API o ficheros HTTP públicos. Producción necesita adaptador real y FRONTEND_URL HTTPS configurada.
