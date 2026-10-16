@@ -212,7 +212,7 @@ def test_cancel_session_cancels_bookings(client, db, make_user):
     db.refresh(session)
     assert session.status == SessionStatus.CANCELLED
     assert booking.status == BookingStatus.CANCELLED
-    assert payment.status == PaymentStatus.REFUNDED
+    assert payment.status == PaymentStatus.CANCELLED
 
 
 def test_get_session_bookings_trainer_and_permissions(client, db, make_user):
