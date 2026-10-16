@@ -62,7 +62,7 @@ scripts/seed.py      # datos de prueba
 docs/                # diagrama ER, reglas de negocio, mapa de endpoints y permisos
 ```
 
-Cada archivo empieza con un comentario que dice qué va dentro y en qué historia (`TODO(HU-12)`). Lo que ya funciona es la base: configuración, base de datos, manejo de errores, CORS y `/health`.
+Cada archivo empieza con un comentario que dice qué hay dentro y de qué historia sale. Las reglas de negocio (RN-xx) están en `docs/business-rules.md` y el mapa de endpoints y permisos, en `docs/`.
 
 ### ¿Y la capa de repositorios? (T-08)
 
