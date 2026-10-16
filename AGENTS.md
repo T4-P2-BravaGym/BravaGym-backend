@@ -68,14 +68,15 @@ En una API, la "vista" es la respuesta JSON. Así encaja MVC en nuestras carpeta
 | --- | --- | --- | --- |
 | Model | `app/models/` | Tablas con SQLAlchemy | Lógica de negocio |
 | View | `app/schemas/` | Esquemas Pydantic de entrada y salida (lo que se ve en la respuesta) | Consultas a la base de datos |
-| Controller | `app/routers/` | Recibe la petición, valida permisos, llama al servicio y devuelve el esquema | Reglas de negocio ni consultas complejas |
-| Servicios | `app/services/` | Reglas de negocio (aforo, plazo de 1 hora, stock, códigos…) | Saber nada de HTTP |
+| Controller | `app/routers/` | Recibe la petición, valida permisos, llama al servicio y devuelve el esquema | Reglas de negocio ni consultas a la base de datos |
+| Servicios | `app/services/` | Reglas de negocio (aforo, plazo de 1 hora, stock, códigos…) y las consultas que necesitan: hacen también de capa de datos (T-08) | Saber nada de HTTP |
 | Núcleo | `app/core/` | Configuración, seguridad JWT, base de datos, logging | — |
 | Migraciones | `migrations/` | Una migración de Alembic por cada cambio de esquema | Editar migraciones ya mergeadas |
 
 Reglas del backend:
 
 - **Controladores finos:** cada endpoint cabe en unas pocas líneas y delega en un servicio.
+- **Sin capa de repositorios (T-08):** las consultas viven en el servicio, junto a la regla que las usa, y es el servicio quien hace el `commit`. Un router nunca hace consultas: recibe la sesión y se la pasa al servicio. El porqué está en el README.
 - **Permisos:** con la dependencia `require_roles("trainer", "superadmin")`, nunca con `if` sueltos en el endpoint.
 - **Errores:** códigos HTTP coherentes. 401 sin token; 403 sin permiso; 404 si no existe o no es suyo; 409 si choca con el estado (aforo, duplicado, plazo de 1 hora, stock); 422 si los datos son inválidos. El mensaje dice qué pasó, en español.
 - **Dinero:** en céntimos enteros (`price_cents`), nunca `float`.

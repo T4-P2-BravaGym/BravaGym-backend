@@ -52,7 +52,7 @@ app/
   models/            # Model: tablas SQLAlchemy (ver docs/er.md)
   schemas/           # View: esquemas Pydantic de entrada y salida
   routers/           # Controller: endpoints finos que llaman a los servicios
-  services/          # Reglas de negocio (RN-xx), sin nada de HTTP
+  services/          # Reglas de negocio (RN-xx) y consultas a la BD, sin nada de HTTP
 migrations/          # migraciones de Alembic (una por cambio de esquema)
 tests/
   conftest.py        # BD SQLite en memoria y cliente de pruebas
@@ -62,7 +62,16 @@ scripts/seed.py      # datos de prueba
 docs/                # diagrama ER, reglas de negocio, mapa de endpoints y permisos
 ```
 
-Cada archivo empieza con un comentario que dice qué va dentro y en qué historia (`TODO(HU-12)`). Lo que ya funciona es la base: configuración, base de datos, manejo de errores, CORS y `/health`.
+Cada archivo empieza con un comentario que dice qué hay dentro y de qué historia sale. Las reglas de negocio (RN-xx) están en `docs/business-rules.md` y el mapa de endpoints y permisos, en `docs/`.
+
+### ¿Y la capa de repositorios? (T-08)
+
+El enunciado pide capas *routers, services, repositories y schemas*. En Brava, la capa de acceso a datos son los **services**: no hay una carpeta `repositories/` aparte. Es una decisión, no un olvido.
+
+- **Lo que sí está separado:** los routers solo hacen HTTP (permisos, esquemas, códigos de estado) y no hacen ninguna consulta: todo pasa por un servicio. Los schemas separan la entrada de la salida y los models solo definen las tablas.
+- **Por qué las consultas están en los servicios:** muchas reglas son una comprobación y una escritura en la misma transacción: el aforo de una clase, el stock de cada talla, los usos de un código de descuento o la baja, que cancela la suscripción y las reservas a la vez. Con la consulta y la regla en la misma función se ve dónde empieza y dónde acaba cada transacción, y se evitan fallos cuando dos personas reservan o compran a la vez.
+- **Por qué no se añadió en la entrega 2:** la arquitectura MVC se acordó al empezar. Pasar las unas 190 consultas de los 15 servicios a repositorios a pocos días de la entrega tocaba todo el backend a la vez y ponía en riesgo esas transacciones, sin cambiar nada de lo que hace la API.
+- **Cómo se haría si el proyecto creciera:** un módulo por entidad en `app/repositories/` (por ejemplo `plan_repository.get_by_name(db, name)`) que solo lee y escribe, sin hacer `commit`. El servicio seguiría decidiendo las reglas y cuándo se confirma la transacción. Se haría módulo a módulo, con los tests de integración como red: van por HTTP y no dependen de cómo esté organizado el código por dentro.
 
 ## Sesiones: refresh y logout (HU-33, backend)
 

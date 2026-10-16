@@ -262,3 +262,18 @@ def test_rn08_book_pt_without_plan_returns_403_api(
         "detail": "Tu plan no incluye entrenamiento personal.",
         "code": "forbidden",
     }
+
+
+def test_get_sessions_includes_end_time(client, db, make_user):
+    data = _seed_week(db, make_user)
+
+    response = client.get(SESSIONS_URL)
+
+    assert response.status_code == 200
+    item = next(
+        i for i in response.json()["items"] if i["id"] == data["open_session"].id
+    )
+    starts = datetime.fromisoformat(item["starts_at"])
+    ends = datetime.fromisoformat(item["ends_at"])
+
+    assert ends - starts == timedelta(minutes=60)

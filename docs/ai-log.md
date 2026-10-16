@@ -14,6 +14,8 @@ Cómo hemos usado la IA en cada historia. Es un entregable de la asignatura (apa
 
 - **Cierre de preparación local (16 de octubre):** Beste indicó "they dont say anything go ahead". Se adopta el contrato existente de refresh exclusivamente en cookie HttpOnly y despliegue HTTPS en el mismo sitio, sin atribuir aprobación al equipo ni inventar dominios. La spec y ambos README explicitan ese requisito. Se verificaron de nuevo 711 tests backend (96,93 %), 15 frontend, build, lint/formato, migración reversible en SQLite temporal y auditoría sin vulnerabilidades conocidas. Tras subir las correcciones existentes, GitHub Actions pasó en 8904479. Se repitieron foco visible, control de contraseña por teclado y layout a 320/375 px. No se abre otra PR ni se hace merge; revisión humana y verificación en las URLs reales siguen siendo pasos de integración y despliegue.
 
+- **Refactor de tests a Vitest (16 de octubre, después de la PR frontend #81):** Damaris pidió esperar a integrar su configuración de Vitest y luego unificar los tests. Beste autorizó continuar al compartir «@Beste ya puedes hacer pull y hacer el refactor» y pidió la conversación en inglés. Codex reutilizó Vitest 5/jsdom y las dependencias ya fijadas por el equipo; trasladó los quince escenarios de `tests/auth-session.test.js` a `src/services/session.test.js`, sustituyó el runner y los asserts de Node por Vitest, eliminó el servidor Vite auxiliar y restauró fetch/configuración entre casos. `npm test` ejecuta únicamente `vitest run`; watch y CI usan la misma suite. Se actualizaron README y la spec frontend `specs/T-10-session-vitest.md`. No se modifica lógica de producción ni se añaden dependencias. La línea base pasó 52 tests Vitest y 15 Node; la suite unificada pasa 67 tests, lint y build. Se compararon los quince nombres y las 41 aserciones originales. Dos mutaciones temporales confirmaron que se detectan una renovación sin compartir y un logout que revoca el access anterior en vez del renovado; se restauró el archivo y pasaron los 67 tests. El primer intento de instalación falló por red restringida y se repitió con acceso autorizado. Se reconoce la decisión inicial de usar Node como origen de la duplicación de herramientas; el refactor sigue la configuración del equipo.
+
 ## Cómo trabajamos con la IA
 
 El flujo es el mismo en todas las historias, así que se describe aquí una vez y cada entrada recoge solo lo suyo.
@@ -237,3 +239,33 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** todo lo anterior; que un `PATCH` vacío no cuente como cambio; y dejar fuera la baja aprobada de la HU-20, porque no está en la issue y quién la aprueba ya se guarda en la solicitud.
 - **Qué descarté:** la subtarea opcional de enseñar "Última modificación" en el panel de admin, para esta entrega.
 - **Errores o alucinaciones:** la migración generada por Alembic funcionaba en una base vacía (la de CI y la que probó al principio) pero fallaba en la mía con datos: SQLite no puede borrar `users` mientras otras tablas la apuntan. Lo vi al ejecutar `alembic upgrade head`; lo arreglamos apagando las foreign keys solo mientras se reconstruye la tabla y lo probamos con datos. Antes de generarla también me avisó de que mi base iba atrasada (sin la migración de la HU-30), porque si no la migración nueva habría incluido una columna que no era mía. Al copiar el servicio puse dos líneas con la sangría mal, y una hacía que el cambio de rol no se guardara.
+
+## T-10 · Tests en el frontend — Damaris
+
+- **Herramienta y modelo:** Claude (de pago), en modo mentora. Leyó el código del front con mi permiso, solo lectura. El código lo escribí y lo commiteé yo, y los tests los pasé yo en mi equipo (Claude no puede ejecutar `npm` en mi máquina).
+- **Prompt de partida:** "empezamos con la T-10, test de frontend", con el contexto del proyecto cargado y la carpeta del front al día con `dev`.
+- **Qué salió de la conversación y acepté:**
+  - Vitest con Testing Library y jsdom, configurado en `vite.config.js`, con los tests junto al archivo que prueban.
+  - Ejecutar los tests con la hora de Madrid (`TZ`), para que en local y en GitHub Actions salgan igual.
+  - Empezar por las funciones puras (`format.js`, `CartContext`) y después los componentes (`ProductCard`, `CartSummary`, `OrderCard`, `ProductForm` y `Field`).
+  - Probar `ProductForm` rellenando el formulario y mirando qué recibe `onSubmit`, en vez de exportar `toProductBody` solo para el test.
+  - Buscar los elementos por su rol y su texto, como los encuentra la usuaria, y simular `useAuth` con `vi.mock` para no depender de la API.
+- **Qué corregí o descarté:**
+  - Al traer `dev` (HU-33), `package.json` quedó con dos scripts `test`: Git no lo marcó como conflicto, pero ganaba el último y mis tests de Vitest dejaban de ejecutarse. Lo arreglé con `test:unit && test:session` para que la CI pase los dos.
+  - Descarté pasar yo los 15 tests de sesión de Beste (`node:test`) a Vitest en esta PR: el código es suyo y lo hará ella en su PR, que cerrará la T-10.
+  - Dejé fuera el test end-to-end con Playwright (opcional en la T-10) por tiempo; queda en la retrospectiva.
+- **Errores o bugs que encontraron los tests:**
+  - `formatDate` seguía leyendo las fechas de la API como hora local (se escapó en la T-09): una clase tarde en UTC salía con el día anterior.
+  - `OrderCard` pintaba cada línea del pedido dos veces, la segunda sin la talla (un resto de un merge).
+  - Al pasar `npm run lint` salieron dos warnings de `react-hooks/exhaustive-deps` en `CartContext`: el carrito vacío creaba un array nuevo en cada render. Lo arreglé con `useMemo`.
+- **Cómo lo comprobé:** `npm test` (52 tests de Vitest y 15 de sesión en verde), `npm run lint` sin avisos y `npm run build`. Antes de arreglar `formatDate` y `OrderCard` comprobé que sus tests fallaban de verdad.
+
+## T-238 · Hora de fin de las clases — Viviana
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora. Leyó el código con mi permiso, solo lectura. El código lo escribí y lo commiteé yo.
+- **Prompt clave:** "Actualmente las clases muestran a q hora empieza pero no cuando termina, arreglemos eso", con el enlace a la issue #238.
+- **Qué me explicó o propuso:** que `duration_minutes` ya existía, así que la hora de fin se puede calcular con un `computed_field` de Pydantic en vez de añadir una columna. Un mixin compartido por `SessionOut` y `BookingSessionOut`.
+- **Qué acepté:** el campo calculado sin migración, para tener una sola fuente de verdad, y el mixin para no repetir el cálculo.
+- **Qué descarté:** guardar `ends_at` en la base de datos, porque podría desincronizarse con la duración.
+- **Errores o alucinaciones:** en el test me propuso `.replace("Z", "+00:00")` antes de `fromisoformat`; Ruff lo marcó (FURB162) porque desde Python 3.11 no hace falta, y lo quité. Al arrancar el backend el login daba 500 porque mi `brava.db` no tenía la migración de la T-03; lo arreglé con `alembic upgrade head`, no era un fallo de esta tarea.
+- **Cómo lo comprobé:** test de integración nuevo para `ends_at` en `GET /sessions`, `pytest` completo, Ruff en los archivos tocados y la respuesta de `/sessions` en Swagger.
