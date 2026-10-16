@@ -13,14 +13,14 @@ Cada regla tiene un código (RN-xx) para enlazarla desde las historias y nombrar
 - **RN-07** Si la clase tiene `extra_price_cents > 0`, al confirmarse la reserva se crea un pago `pending` asociado (también cuando sube desde la lista de espera).
 - **RN-08** Entrenamiento personal: sesión de un tipo con `is_personal_training = true`, `capacity = 1` y 60 minutos. Solo la reservan socias cuyo plan tiene `includes_personal_training` → si no, 403.
 - **RN-09** Un entrenador no puede tener dos sesiones **programadas** solapadas (intervalos `[starts_at, starts_at + duration)`). Si se solapan → 409. Las sesiones `cancelled` no cuentan.
-- **RN-10** Solo el entrenador de la sesión o el superadmin la editan o cancelan → si no, 403. Cancelar una sesión la deja `cancelled`, pasa sus reservas `confirmed`/`waitlisted` a `cancelled` y deja los pagos de clases extra (`pending` o `paid`) como `refunded`.
-
+- **RN-10** Solo el entrenador de la sesión o el superadmin la editan o cancelan → si no, 403. Cancelar una sesión la deja `cancelled` y pasa sus reservas `confirmed`/`waitlisted` a `cancelled`. Sus pagos de clases extra siguen RN-16: los `pending` pasan a `cancelled` (no se cobró nada) y los `paid` a `refunded`, porque cancela el gimnasio.
+- 
 ### Suscripciones y bajas
 
 - **RN-11** Una sola suscripción `active` por usuario a la vez → 409.
 - **RN-12** No existe endpoint para que la socia se borre. Solo puede crear una solicitud de baja, y solo una `pending` a la vez → 409.
-- **RN-13** Al aprobar la baja: suscripción `cancelled`, `users.is_active = false`, `deactivated_at` relleno y reservas futuras canceladas (aplicando RN-06). Rechazarla exige `admin_notes`.
-
+- **RN-13** Al aprobar la baja: suscripción `cancelled`, `users.is_active = false`, `deactivated_at` relleno y reservas futuras canceladas (aplicando RN-06). Sus pagos de clases extra, como en RN-10: `pending` → `cancelled` y `paid` → `refunded`. Rechazarla exige `admin_notes`.
+- 
 ### Pagos, códigos y tienda
 
 - **RN-14** Un código es válido si está activo, dentro de fechas y por debajo de `max_uses` (pagos `paid` que lo usan). Si no → 422. Vale para cualquier concepto (cuota, clase extra o pedido), salvo que esté limitado a uno con `applies_to`: entonces, en otro concepto → 422 (T-240).
