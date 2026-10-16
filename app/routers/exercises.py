@@ -7,13 +7,14 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_roles
-from app.core.openapi import error
+from app.core.openapi import error, errors
 from app.models import User
 from app.models.enums import RoleName
 from app.schemas.routine import ExerciseCreate, ExerciseOut, ExerciseUpdate
 from app.services import exercise_service
 
-router = APIRouter(prefix="/exercises", tags=["exercises"])
+# Every endpoint needs a login and a role, so 401 and 403 are documented for all of them
+router = APIRouter(prefix="/exercises", tags=["exercises"], responses=errors(401, 403))
 
 # Reusable type aliases so every endpoint stays short (DRY)
 # Only trainers and superadmin manage the catalog (docs/api.md)
