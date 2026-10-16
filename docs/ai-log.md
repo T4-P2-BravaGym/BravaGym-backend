@@ -279,3 +279,34 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** el test primero (empezó con 187 errores sin `ErrorOut`, 13 endpoints sin 401 y 3 esquemas sin ejemplo, y fuimos bajando hasta cero); poner 401 y 403 en el `APIRouter` de `exercises` y `routines`; y dejar el 422 con el esquema de FastAPI.
 - **Qué descarté:** aplicar un parche ya preparado con todos los cambios de los routers; preferí hacerlo yo con buscar y reemplazar (regex) en VS Code para entender cada cambio.
 - **Errores o alucinaciones:** nada inventado. El primer reemplazo no encontraba nada porque la ruta de "files to include" no era la correcta en mi espacio de trabajo (`app/routers` en vez de `**/app/routers/**`); lo vimos con una captura.
+
+## PageHeader común — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora. Leyó el front y el back con mi permiso, solo lectura. El código lo escribí y lo commiteé yo, y los comandos los ejecuté yo en mi equipo.
+- **Prompt clave:** "Vamos a trabajar en el PageHeader común (tarea técnica de frontend, rama refactor/page-header)", pidiendo que antes comprobara que `dev` estaba al día y revisara las siete páginas de la tarea y sus `.module.scss`.
+- **Qué me explicó o propuso:** que mi `dev` del front iba un merge por detrás (la #82) y que no eran siete páginas con la cabecera copiada sino doce. Un componente `PageHeader` en `components/ui` con `title`, `eyebrow`, `lead` y `action`, con los mixins `eyebrow` y `display-text`, ficha y demo en el Sandbox y tres tests con Vitest.
+- **Qué acepté:**
+  - Cambiar las doce páginas, con las cinco de más en un commit aparte por si preferíamos ceñirnos a la tarea.
+  - En Tienda y Horario, dejar los filtros fuera de `PageHeader` y conservar un envoltorio para no cambiar la separación con el texto.
+  - Unificar el tamaño del título (AdminUsers y AdminCancellations usaban el de por defecto) y el ancho de la entradilla a 48rem.
+- **Qué descarté:** meter en esta PR MemberHome, las páginas que solo tienen un `<h1>` y la cabecera del Sandbox. Tampoco convertí aquí en componente la navegación por semanas, que está repetida en cuatro páginas: va en otra tarea.
+- **Errores o alucinaciones:**
+  - En Tienda y Horario me dijo que cambiara `<header>` por `<div>` pero no repitió el cambio del cierre, y quedó un `</header>` suelto. Se detectó `npm run lint`. Al arreglarlo borré también el envoltorio y la barra de la semana quedó más separada; lo vimos leyendo el archivo.
+  - Claude no pudo pasar lint, tests ni build antes de darme el código: en su entorno no podía instalar las dependencias. Lo avisó.
+  - Me dijo al revés qué socia tiene entrenamiento personal en el seed: es `lucia` (plan Premium), no `carmen`.
+  - El IDE me metió el import como `"@/components/ui/PageHeader/index.js";` en diez páginas, con otro estilo que el resto; Claude lo vio al revisar. Lo dejé como en el resto de componentes.
+- **Cómo lo comprobé:** `npm test` (70 tests), `npm run lint` y `npm run build`, y las doce páginas a mano en escritorio y en móvil, sin sesión y con una socia, una entrenadora y admin.
+
+## Arreglos: reservas, navegación por semanas y errores 500 — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora, en el mismo chat del PageHeader. Solo lectura; el código y los comandos, míos.
+- **Prompt clave:** "sin login - en la sección entrenadoras sale No hemos podido cargar las entrenadoras … ¿es normal o es un error nuestro?", con el log de uvicorn, y después las capturas de "Mis reservas" y de la semana en el móvil.
+- **Qué me explicó o propuso:**
+  - El fallo de entrenadoras era mi `brava.db` sin la migración de auditoría de usuarias (`no such column: users.created_by_id`); se arregló con `alembic upgrade head`, no era un bug del código.
+  - El mensaje de "no se ha podido conectar" salía porque FastAPI responde los errores inesperados fuera de `CORSMiddleware`: el 500 llegaba sin cabeceras CORS y el navegador lo bloqueaba. Propuso un middleware que devuelve el 500 genérico dentro de CORS.
+  - "Mis reservas" mostraba "Clase · Fecha por confirmar" porque el front leía `session` y la API manda `class_session` desde la HU-12. Por eso tampoco se marcaban como reservadas las clases en el horario.
+  - En el móvil, "Anterior" y "Siguiente" no cabían con la fecha: cambiarlos por flechas, que conservan el `aria-label`.
+- **Qué acepté:** los tres arreglos, en dos PR (una del backend y otra del front), con un test nuevo en cada repo.
+- **Qué descarté:** igualar el tamaño del badge "Reservada" y el botón "Cancelar": uno es un estado y el otro una acción, y el botón tiene que medir al menos 44 px de alto. También dejé para otra tarea el componente común de la navegación por semanas.
+- **Errores o alucinaciones:** el middleware rompió `test_a_failed_save_leaves_no_file_behind`, que esperaba que la excepción saliera de la API. Lo vi con `pytest`. Cambiamos el test para comprobar el 500 y seguir comprobando que no queda ningún archivo; no se le bajó la exigencia. Claude tampoco pudo ejecutar `pytest` en su entorno antes de pasármelo.
+- **Cómo lo comprobé:** `pytest` con cobertura del 96,84 %, test nuevo de que el 500 lleva la cabecera CORS, Ruff, `npm test` (72 tests), `npm run lint` y `npm run build`. A mano, con `lucia`: "Mis reservas" con nombre y hora, la clase reservada marcada en el horario y las flechas en una línea en el móvil.
