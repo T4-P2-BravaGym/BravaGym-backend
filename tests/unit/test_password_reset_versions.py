@@ -84,3 +84,36 @@ def test_old_access_refresh_and_logout_rejected_after_version_increment(
         ).status_code
         == 200
     )
+
+
+def test_historical_refresh_works_at_zero_but_not_after_account_version_change(
+    db, make_user
+):
+    from app.core.security import decode_refresh_token, hash_refresh_token
+    from app.models import RefreshToken
+
+    user = make_user()
+    settings = get_settings()
+
+    def historical(refresh):
+        payload = decode_refresh_token(refresh)
+        payload.pop("ver")
+        value = jwt.encode(
+            payload, settings.secret_key, algorithm=settings.jwt_algorithm
+        )
+        row = db.scalar(
+            select(RefreshToken).where(
+                RefreshToken.token_hash == hash_refresh_token(refresh)
+            )
+        )
+        row.token_hash = hash_refresh_token(value)
+        db.commit()
+        return value
+
+    first = auth_service.issue_session(db, user)
+    renewed = auth_service.refresh_session(db, historical(first.refresh_token))
+    unused = historical(renewed.refresh_token)
+    user.session_version = 1
+    db.commit()
+    with pytest.raises(UnauthorizedError):
+        auth_service.refresh_session(db, unused)

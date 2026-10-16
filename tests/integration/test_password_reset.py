@@ -277,3 +277,40 @@ def test_inactive_or_manipulated_link_has_same_400(client, db, make_user, recove
     ]
     assert [r.status_code for r in results] == [400] * 3
     assert len({r.text for r in results}) == 1
+
+
+def test_production_does_not_write_development_outbox(
+    client, make_user, recovery, monkeypatch, caplog
+):
+    make_user(email="recovery@example.com")
+    monkeypatch.setattr(get_settings(), "environment", "production")
+    with caplog.at_level(logging.ERROR):
+        response = client.post(REQUEST, json={"email": "recovery@example.com"})
+    assert response.status_code == 202 and response.json() == GENERIC
+    assert not recovery.exists()
+    assert "delivery failed" in caplog.text
+
+
+def test_delivery_database_failure_is_generic_and_does_not_log_exception(
+    client, recovery, caplog
+):
+    from app.core.password_reset_delivery import get_reset_session_factory
+    from app.main import app
+
+    def fail_factory():
+        raise RuntimeError("PRIVATE-TOKEN recipient@example.com")
+
+    app.dependency_overrides[get_reset_session_factory] = lambda: fail_factory
+    with caplog.at_level(logging.ERROR):
+        response = client.post(REQUEST, json={"email": "recovery@example.com"})
+    assert response.status_code == 202 and response.json() == GENERIC
+    assert "PRIVATE" not in caplog.text and "recipient@example.com" not in caplog.text
+
+
+def test_invalid_reset_response_is_not_cacheable(client):
+    response = client.post(
+        CONFIRM,
+        json={"token": "invalid-demo-token", "new_password": "NewPassword2026!"},
+    )
+    assert response.status_code == 400
+    assert response.headers.get("cache-control") == "no-store"

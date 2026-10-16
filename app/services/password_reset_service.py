@@ -46,7 +46,7 @@ def confirm_password_reset(db: Session, token: str, new_password: str) -> None:
     """Consume, reset and invalidate every old session in one transaction."""
     from sqlalchemy import select, update
 
-    from app.core.exceptions import AppError
+    from app.core.exceptions import PasswordResetError
     from app.core.security import hash_password
     from app.models import RefreshToken, User
 
@@ -65,7 +65,7 @@ def confirm_password_reset(db: Session, token: str, new_password: str) -> None:
             )
         )
         if candidate is None:
-            raise AppError(INVALID_RESET)
+            raise PasswordResetError(INVALID_RESET)
         password_hash = hash_password(new_password)
         # Recheck expiry after bcrypt, including a token expiring during hashing.
         now = utc_now()
@@ -83,7 +83,7 @@ def confirm_password_reset(db: Session, token: str, new_password: str) -> None:
             .returning(PasswordResetToken.user_id)
         )
         if owner is None:
-            raise AppError(INVALID_RESET)
+            raise PasswordResetError(INVALID_RESET)
         changed = db.execute(
             update(User)
             .where(User.id == owner, User.is_active.is_(True))
@@ -95,7 +95,7 @@ def confirm_password_reset(db: Session, token: str, new_password: str) -> None:
             )
         )
         if changed.rowcount != 1:
-            raise AppError(INVALID_RESET)
+            raise PasswordResetError(INVALID_RESET)
         db.execute(
             update(PasswordResetToken)
             .where(

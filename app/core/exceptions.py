@@ -16,6 +16,12 @@ class AppError(Exception):
         self.detail = detail
 
 
+class PasswordResetError(AppError):
+    """Invalid recovery links must not be cached."""
+
+    headers = {"Cache-Control": "no-store"}
+
+
 class UnauthorizedError(AppError):
     status_code = 401
     code = "unauthorized"
