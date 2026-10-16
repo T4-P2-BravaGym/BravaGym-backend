@@ -208,3 +208,21 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
   - Al actualizar el Sandbox no se me dijo que las fichas nuevas sustituían a las viejas y salieron repetidas.
   - Descarté volver a codificar la foto con Pillow para esta entrega (queda en la retrospectiva).
 - **Cómo lo comprobé:** `pytest` (tipos válidos y falsos, límite de 2 MB, sustitución, borrado, fallo al guardar, 401 y 403), `alembic check`, `npm run build` y el flujo a mano: subir, cambiar y quitar la foto en el panel, verla en la tienda y probar un PDF renombrado a `.jpg`.
+
+## HU-32 · Cambiar mi contraseña — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código, ejecuté los comandos y hice los commits. Cubre el backend y el formulario de "Mi perfil".
+- **Prompt clave:** "vamos a trabajar en la HU-32; primero la spec".
+- **Qué me explicó o propuso:** en el backend, el esquema `PasswordChange` con las reglas del registro, comprobar la contraseña actual en el servicio con `verify_password` y devolver 400 en vez de 401, y reutilizar el limitador de la HU-34 contado por id de usuaria. En el front, un componente aparte `ChangePasswordForm` que comprueba las mismas reglas antes de llamar a la API.
+- **Qué acepté:** todo lo anterior; añadir el límite de intentos aunque la issue no lo pedía; sacar la regla de los 72 bytes a una función común con el registro (DRY); y en el front, vaciar los campos al cambiarla para que las contraseñas no se queden en pantalla.
+- **Qué descarté:** crear una clase nueva de error 400 en `exceptions.py`, porque la `AppError` base ya es 400; y enviar "repetir contraseña" a la API, porque lo comprueba el front.
+- **Errores o alucinaciones:** nada inventado; cada paso se comprobó antes con los tests. Pero propuso cambiar `UserCreate` sin decir que era código de la HU-01 de otra compañera; lo pregunté yo y mantuvimos el cambio porque el comportamiento es el mismo. Al probar en Swagger cambié de verdad la contraseña de Lucía y la devolví con el mismo endpoint. También vi que "Mi perfil" solo existe para socias; queda fuera de alcance en la spec.
+
+## Frontend #75 · Botón para mostrar u ocultar la contraseña — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código y los commits.Spec: `specs/T-75-password-reveal.md` en el repo del frontend.
+- **Prompt clave:** "cuando escribo la contraseña solo veo puntos; normalmente hay un ojo al lado para verla".
+- **Qué me explicó o propuso:** una prop `revealable` en `Field` en vez de un componente nuevo, dos iconos `eye` y `eyeOff` en `Icon`, y usarla en el login, el registro y "Cambiar contraseña".
+- **Qué acepté:** hacerlo como tarea aparte de la HU-32, porque toca `Field`, que usan todos los formularios; que el envoltorio del botón solo exista en los campos de contraseña, para no cambiar el HTML de los demás; y un nombre fijo ("Mostrar contraseña") con el estado en `aria-pressed`.
+- **Qué descarté:** primero propuso una casilla "Mostrar contraseñas" solo en mi formulario, para no tocar componentes comunes; preferí el ojo para toda la app y el equipo me dio la tarea. Tampoco añadí un ejemplo al Sandbox.
+- **Errores o alucinaciones:** nada inventado. Al principio no se podía añadir el ojo a "Cambiar contraseña" porque la HU-32 aún no estaba en `dev`; cuando se mergeó, traje `dev` a la rama y lo añadí en la misma PR.
