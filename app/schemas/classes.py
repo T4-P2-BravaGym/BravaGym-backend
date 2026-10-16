@@ -1,8 +1,8 @@
 """Class type and session schemas (HU-10 schedule, HU-11 trainer management, HU-14 PT)."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from app.models.enums import BookingStatus, SessionStatus
 from app.schemas.common import Page
@@ -12,6 +12,7 @@ SESSION_EXAMPLE = {
     "trainer_id": 2,
     "starts_at": "2026-10-07T17:30:00Z",
     "duration_minutes": 60,
+    "ends_at": "2026-10-07T18:30:00Z",
     "capacity": 8,
     "status": "scheduled",
     "free_spots": 5,
@@ -54,6 +55,18 @@ SESSION_BOOKING_EXAMPLE = {
 }
 
 
+class SessionTimeMixin(BaseModel):
+    """Start, duration and computed end time shared by every session output."""
+
+    starts_at: datetime
+    duration_minutes: int = Field(ge=1)
+
+    @computed_field
+    @property
+    def ends_at(self) -> datetime:
+        return self.starts_at + timedelta(minutes=self.duration_minutes)
+
+
 class SessionClassTypeOut(BaseModel):
     """Class type fields shown on each session in the schedule."""
 
@@ -65,7 +78,7 @@ class SessionClassTypeOut(BaseModel):
     is_personal_training: bool
 
 
-class SessionOut(BaseModel):
+class SessionOut(SessionTimeMixin):
     """A scheduled class session with computed free spots and extra price."""
 
     model_config = ConfigDict(
@@ -75,8 +88,6 @@ class SessionOut(BaseModel):
 
     id: int
     trainer_id: int
-    starts_at: datetime
-    duration_minutes: int = Field(ge=1)
     capacity: int = Field(ge=1)
     status: SessionStatus
     free_spots: int = Field(ge=0)
