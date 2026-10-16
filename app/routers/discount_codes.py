@@ -1,18 +1,11 @@
-"""Controller for discount codes: receives the request, checks permissions, calls the service, returns a schema (HU-25).
-Keep endpoints thin: no business rules and no complex queries here.
-Every endpoint: response_model, summary, and require_roles(...) when it is not public.
-"""
-
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import CurrentMember, require_roles
+from app.core.deps import CurrentAdmin, CurrentMember
 from app.core.openapi import error
-from app.models import User
-from app.models.enums import RoleName
 from app.schemas.payment import (
     DiscountCodeCreate,
     DiscountCodeOut,
@@ -26,9 +19,7 @@ from app.services import discount_service
 router = APIRouter(prefix="/discount-codes", tags=["discount codes"])
 
 DbSession = Annotated[Session, Depends(get_db)]
-CurrentAdmin = Annotated[
-    User, Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN))
-]
+
 ADMIN_ERRORS = {
     401: error("Not logged in"),
     403: error("Not admin"),
