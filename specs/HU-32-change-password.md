@@ -18,6 +18,7 @@ al registrarse (HU-01) y no se podía cambiar. Reutiliza el hash y la comprobaci
 4. Después del cambio entra con la nueva y ya no con la antigua.
 5. El cambio queda en el log con su id, y la contraseña nunca aparece en el log ni en la respuesta.
 6. Si se equivoca muchas veces con la contraseña actual, se bloquea un rato, como en el login (HU-34).
+7. Al cambiarla se cierran todas sus sesiones, también las de otros dispositivos, y vuelve a entrar con la nueva (HU-33).
 
 ## Criterios de aceptación
 
@@ -30,6 +31,8 @@ al registrarse (HU-01) y no se podía cambiar. Reutiliza el hash y la comprobaci
 - **Dado** que me he equivocado 5 veces con la contraseña actual en 15 minutos, **cuando** lo intento otra vez, **entonces** recibo 429 con `Retry-After`, aunque esta vez sea la correcta.
 - **Dado** que no he iniciado sesión, **cuando** llamo al endpoint, **entonces** recibo 401.
 - **Dado** cualquier cambio, **cuando** reviso el log, **entonces** aparece el cambio pero nunca la contraseña.
+- **Dado** que tengo sesiones abiertas en varios dispositivos, **cuando** cambio la contraseña, **entonces** todos mis refresh tokens quedan revocados y ningún dispositivo puede renovar su sesión; los de otras usuarias no cambian.
+- **Dado** una `current_password` incorrecta, **entonces** mis sesiones siguen abiertas.
 
 ## Endpoints
 
@@ -46,12 +49,12 @@ actualiza `users.password_hash`.
 los datos, con tres campos: contraseña actual, nueva y repetir la nueva. Si las dos nuevas no
 coinciden, el aviso sale sin llamar a la API. Estados: "Guardando…" en el botón, aviso verde
 "Tu contraseña se ha cambiado" (y los campos se vacían) y aviso rojo con el mensaje de la API.
+Tras un cambio correcto, la sesión se cierra y va al login con el aviso "Tu contraseña se ha cambiado. Vuelve a entrar con la nueva.
 
 ## Fuera de alcance
 
 - Recuperar la contraseña olvidada por email (HU-35).
-- Revocar los refresh tokens al cambiarla: dependen de la HU-33, que aún no está hecha.
-- Cerrar las demás sesiones abiertas: el token actual sigue valiendo hasta que caduca.
+- Cerrar al instante los accesos ya emitidos en otros dispositivos: su access token sigue valiendo hasta que caduca (como mucho 60 minutos), pero no se puede renovar.
 - Que administración cambie la contraseña de otra usuaria (HU-31 lo excluye).
 - Reglas de contraseña más fuertes (mayúsculas, símbolos): se usan las del registro.
 - La pantalla para entrenadoras y administración: hoy "Mi perfil" solo está en el área de socia. La API ya deja cambiar la contraseña a cualquier rol; abrir la pantalla a los demás roles es una decisión del equipo.
@@ -71,3 +74,5 @@ coinciden, el aviso sale sin llamar a la API. Estados: "Guardando…" en el bot�
 | El formulario es un componente aparte (`ChangePasswordForm`) dentro de "Mi perfil" | Cada formulario guarda su propio estado y la página no crece. |
 | El front comprueba las mismas reglas antes de llamar a la API | Un 422 de la API llega como un mensaje genérico; así cada error dice qué corregir. La API sigue siendo la que protege. |
 | Al cambiarla, los campos se vacían | Las contraseñas no se quedan en pantalla. |
+| Al cambiar la contraseña se revocan todos sus refresh tokens, también el de la sesión actual | La cookie del refresh solo viaja a `/api/v1/auth` (HU-33), así que este endpoint no sabe cuál es la sesión actual. Cerrar todas es lo habitual y obliga a probar la contraseña nueva. |
+| Tras el cambio, el front cierra la sesión y lleva al login con un aviso | Si no, la sesión actual se cortaría sola al caducar el access token, sin explicación. |

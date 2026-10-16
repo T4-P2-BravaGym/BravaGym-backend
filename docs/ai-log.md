@@ -221,6 +221,7 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** todo lo anterior; añadir el límite de intentos aunque la issue no lo pedía; sacar la regla de los 72 bytes a una función común con el registro (DRY); y en el front, vaciar los campos al cambiarla para que las contraseñas no se queden en pantalla.
 - **Qué descarté:** crear una clase nueva de error 400 en `exceptions.py`, porque la `AppError` base ya es 400; y enviar "repetir contraseña" a la API, porque lo comprueba el front.
 - **Errores o alucinaciones:** nada inventado; cada paso se comprobó antes con los tests. Pero propuso cambiar `UserCreate` sin decir que era código de la HU-01 de otra compañera; lo pregunté yo y mantuvimos el cambio porque el comportamiento es el mismo. Al probar en Swagger cambié de verdad la contraseña de Lucía y la devolví con el mismo endpoint. También vi que "Mi perfil" solo existe para socias; queda fuera de alcance en la spec.
+- **Ampliación (HU-33 ya hecha):** al cambiar la contraseña se revocan todos sus refresh tokens y el front la lleva al login. Me explicó que la cookie del refresh solo viaja a `/api/v1/auth`, así que este endpoint no sabe cuál es la sesión actual; por eso se cierran todas, también esta. Acepté esa opción en vez de cambiar la cookie de la HU-33, que es de otra compañera.
 
 ## Frontend #75 · Botón para mostrar u ocultar la contraseña — Esra
 

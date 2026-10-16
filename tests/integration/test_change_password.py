@@ -3,7 +3,9 @@
 import logging
 
 from app.core.security import create_access_token
+from app.models import RefreshToken
 from app.models.enums import RoleName
+from sqlalchemy import select
 
 from tests.conftest import TEST_PASSWORD
 
@@ -122,3 +124,34 @@ def test_log_shows_the_change_but_never_the_password(client, make_user, caplog):
     assert TEST_PASSWORD not in caplog.text
     assert NEW_PASSWORD not in caplog.text
     assert "NoEsMiClave1" not in caplog.text
+
+
+def test_changing_the_password_closes_every_session(client, db, make_user):
+    member = make_user(RoleName.MEMBER)
+    other = make_user(RoleName.MEMBER)
+    # Two devices for her, one for someone else
+    login(client, member.email, TEST_PASSWORD)
+    old_refresh = client.cookies.get("brava.refresh")
+    login(client, member.email, TEST_PASSWORD)
+    login(client, other.email, TEST_PASSWORD)
+
+    assert change(client, member).status_code == 204
+
+    sessions = db.scalars(select(RefreshToken)).all()
+    assert all(s.revoked_at is not None for s in sessions if s.user_id == member.id)
+    assert all(s.revoked_at is None for s in sessions if s.user_id == other.id)
+    # An old device cannot renew its session any more
+    client.cookies.clear()
+    client.cookies.set("brava.refresh", old_refresh, path="/api/v1/auth")
+    refresh = client.post("/api/v1/auth/refresh", headers={"X-Brava-CSRF": "1"})
+    assert refresh.status_code == 401
+
+
+def test_a_wrong_current_password_keeps_the_sessions(client, db, make_user):
+    member = make_user(RoleName.MEMBER)
+    login(client, member.email, TEST_PASSWORD)
+
+    assert change(client, member, current="NoEsMiClave1").status_code == 400
+
+    session = db.scalar(select(RefreshToken).where(RefreshToken.user_id == member.id))
+    assert session.revoked_at is None
