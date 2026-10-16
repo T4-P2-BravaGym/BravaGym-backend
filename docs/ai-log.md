@@ -257,3 +257,13 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
   - `OrderCard` pintaba cada línea del pedido dos veces, la segunda sin la talla (un resto de un merge).
   - Al pasar `npm run lint` salieron dos warnings de `react-hooks/exhaustive-deps` en `CartContext`: el carrito vacío creaba un array nuevo en cada render. Lo arreglé con `useMemo`.
 - **Cómo lo comprobé:** `npm test` (52 tests de Vitest y 15 de sesión en verde), `npm run lint` sin avisos y `npm run build`. Antes de arreglar `formatDate` y `OrderCard` comprobé que sus tests fallaban de verdad.
+
+## T-238 · Hora de fin de las clases — Viviana
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora. Leyó el código con mi permiso, solo lectura. El código lo escribí y lo commiteé yo.
+- **Prompt clave:** "Actualmente las clases muestran a q hora empieza pero no cuando termina, arreglemos eso", con el enlace a la issue #238.
+- **Qué me explicó o propuso:** que `duration_minutes` ya existía, así que la hora de fin se puede calcular con un `computed_field` de Pydantic en vez de añadir una columna. Un mixin compartido por `SessionOut` y `BookingSessionOut`.
+- **Qué acepté:** el campo calculado sin migración, para tener una sola fuente de verdad, y el mixin para no repetir el cálculo.
+- **Qué descarté:** guardar `ends_at` en la base de datos, porque podría desincronizarse con la duración.
+- **Errores o alucinaciones:** en el test me propuso `.replace("Z", "+00:00")` antes de `fromisoformat`; Ruff lo marcó (FURB162) porque desde Python 3.11 no hace falta, y lo quité. Al arrancar el backend el login daba 500 porque mi `brava.db` no tenía la migración de la T-03; lo arreglé con `alembic upgrade head`, no era un fallo de esta tarea.
+- **Cómo lo comprobé:** test de integración nuevo para `ends_at` en `GET /sessions`, `pytest` completo, Ruff en los archivos tocados y la respuesta de `/sessions` en Swagger.
