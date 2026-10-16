@@ -5,7 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import BookingStatus, SessionStatus
-from app.schemas.classes import SessionClassTypeOut
+from app.schemas.classes import SessionClassTypeOut, SessionTimeMixin
 from app.schemas.common import Page
 
 BOOKING_EXAMPLE = {
@@ -18,6 +18,7 @@ BOOKING_EXAMPLE = {
         "id": 3,
         "trainer_id": 2,
         "starts_at": "2026-10-07T17:30:00Z",
+        "ends_at": "2026-10-07T18:30:00Z",
         "duration_minutes": 60,
         "capacity": 8,
         "status": "scheduled",
@@ -38,15 +39,13 @@ BOOKING_PAGE_EXAMPLE = {
 }
 
 
-class BookingSessionOut(BaseModel):
+class BookingSessionOut(SessionTimeMixin):
     """Session fields shown on a booking (no free_spots — not needed here)."""
 
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     trainer_id: int
-    starts_at: datetime
-    duration_minutes: int = Field(ge=1)
     capacity: int = Field(ge=1)
     status: SessionStatus
     class_type: SessionClassTypeOut
