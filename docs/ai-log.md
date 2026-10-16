@@ -237,3 +237,23 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** todo lo anterior; que un `PATCH` vacío no cuente como cambio; y dejar fuera la baja aprobada de la HU-20, porque no está en la issue y quién la aprueba ya se guarda en la solicitud.
 - **Qué descarté:** la subtarea opcional de enseñar "Última modificación" en el panel de admin, para esta entrega.
 - **Errores o alucinaciones:** la migración generada por Alembic funcionaba en una base vacía (la de CI y la que probó al principio) pero fallaba en la mía con datos: SQLite no puede borrar `users` mientras otras tablas la apuntan. Lo vi al ejecutar `alembic upgrade head`; lo arreglamos apagando las foreign keys solo mientras se reconstruye la tabla y lo probamos con datos. Antes de generarla también me avisó de que mi base iba atrasada (sin la migración de la HU-30), porque si no la migración nueva habría incluido una columna que no era mía. Al copiar el servicio puse dos líneas con la sangría mal, y una hacía que el cambio de rol no se guardara.
+
+## T-10 · Tests en el frontend — Damaris
+
+- **Herramienta y modelo:** Claude (de pago), en modo mentora. Leyó el código del front con mi permiso, solo lectura. El código lo escribí y lo commiteé yo, y los tests los pasé yo en mi equipo (Claude no puede ejecutar `npm` en mi máquina).
+- **Prompt de partida:** "empezamos con la T-10, test de frontend", con el contexto del proyecto cargado y la carpeta del front al día con `dev`.
+- **Qué salió de la conversación y acepté:**
+  - Vitest con Testing Library y jsdom, configurado en `vite.config.js`, con los tests junto al archivo que prueban.
+  - Ejecutar los tests con la hora de Madrid (`TZ`), para que en local y en GitHub Actions salgan igual.
+  - Empezar por las funciones puras (`format.js`, `CartContext`) y después los componentes (`ProductCard`, `CartSummary`, `OrderCard`, `ProductForm` y `Field`).
+  - Probar `ProductForm` rellenando el formulario y mirando qué recibe `onSubmit`, en vez de exportar `toProductBody` solo para el test.
+  - Buscar los elementos por su rol y su texto, como los encuentra la usuaria, y simular `useAuth` con `vi.mock` para no depender de la API.
+- **Qué corregí o descarté:**
+  - Al traer `dev` (HU-33), `package.json` quedó con dos scripts `test`: Git no lo marcó como conflicto, pero ganaba el último y mis tests de Vitest dejaban de ejecutarse. Lo arreglé con `test:unit && test:session` para que la CI pase los dos.
+  - Descarté pasar yo los 15 tests de sesión de Beste (`node:test`) a Vitest en esta PR: el código es suyo y lo hará ella en su PR, que cerrará la T-10.
+  - Dejé fuera el test end-to-end con Playwright (opcional en la T-10) por tiempo; queda en la retrospectiva.
+- **Errores o bugs que encontraron los tests:**
+  - `formatDate` seguía leyendo las fechas de la API como hora local (se escapó en la T-09): una clase tarde en UTC salía con el día anterior.
+  - `OrderCard` pintaba cada línea del pedido dos veces, la segunda sin la talla (un resto de un merge).
+  - Al pasar `npm run lint` salieron dos warnings de `react-hooks/exhaustive-deps` en `CartContext`: el carrito vacío creaba un array nuevo en cada render. Lo arreglé con `useMemo`.
+- **Cómo lo comprobé:** `npm test` (52 tests de Vitest y 15 de sesión en verde), `npm run lint` sin avisos y `npm run build`. Antes de arreglar `formatDate` y `OrderCard` comprobé que sus tests fallaban de verdad.
