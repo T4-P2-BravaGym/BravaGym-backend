@@ -43,3 +43,15 @@ Sin interfaz: el cambio se ve en `/docs` y `/redoc`.
 - El 422 de validación de FastAPI: mantiene su propio esquema, porque su `detail` es una lista.
 - El websocket de la HU-16: OpenAPI no documenta websockets.
 - Traducir los `summary` existentes, que están en inglés como el código.
+
+## Decisiones
+
+| Decisión | Por qué |
+| --- | --- |
+| Dos ayudantes en `app/core/openapi.py`: `errors(401, 403…)` con descripciones comunes y `error("…")` con una propia | Las descripciones que cada una escribió en su router se mantienen; solo se añade el esquema `ErrorOut` (DRY). |
+| El cambio en los routers se hizo con buscar y reemplazar (regex) en vez de a mano | Era el mismo patrón en 15 archivos (`{"description": X}` → `error(X)`); así no cambia ninguna descripción. |
+| En `exercises` y `routines`, 401 y 403 van en el `APIRouter` | Todos sus endpoints piden login y rol; una línea en vez de trece. |
+| En los 429 del login y el registro se mantiene el ejemplo que ya tenían (`**error(...)` + `content`) | Ese ejemplo enseña el mensaje real del limitador (HU-34). |
+| El 422 no usa `ErrorOut` | FastAPI ya lo documenta con su esquema, cuyo `detail` es una lista de campos. |
+| Un test lee el OpenAPI y comprueba errores, 401, ejemplos y tags | Si alguien añade un endpoint sin documentar sus errores, el test falla. |
+| Versión `0.2.0` | Es la Entrega 2. |

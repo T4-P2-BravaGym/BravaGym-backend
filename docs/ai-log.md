@@ -269,3 +269,12 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué descarté:** guardar `ends_at` en la base de datos, porque podría desincronizarse con la duración.
 - **Errores o alucinaciones:** en el test me propuso `.replace("Z", "+00:00")` antes de `fromisoformat`; Ruff lo marcó (FURB162) porque desde Python 3.11 no hace falta, y lo quité. Al arrancar el backend el login daba 500 porque mi `brava.db` no tenía la migración de la T-03; lo arreglé con `alembic upgrade head`, no era un fallo de esta tarea.
 - **Cómo lo comprobé:** test de integración nuevo para `ends_at` en `GET /sessions`, `pytest` completo, Ruff en los archivos tocados y la respuesta de `/sessions` en Swagger.
+
+## T-02 · Swagger enriquecido — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código, ejecuté los comandos y hice los commits.
+- **Prompt clave:** "la T-02 no la entiendo bien" y, después, "si podemos, hagamos todos los routers nosotras".
+- **Qué me explicó o propuso:** qué es OpenAPI, el esquema `ErrorOut`, los ayudantes `errors()` y `error()`, las descripciones de los tags, y escribir primero un test que lea el OpenAPI y liste lo que falta antes de tocar los routers.
+- **Qué acepté:** el test primero (empezó con 187 errores sin `ErrorOut`, 13 endpoints sin 401 y 3 esquemas sin ejemplo, y fuimos bajando hasta cero); poner 401 y 403 en el `APIRouter` de `exercises` y `routines`; y dejar el 422 con el esquema de FastAPI.
+- **Qué descarté:** aplicar un parche ya preparado con todos los cambios de los routers; preferí hacerlo yo con buscar y reemplazar (regex) en VS Code para entender cada cambio.
+- **Errores o alucinaciones:** nada inventado. El primer reemplazo no encontraba nada porque la ruta de "files to include" no era la correcta en mi espacio de trabajo (`app/routers` en vez de `**/app/routers/**`); lo vimos con una captura.
