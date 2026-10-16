@@ -319,3 +319,13 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** todo lo anterior. Cuando el equipo dijo "clases y tienda", me recomendó seguir su decisión; yo preferí dejar también las cuotas, porque no cuesta nada más y sirve para ofertas de la cuota.
 - **Qué descarté:** limitar por categoría de producto, que cambiaba el cálculo de RN-15 para un pedido con productos mezclados.
 - **Errores o alucinaciones:** nada inventado. Me avisó de antemano de que Alembic no detecta las `CHECK` y de que la migración iba a tener el mismo problema de foreign keys que la T-03, así que la probamos con datos desde el principio. Un test de la HU-25 comparaba la respuesta entera y hubo que añadirle `applies_to`.
+
+## WeekNav común — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora, en el mismo chat del PageHeader. Leyó el front con mi permiso, solo lectura; el código y los comandos, míos.
+- **Prompt clave:** "haremos la otra rama para hacer lo de las flechas un componente reutilizable", después de cambiar "Anterior" y "Siguiente" por flechas en las cuatro páginas.
+- **Qué me explicó o propuso:** que la navegación por semanas estaba copiada en `Schedule`, `Bookings`, `PersonalTraining` y `TrainerSessions` (marcado, salto de 7 días y estilos iguales). Un componente `WeekNav` que recibe la fecha (`anchor`) y `onChange`, en vez del texto y dos funciones, para que calcule él la semana y el salto y las páginas solo guarden la fecha.
+- **Qué acepté:** esa interfaz, ponerlo en `components/domain` porque usa la semana de Madrid de `utils/week`, la ficha y la demo en el Sandbox y dos tests con Vitest. También esperar a que se mergeara la PR de las flechas antes de sacar la rama, porque tocaba las mismas líneas.
+- **Qué descarté:** la primera idea de pasarle `label`, `onPrevious` y `onNext`, porque cada página seguía calculando la semana por su cuenta.
+- **Errores o alucinaciones:** nada inventado. Al pegar los cambios se me olvidaron dos de la lista en `PersonalTraining` (borrar `weekLabel` y cambiar el import de `utils/week`); lo detectó `npm run lint`. Claude no pudo pasar lint ni tests en su entorno antes de pasarme el código, y lo avisó.
+- **Cómo lo comprobé:** `npm run lint`, `npm test` y `npm run build`. A mano, en el horario sin sesión, en Reservar clases y Entrenamiento personal con `lucia` y en Mis clases con `ana`: las flechas cambian de semana, se cargan sus clases y en el móvil cabe en una línea.
