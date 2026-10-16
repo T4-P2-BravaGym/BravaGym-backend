@@ -1,4 +1,4 @@
-"""Book, cancel and list bookings (RN-01 to RN-07).
+"""Book, cancel and list bookings (RN-01 to RN-07, RN-16).
 
 Capacity check and write happen in one transaction. Waitlist position is
 computed from created_at order and never stored.
@@ -127,6 +127,43 @@ def _ensure_extra_class_payment(
     )
     db.add(payment)
     return payment
+
+
+def settle_booking_payment(
+    db: Session, booking: Booking, *, refund_paid: bool
+) -> PaymentStatus | None:
+    """RN-16 / RN-10: what happens to the extra-class payment of a cancelled booking.
+
+    A pending payment is cancelled (nothing was charged). A paid one is refunded
+    only when the gym cancels (refund_paid=True: session cancelled or membership
+    exit); when the member cancels, it stays paid and only administración can
+    refund it. Does not commit. Returns the new status, or None if nothing changed.
+    """
+    payment = db.scalar(
+        select(Payment)
+        .where(
+            Payment.booking_id == booking.id,
+            Payment.status.in_((PaymentStatus.PENDING, PaymentStatus.PAID)),
+        )
+        .with_for_update()
+    )
+    if payment is None:
+        return None
+
+    if payment.status == PaymentStatus.PENDING:
+        payment.status = PaymentStatus.CANCELLED
+    elif refund_paid:
+        payment.status = PaymentStatus.REFUNDED
+    else:
+        return None
+
+    logger.info(
+        "Payment %s of booking %s is now %s",
+        payment.id,
+        booking.id,
+        payment.status.value,
+    )
+    return payment.status
 
 
 def _load_booking_with_session(db: Session, booking_id: int) -> Booking:
@@ -279,9 +316,11 @@ def _cancel_one_booking_applying_rn06(
     session: ClassSession,
     cancelled_at: datetime,
     enforce_deadline: bool,
+    refund_paid: bool,
     now: datetime | None,
 ) -> int | None:
-    """Mark one booking cancelled and promote waitlist when it was confirmed (RN-06).
+    """Mark one booking cancelled, settle its payment (RN-16) and promote the
+    waitlist when it was confirmed (RN-06).
 
     Does not commit. Returns the promoted booking id when a waitlisted booking
     took the freed spot, otherwise None.
@@ -297,6 +336,7 @@ def _cancel_one_booking_applying_rn06(
 
     booking.status = BookingStatus.CANCELLED
     booking.cancelled_at = cancelled_at
+    settle_booking_payment(db, booking, refund_paid=refund_paid)
     db.flush()
 
     if previous_status != BookingStatus.CONFIRMED:
@@ -347,6 +387,7 @@ def cancel_booking(
         session=session,
         cancelled_at=cancelled_at,
         enforce_deadline=True,
+        refund_paid=False,
         now=now,
     )
 
@@ -409,6 +450,7 @@ def cancel_future_bookings_for_user(
             session=session,
             cancelled_at=current,
             enforce_deadline=False,
+            refund_paid=True,
             now=now,
         )
         affected_session_ids.append(session.id)

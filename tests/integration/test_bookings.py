@@ -478,3 +478,72 @@ def test_only_members_can_cancel(
         headers=auth_headers(role),
     )
     assert response.status_code == 403
+
+
+def test_rn16_member_cancel_cancels_pending_extra_payment(
+    client, db, make_user, make_plan, make_subscription
+):
+    member = make_user()
+    make_subscription(member, make_plan())
+    session = _seed_session(db, make_user, extra_price_cents=1200, name="Extra cancel")
+    booked = client.post(
+        BOOK_URL.format(session_id=session.id), headers=auth_header_for(member)
+    )
+    booking_id = booked.json()["id"]
+
+    response = client.post(
+        CANCEL_URL.format(booking_id=booking_id), headers=auth_header_for(member)
+    )
+
+    assert response.status_code == 200
+    payment = db.scalar(select(Payment).where(Payment.booking_id == booking_id))
+    db.refresh(payment)
+    assert payment.status == PaymentStatus.CANCELLED
+
+
+def test_rn16_member_cancel_keeps_paid_extra_payment(
+    client, db, make_user, make_plan, make_subscription
+):
+    member = make_user()
+    make_subscription(member, make_plan())
+    session = _seed_session(db, make_user, extra_price_cents=1200, name="Extra pagada")
+    booked = client.post(
+        BOOK_URL.format(session_id=session.id), headers=auth_header_for(member)
+    )
+    booking_id = booked.json()["id"]
+    payment = db.scalar(select(Payment).where(Payment.booking_id == booking_id))
+    payment.status = PaymentStatus.PAID
+    payment.paid_at = datetime(2026, 10, 1, 10, 0)
+    db.commit()
+
+    response = client.post(
+        CANCEL_URL.format(booking_id=booking_id), headers=auth_header_for(member)
+    )
+
+    assert response.status_code == 200
+    db.refresh(payment)
+    assert payment.status == PaymentStatus.PAID
+
+
+def test_rebooking_after_cancel_charges_once(
+    client, db, make_user, make_plan, make_subscription
+):
+    member = make_user()
+    make_subscription(member, make_plan())
+    session = _seed_session(
+        db, make_user, extra_price_cents=1200, name="Extra otra vez"
+    )
+    headers = auth_header_for(member)
+    booking_id = client.post(
+        BOOK_URL.format(session_id=session.id), headers=headers
+    ).json()["id"]
+    client.post(CANCEL_URL.format(booking_id=booking_id), headers=headers)
+
+    rebooked = client.post(BOOK_URL.format(session_id=session.id), headers=headers)
+
+    assert rebooked.status_code == 201
+    db.expire_all()
+    statuses = db.scalars(
+        select(Payment.status).where(Payment.booking_id == booking_id)
+    ).all()
+    assert sorted(status.value for status in statuses) == ["cancelled", "pending"]
