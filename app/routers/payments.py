@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import CurrentMember, require_roles
+from app.core.openapi import error
 from app.models import User
 from app.models.enums import PaymentStatus, RoleName
 from app.schemas.payment import PaymentConcept, PaymentOut, PaymentPage, PayRequest
@@ -26,13 +27,13 @@ CurrentAdmin = Annotated[
 ]
 
 MEMBER_AUTH_RESPONSES = {
-    401: {"description": "Missing, invalid or expired token"},
-    403: {"description": "Only members can use this endpoint"},
+    401: error("Missing, invalid or expired token"),
+    403: error("Only members can use this endpoint"),
 }
 
 ADMIN_AUTH_RESPONSES = {
-    401: {"description": "Missing, invalid or expired token"},
-    403: {"description": "Only admin or superadmin can use this endpoint"},
+    401: error("Missing, invalid or expired token"),
+    403: error("Only admin or superadmin can use this endpoint"),
 }
 
 
@@ -194,8 +195,8 @@ def export_payments(
     ),
     responses={
         **MEMBER_AUTH_RESPONSES,
-        404: {"description": "Payment does not exist or is not yours"},
-        409: {"description": "Payment is not pending (already paid or refunded)"},
+        404: error("Payment does not exist or is not yours"),
+        409: error("Payment is not pending (already paid or refunded)"),
         422: {
             "description": "Discount code unknown, inactive, out of dates or used up"
         },
@@ -227,8 +228,8 @@ def pay_payment(
     ),
     responses={
         **ADMIN_AUTH_RESPONSES,
-        404: {"description": "Payment not found"},
-        409: {"description": "Payment is not in paid status"},
+        404: error("Payment not found"),
+        409: error("Payment is not in paid status"),
     },
 )
 def refund_payment(

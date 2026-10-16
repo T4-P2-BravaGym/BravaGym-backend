@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import CurrentMember, require_roles
+from app.core.openapi import error
 from app.models.enums import CancellationStatus, RoleName
 from app.models.user import User
 from app.schemas.cancellation import (
@@ -26,13 +27,13 @@ CurrentAdmin = Annotated[
 ]
 
 AUTH_RESPONSES = {
-    401: {"description": "Missing, invalid or expired token"},
-    403: {"description": "Only members can use this endpoint"},
+    401: error("Missing, invalid or expired token"),
+    403: error("Only members can use this endpoint"),
 }
 
 ADMIN_AUTH_RESPONSES = {
-    401: {"description": "Missing, invalid or expired token"},
-    403: {"description": "Only admin and superadmin can use this endpoint"},
+    401: error("Missing, invalid or expired token"),
+    403: error("Only admin and superadmin can use this endpoint"),
 }
 
 
@@ -48,10 +49,8 @@ ADMIN_AUTH_RESPONSES = {
     ),
     responses={
         **AUTH_RESPONSES,
-        404: {"description": "The member has no active subscription"},
-        409: {
-            "description": "The member already has a pending cancellation request (RN-12)"
-        },
+        404: error("The member has no active subscription"),
+        409: error("The member already has a pending cancellation request (RN-12)"),
     },
 )
 def create_cancellation_request(
@@ -72,7 +71,7 @@ def create_cancellation_request(
     description="Returns the member's most recent cancellation request and its status.",
     responses={
         **AUTH_RESPONSES,
-        404: {"description": "The member has no cancellation request"},
+        404: error("The member has no cancellation request"),
     },
 )
 def read_my_cancellation_request(
@@ -130,8 +129,8 @@ def list_cancellation_requests(
     ),
     responses={
         **ADMIN_AUTH_RESPONSES,
-        404: {"description": "Cancellation request not found"},
-        409: {"description": "The request is not pending"},
+        404: error("Cancellation request not found"),
+        409: error("The request is not pending"),
     },
 )
 def approve_cancellation_request(
@@ -159,8 +158,8 @@ def approve_cancellation_request(
     ),
     responses={
         **ADMIN_AUTH_RESPONSES,
-        404: {"description": "Cancellation request not found"},
-        409: {"description": "The request is not pending"},
+        404: error("Cancellation request not found"),
+        409: error("The request is not pending"),
         422: {"description": "Missing or empty admin_notes (RN-13)"},
     },
 )

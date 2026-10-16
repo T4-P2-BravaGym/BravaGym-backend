@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_roles
+from app.core.openapi import error
 from app.models import User
 from app.models.enums import RoleName
 from app.schemas.classes import (
@@ -64,9 +65,9 @@ def list_class_types(
     status_code=status.HTTP_201_CREATED,
     summary="Create a class type",
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Caller is not a trainer or superadmin"},
-        409: {"description": "A class type with that name already exists"},
+        401: error("Missing, invalid or expired token"),
+        403: error("Caller is not a trainer or superadmin"),
+        409: error("A class type with that name already exists"),
     },
 )
 def create_class_type(
@@ -82,10 +83,10 @@ def create_class_type(
     response_model=ClassTypeOut,
     summary="Update a class type",
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Caller is not a trainer or superadmin"},
-        404: {"description": "Class type not found"},
-        409: {"description": "A class type with that name already exists"},
+        401: error("Missing, invalid or expired token"),
+        403: error("Caller is not a trainer or superadmin"),
+        404: error("Class type not found"),
+        409: error("A class type with that name already exists"),
     },
 )
 def update_class_type(
@@ -105,9 +106,9 @@ def update_class_type(
     summary="Deactivate a class type",
     description="Soft delete: sets is_active=false. Existing sessions keep the type.",
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Caller is not a trainer or superadmin"},
-        404: {"description": "Class type not found"},
+        401: error("Missing, invalid or expired token"),
+        403: error("Caller is not a trainer or superadmin"),
+        404: error("Class type not found"),
     },
 )
 def deactivate_class_type(

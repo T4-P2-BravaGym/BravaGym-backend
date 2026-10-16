@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import CurrentMember
+from app.core.openapi import error
 from app.schemas.order import OrderCreate, OrderOut, OrderPage
 from app.services import order_service
 
@@ -13,8 +14,8 @@ router = APIRouter(prefix="/orders", tags=["shop"])
 DbSession = Annotated[Session, Depends(get_db)]
 
 AUTH_RESPONSES = {
-    401: {"description": "Missing, invalid or expired token"},
-    403: {"description": "Only members can use this endpoint"},
+    401: error("Missing, invalid or expired token"),
+    403: error("Only members can use this endpoint"),
 }
 
 
@@ -30,9 +31,7 @@ AUTH_RESPONSES = {
     ),
     responses={
         **AUTH_RESPONSES,
-        409: {
-            "description": "A product is not available or there is not enough stock (RN-17)"
-        },
+        409: error("A product is not available or there is not enough stock (RN-17)"),
         422: {"description": "Empty cart, invalid quantity or the same product twice"},
     },
 )
@@ -75,8 +74,8 @@ def list_my_orders(
     ),
     responses={
         **AUTH_RESPONSES,
-        404: {"description": "The order does not exist or belongs to someone else"},
-        409: {"description": "The order or its payment is no longer pending"},
+        404: error("The order does not exist or belongs to someone else"),
+        409: error("The order or its payment is no longer pending"),
     },
 )
 def cancel_order(order_id: int, member: CurrentMember, db: DbSession) -> OrderOut:

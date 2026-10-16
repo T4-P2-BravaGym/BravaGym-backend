@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.openapi import error
 from app.core.deps import require_roles
 from app.models import User
 from app.models.enums import RoleName
@@ -27,8 +28,8 @@ DbSession = Annotated[Session, Depends(get_db)]
 ShopAdmin = Annotated[User, Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN))]
 
 AUTH_ERRORS = {
-    401: {"description": "Missing, invalid or expired token"},
-    403: {"description": "Caller is not admin or superadmin"},
+    401: error("Missing, invalid or expired token"),
+    403: error("Caller is not admin or superadmin"),
 }
 
 
@@ -160,7 +161,7 @@ def create_product(body: ProductCreate, _: ShopAdmin, db: DbSession) -> ProductA
     ),
     responses={
         **AUTH_ERRORS,
-        404: {"description": "Product not found"},
+        404: error("Product not found"),
         422: {"description": "Invalid values, null in a required field, unknown category, repeated size or stock on a product with sizes"},
     },
 )
@@ -178,7 +179,7 @@ def update_product(
             "Soft delete: sets is_active=false, also when the product has orders. "
             "It disappears from the shop and can be reactivated with PATCH."
     ),
-    responses={**AUTH_ERRORS, 404: {"description": "Product not found"}},
+    responses={**AUTH_ERRORS, 404: error("Product not found")},
 )
 def deactivate_product(product_id: int, _: ShopAdmin, db: DbSession) -> ProductAdminOut:
     return ProductAdminOut.from_product(shop_service.deactivate_product(db, product_id))
@@ -194,7 +195,7 @@ def deactivate_product(product_id: int, _: ShopAdmin, db: DbSession) -> ProductA
     ),
     responses={
         **AUTH_ERRORS,
-        404: {"description": "Product not found"},
+        404: error("Product not found"),
         422: {"description": "Not a JPEG, PNG or WebP image (code invalid_image) or larger than 2 MB (code image_too_large)"},
     },
 )
@@ -213,7 +214,7 @@ def upload_product_image(
     response_model=ProductAdminOut,
     summary="Remove the product photo",
     description="Deletes the photo and its file. Without a photo it changes nothing (200).",
-    responses={**AUTH_ERRORS, 404: {"description": "Product not found"}},
+    responses={**AUTH_ERRORS, 404: error("Product not found")},
 )
 def delete_product_image(product_id: int, _: ShopAdmin, db: DbSession) -> ProductAdminOut:
     product = product_image_service.remove_product_image(db, product_id)
@@ -227,7 +228,7 @@ def delete_product_image(product_id: int, _: ShopAdmin, db: DbSession) -> Produc
     summary="Create a product category",
     responses={
         **AUTH_ERRORS,
-        409: {"description": "A category with that name already exists"},
+        409: error("A category with that name already exists"),
     },
 )
 def create_category(body: CategoryIn, _: ShopAdmin, db: DbSession) -> CategoryOut:
@@ -240,8 +241,8 @@ def create_category(body: CategoryIn, _: ShopAdmin, db: DbSession) -> CategoryOu
     summary="Rename a product category",
     responses={
         **AUTH_ERRORS,
-        404: {"description": "Category not found"},
-        409: {"description": "A category with that name already exists"},
+        404: error("Category not found"),
+        409: error("A category with that name already exists"),
     },
 )
 def update_category(
@@ -257,8 +258,8 @@ def update_category(
     description="Only possible when no product, active or inactive, belongs to it.",
     responses={
         **AUTH_ERRORS,
-        404: {"description": "Category not found"},
-        409: {"description": "The category still has products"},
+        404: error("Category not found"),
+        409: error("The category still has products"),
     },
 )
 def delete_category(category_id: int, _: ShopAdmin, db: DbSession) -> None:

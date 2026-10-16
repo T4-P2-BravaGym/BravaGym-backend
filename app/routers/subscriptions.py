@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import CurrentMember
+from app.core.openapi import error
 from app.schemas.subscription import (
     MySubscriptionsOut,
     SubscriptionCreate,
@@ -17,8 +18,8 @@ router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 DbSession = Annotated[Session, Depends(get_db)]
 
 AUTH_RESPONSES = {
-    401: {"description": "Missing, invalid or expired token"},
-    403: {"description": "Only members can use this endpoint"},
+    401: error("Missing, invalid or expired token"),
+    403: error("Only members can use this endpoint"),
 }
 
 
@@ -33,8 +34,8 @@ AUTH_RESPONSES = {
     ),
     responses={
         **AUTH_RESPONSES,
-        404: {"description": "The plan does not exist or is no longer active"},
-        409: {"description": "The member already has an active subscription (RN-11)"},
+        404: error("The plan does not exist or is no longer active"),
+        409: error("The member already has an active subscription (RN-11)"),
     },
 )
 def subscribe(
