@@ -19,6 +19,7 @@ from app.schemas.payment import (
     DiscountCodePage,
     DiscountCodeUpdate,
     DiscountValidationOut,
+    PaymentConcept,
 )
 from app.services import discount_service
 
@@ -72,14 +73,24 @@ def create_code(
     summary="Check a discount code before paying (RN-14)",
     responses={
         401: error("Not logged in"),
-        422: {"description": "Unknown, inactive, out of dates or used up"},
+        422: {
+            "description": "Unknown, inactive, out of dates, used up or for another concept"
+        },
     },
 )
 def validate_code(
-    code: str, member: CurrentMember, db: DbSession
+    code: str,
+    member: CurrentMember,
+    db: DbSession,
+    concept: Annotated[
+        PaymentConcept | None,
+        Query(description="The payment's concept, to check a limited code (T-240)"),
+    ] = None,
 ) -> DiscountValidationOut:
-    valid = discount_service.get_valid_code(db, code)
-    return DiscountValidationOut(code=valid.code, percent_off=valid.percent_off)
+    valid = discount_service.get_valid_code(db, code, concept)
+    return DiscountValidationOut(
+        code=valid.code, percent_off=valid.percent_off, applies_to=valid.applies_to
+    )
 
 
 @router.patch(

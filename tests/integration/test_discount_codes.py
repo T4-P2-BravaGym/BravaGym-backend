@@ -205,7 +205,11 @@ def test_rn14_valid_code_returns_its_percent(client, db, make_user):
     response = client.get(f"{CODES_URL}/brava20/validate", headers=headers_for(member))
 
     assert response.status_code == 200
-    assert response.json() == {"code": "BRAVA20", "percent_off": code.percent_off}
+    assert response.json() == {
+        "code": "BRAVA20",
+        "percent_off": code.percent_off,
+        "applies_to": None,
+    }
 
 
 @freeze_time(TODAY)
