@@ -1,0 +1,22 @@
+meta {
+  name: get-trainers-error
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/v1/trainers
+  body: none
+  auth: none
+}
+
+tests {
+  test("Expected HTTP 405", function () {
+    expect(res.getStatus()).to.equal(405);
+  });
+}
+
+docs {
+  Error example for GET /api/v1/trainers: Unsupported method on this route; this public endpoint has no functional error case. Expected HTTP 405. A passing assertion confirms this intentional error. This example changes the method; it is not a failure of the normal GET.
+}
+

@@ -15,6 +15,16 @@ El flujo es el mismo en todas las historias, así que se describe aquí una vez 
 Herramientas de pago (Claude): se usan en modo mentora, para explicar y revisar.
 El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 
+## D-05 · Colección de Bruno — Beste Özaydın
+
+- **Herramienta y modelo:** OpenAI Codex, GPT-6, con explicación paso a paso, generación de archivos y ejecución autorizada. La modalidad de pago de la cuenta no está confirmada.
+- **Prompt clave:** "okay lets continue with the next one", tras describir #198 y su colección por tags, entorno local, login y ejemplos de éxito/error.
+- **Qué me explicó o propuso:** inventariar el OpenAPI, crear archivos `.bru` por tag, guardar tokens con `bru.setVar`, capturar ids de los recursos creados y ejecutar los ejemplos en orden sobre una base temporal con el seed. Se consultó la documentación oficial de Bruno para formato, scripts y variables.
+- **Qué acepté:** la spec previa, los ejemplos de todas las operaciones HTTP, logins por rol, el entorno local ficticio, las instrucciones del README y la verificación contra datos temporales. Autoricé a Codex a generar los archivos y ejecutar las herramientas; no se presenta como documentación escrita manualmente sin ayuda de IA.
+- **Qué descarté:** ejecutar sobre la base habitual, guardar JWT en archivos, ejecutar las peticiones en paralelo o inventar un error funcional para endpoints públicos que no lo tienen. En esos casos se documenta un método no permitido (405). La conexión WebSocket se verifica aparte del runner HTTP.
+- **Errores o alucinaciones:** en el primer intento, la configuración de login usaba `body: form-urlencoded`, que el runner no enviaba como formulario. El informe mostró cuerpo vacío y respuesta 422; se corrigió a `body: formUrlEncoded` conservando el bloque `body:form-urlencoded`, y se comprobó primero el login. También se comprobó que la CLI intentaba tratar el WebSocket como HTTP y se excluyó `realtime` del comando de ejecución, documentando la prueba separada.
+- **Cómo lo comprobé:** el inventario cubre las 73 operaciones HTTP con un ejemplo de éxito y otro de error, más preparación y dos ejemplos WebSocket. Bruno CLI 4.2.1 ejecutó 152 peticiones HTTP sobre SQLite temporal con sus 152 pruebas de estado en verde. Los archivos se validan con el parser oficial; el WebSocket se verifica por separado. La base local habitual no se modificó. Los resultados finales quedan en la PR y la aprobación corresponde a otra compañera.
+
 ## D-01 y D-02 · Specs, ontología y `AGENTS.md` — Damaris
 
 - **Herramienta y modelo:** Claude (de pago), en modo mentora en conversación. Alcance: solo documentación y revisión; no ha escrito ni ejecutado nada en el repo. Todo el texto lo he pegado y commiteado yo.
@@ -73,9 +83,29 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Herramienta y modelo:** Claude (claude-opus-5-5), en modo mentora. El código lo escribí y lo commiteé yo, salvo un momento que cuento abajo.
 - **Prompt de partida:** el texto de la issue #77 con sus criterios y sub-issues, con el contexto del proyecto cargado.
 - **Qué salió de la conversación y acepté:** separar el catálogo de ejercicios en su propio servicio; desactivar la rutina anterior y crear la nueva en un solo commit; validar socia, ejercicios y posiciones antes de escribir nada; el 409 por día y posición repetidos comprobado en el servicio y, como última barrera, con el `UNIQUE` de la tabla; sacar el `trainer_id` del token y no del cuerpo; y reutilizar la vista de la HU-18 con `TrainerRoutineOut`. El detalle está en `specs/HU-17-create-routines.md`.
-- **Qué corregí o descarté:** con prisa le pedí "dímelo entero" y generó los archivos completos en vez de guiarme paso a paso, que no es como trabajamos. Lo descarté y lo rehicimos archivo por archivo en el chat, escribiéndolo yo. Al empezar el frontend salió que el `RoutineEditor` que ya existía enviaba `exercises` en vez de `lines` y no mandaba `start_date`, y que la entrenadora no podía listar socias porque `GET /users` es solo de admin. En vez de abrir `GET /users` a entrenadoras, que habría expuesto emails y teléfonos, decidí un endpoint nuevo `GET /users/members` que solo devuelve id y nombre.
+- **Qué corregí o descarté:** con prisa le pedí "dímelo entero" y generó los archivos completos en vez de guiarme paso a paso, que no es como trabajamos. Lo descarté y lo rehicimos archivo por archivo en el chat, escribiéndolo yo. Al empezar el frontend salió que el `RoutineEditor` que ya existía enviaba `exercises` en vez de `lines` y no mandaba `start_date`, y que la entrenadora no podía listar socias porque `GET /users` es solo de admin. En vez de abrir `GET /users` a entrenadoras, que habría expuesto emails y teléfonos, decidí un endpoint nuevo `GET /users/members` que solo devuelve id y nombre. En el frontend: npm run build y el flujo a mano (crear una rutina como entrenadora, verla como socia en “Mi rutina”, crear otra y comprobar que la anterior queda inactiva, y el error de carga con el backend apagado)
 - **Errores o alucinaciones:** nada inventado sobre el proyecto: antes de proponer leyó los modelos, el `AGENTS.md` y el código existente. Los errores fueron míos al copiar y los pillaron los tests: usé `RoutineUpdate` en vez de `RoutineCreate` en el `POST` (500 en todos los tests de crear), puse mal una llave en la ruta `/{routine_id}/exercises` (404) y escribí `firts_line` en un test. También tuve que ajustar el test de la HU-18, porque las líneas ahora devuelven su `id`.
 - **Cómo lo comprobé:** `pytest` (permisos, 409, 404, 422 y la desactivación de la rutina anterior), ruff y el flujo en Swagger: crear ejercicios, crear una rutina y repetir día y posición para ver el 409. Pendiente: el editor en el frontend (frontend#16).
+
+## T-07 · Separar dependencias de test — Beste Özaydın
+
+- **Herramienta y modelo:** OpenAI Codex, GPT-6, con explicaciones paso a paso y ejecución autorizada. La modalidad de pago de la cuenta no está confirmada.
+- **Prompt clave:** "ok do it", tras leer la issue #192 y explicar que se escribiría la spec, se quitarían las dos dependencias de ejecución, se comprobaría instalación y tests y se abriría una PR.
+- **Qué me explicó o propuso:** la diferencia entre dependencias de ejecución y de desarrollo; retirar las declaraciones de `pytest` y `freezegun` de `requirements.txt`, conservándolas en `requirements-dev.txt`.
+- **Qué acepté:** el cambio mínimo descrito en la issue y la spec previa. Autoricé a Codex a editar los archivos y ejecutar las comprobaciones; el agente escribió esta documentación y el cambio de configuración.
+- **Qué descarté:** ampliar la tarea a Docker, cambiar versiones o modificar pruebas.
+- **Errores o alucinaciones:** no se detectaron errores en la propuesta de separación; los resultados de instalación y pruebas se registran en la PR.
+- **Cómo lo comprobé:** instalación desde `requirements-dev.txt`, suite existente y comprobación del diff y del salto de línea final. Los resultados concretos se adjuntan a la PR antes de solicitar revisión humana.
+
+## HU-07 · Página de pricing — Beste Özaydın
+
+- **Herramienta y modelo:** Codex / ChatGPT. Recibí ayuda de IA siguiendo cada paso. Esta documentación retrospectiva se preparó con OpenAI Codex, GPT-6; el modelo exacto y la modalidad de pago de las conversaciones originales no están confirmados.
+- **Prompt clave:** no se conserva aquí el prompt literal de la implementación original. En la revisión documental pedí "please do everything one by one and tell me whet you do" y confirmé continuar con la spec y la bitácora de HU-07. Se distingue esta revisión del trabajo original para no reconstruir prompts como si fueran citas.
+- **Qué me explicó o propuso:** en esta revisión, contrastar los criterios de #38 con las PR backend #141 y frontend #41 y documentar el catálogo público, los planes activos ordenados por precio, el precio en euros y los estados de la pantalla. La ayuda se explicó paso a paso.
+- **Qué acepté:** documentar la implementación existente en una spec compartida, reutilizar las pruebas existentes como evidencia y registrar el alcance de la ayuda. Autoricé a Codex a escribir estos documentos y ejecutar las comprobaciones; no se presentan como trabajo escrito sin ayuda de IA.
+- **Qué descarté:** rehacer una funcionalidad ya terminada o añadir comportamiento nuevo dentro de una tarea documental. No se conserva una lista verificable de propuestas descartadas durante la implementación original.
+- **Errores o alucinaciones:** en esta revisión no se reconstruyen decisiones, errores ni conversaciones históricas que no se pueden verificar. La ausencia de spec y entrada de bitácora se detectó al revisar los archivos de `dev`, aunque #38 ya estaba cerrado.
+- **Cómo lo comprobé:** se leyeron los criterios de #38, los archivos incluidos en backend #141 y frontend #41 y el código de planes y de `Pricing`. Las comprobaciones actuales y sus resultados se registran en la PR documental; no se atribuyen a pruebas manuales históricas que esta sesión no haya observado.
 
 ## HU-05 · Gestión de roles — Esra
 
@@ -86,6 +116,15 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué descarté:** borrar el perfil de entrenadora al volver a socia; se conserva para no perder su bio. Tampoco cambié los permisos de tipos de clase que vimos de paso, porque son de la HU-11.
 - **Errores o alucinaciones:** en los primeros tests salía un 500 en vez de 200, porque la base de datos de test no tenía los roles creados; lo arreglamos con una fixture `all_roles`. Al revisar el diff me dio números de línea equivocados; lo vi al comprobarlos yo.
 
+## HU-08 · Gestión de planes — Beste Özaydın
+
+- **Herramienta y modelo:** Codex / ChatGPT, confirmado por Beste para la implementación original; esta revisión documental se realizó con OpenAI Codex, GPT-6. Recibí ayuda de IA siguiendo cada paso. El modelo exacto de las conversaciones originales y la modalidad de pago no están confirmados; no se atribuyen esos datos sin evidencia.
+- **Prompt clave:** para completar y explicar la documentación: "please do everything one by one and tell me whet you do". Para describir el acompañamiento: "say that I got help from ai following each step". Son los prompts de la revisión del 14 de octubre, no una reconstrucción del prompt original de implementación.
+- **Qué me explicó o propuso:** cómo distinguir la historia #42, las subtareas #43 y #44 y la PR #178; la diferencia entre `Refs` y `Closes`; y los requisitos de spec, bitácora, Swagger, tests y revisión. La ayuda fue paso a paso, con explicaciones y comprobaciones de los archivos y de GitHub.
+- **Qué acepté:** documentar la historia completa en una spec del backend, registrar el alcance real de la ayuda de IA y comprobar los endpoints, permisos y borrado lógico antes de cerrar la historia. En esta revisión autoricé expresamente que Codex escribiera la documentación y ejecutara los comandos; estos archivos no se presentan como escritos manualmente sin ayuda.
+- **Qué descarté:** cerrar #42 inmediatamente tras cerrar las subtareas, porque faltaban la spec y esta entrada. No se dispone de un registro completo de decisiones descartadas durante la implementación original.
+- **Errores o alucinaciones:** la IA interpretó inicialmente los issues abiertos como posible trabajo sin implementar; al consultar GitHub comprobó que las PR backend #178 y frontend #63 ya estaban aprobadas y mergeadas. También indicó que faltaban ejemplos Swagger tras revisar solo el router; al leer `app/schemas/plan.py` comprobó que ya existían y evitó un cambio innecesario.
+- **Cómo lo comprobé:** las PR #178 y frontend #63 contienen la implementación; las subtareas #43, #44 y frontend #7 están cerradas. Pasaron las 45 pruebas de planes en el checkout previo y, en la rama documental basada en `dev`, las 614 pruebas completas con cobertura del 96,78 %. También pasaron Ruff, la comprobación de formato, la aplicación de migraciones y `alembic check` en una base temporal; `pip-audit -r requirements.txt` no encontró vulnerabilidades conocidas. Se verificaron los ejemplos de los esquemas en el OpenAPI generado. El CI de `dev` estaba en verde. La aprobación final corresponde a otra compañera.
 ## HU-04 · Ver y editar mi perfil — Esra
 
 - **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí o pegué el código, ejecuté los comandos y hice los commits.
@@ -159,3 +198,21 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
   - Al actualizar el Sandbox no se me dijo que las fichas nuevas sustituían a las viejas y salieron repetidas.
   - Descarté volver a codificar la foto con Pillow para esta entrega (queda en la retrospectiva).
 - **Cómo lo comprobé:** `pytest` (tipos válidos y falsos, límite de 2 MB, sustitución, borrado, fallo al guardar, 401 y 403), `alembic check`, `npm run build` y el flujo a mano: subir, cambiar y quitar la foto en el panel, verla en la tienda y probar un PDF renombrado a `.jpg`.
+
+## HU-32 · Cambiar mi contraseña — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código, ejecuté los comandos y hice los commits. Cubre el backend y el formulario de "Mi perfil".
+- **Prompt clave:** "vamos a trabajar en la HU-32; primero la spec".
+- **Qué me explicó o propuso:** en el backend, el esquema `PasswordChange` con las reglas del registro, comprobar la contraseña actual en el servicio con `verify_password` y devolver 400 en vez de 401, y reutilizar el limitador de la HU-34 contado por id de usuaria. En el front, un componente aparte `ChangePasswordForm` que comprueba las mismas reglas antes de llamar a la API.
+- **Qué acepté:** todo lo anterior; añadir el límite de intentos aunque la issue no lo pedía; sacar la regla de los 72 bytes a una función común con el registro (DRY); y en el front, vaciar los campos al cambiarla para que las contraseñas no se queden en pantalla.
+- **Qué descarté:** crear una clase nueva de error 400 en `exceptions.py`, porque la `AppError` base ya es 400; y enviar "repetir contraseña" a la API, porque lo comprueba el front.
+- **Errores o alucinaciones:** nada inventado; cada paso se comprobó antes con los tests. Pero propuso cambiar `UserCreate` sin decir que era código de la HU-01 de otra compañera; lo pregunté yo y mantuvimos el cambio porque el comportamiento es el mismo. Al probar en Swagger cambié de verdad la contraseña de Lucía y la devolví con el mismo endpoint. También vi que "Mi perfil" solo existe para socias; queda fuera de alcance en la spec.
+
+## Frontend #75 · Botón para mostrar u ocultar la contraseña — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código y los commits.Spec: `specs/T-75-password-reveal.md` en el repo del frontend.
+- **Prompt clave:** "cuando escribo la contraseña solo veo puntos; normalmente hay un ojo al lado para verla".
+- **Qué me explicó o propuso:** una prop `revealable` en `Field` en vez de un componente nuevo, dos iconos `eye` y `eyeOff` en `Icon`, y usarla en el login, el registro y "Cambiar contraseña".
+- **Qué acepté:** hacerlo como tarea aparte de la HU-32, porque toca `Field`, que usan todos los formularios; que el envoltorio del botón solo exista en los campos de contraseña, para no cambiar el HTML de los demás; y un nombre fijo ("Mostrar contraseña") con el estado en `aria-pressed`.
+- **Qué descarté:** primero propuso una casilla "Mostrar contraseñas" solo en mi formulario, para no tocar componentes comunes; preferí el ojo para toda la app y el equipo me dio la tarea. Tampoco añadí un ejemplo al Sandbox.
+- **Errores o alucinaciones:** nada inventado. Al principio no se podía añadir el ojo a "Cambiar contraseña" porque la HU-32 aún no estaba en `dev`; cuando se mergeó, traje `dev` a la rama y lo añadí en la misma PR.

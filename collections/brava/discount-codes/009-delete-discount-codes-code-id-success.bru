@@ -1,0 +1,26 @@
+meta {
+  name: delete-discount-codes-code-id-success
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/discount-codes/{{managedCodeId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenAdmin}}
+}
+
+tests {
+  test("Expected HTTP 204", function () {
+    expect(res.getStatus()).to.equal(204);
+  });
+}
+
+docs {
+  Operation: DELETE /api/v1/discount-codes/{code_id}. Expected HTTP 204. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

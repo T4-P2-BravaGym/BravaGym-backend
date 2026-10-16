@@ -1,0 +1,33 @@
+meta {
+  name: patch-trainers-me-profile-error
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/trainers/me/profile
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+body:json {
+  {
+    "bio": "Demo de colección Bruno",
+    "specialty": "Fuerza"
+  }
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for PATCH /api/v1/trainers/me/profile: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

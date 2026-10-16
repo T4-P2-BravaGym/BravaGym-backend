@@ -1,0 +1,33 @@
+meta {
+  name: post-sessions-personal-training-error
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/sessions/personal-training
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+body:json {
+  {
+    "class_type_id": "{{seedPersonalTypeId}}",
+    "starts_at": "{{futurePersonalSession}}"
+  }
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for POST /api/v1/sessions/personal-training: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

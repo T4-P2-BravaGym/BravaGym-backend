@@ -4,8 +4,8 @@
 
 Closes #
 
-Spec: specs/HU-XX-nombre.md
-AI: herramienta y modelo, o "ninguno"
+Spec: specs/HU-XX-name.md
+AI: tool and model, or "none"
 
 ## Checklist
 
@@ -16,4 +16,5 @@ AI: herramienta y modelo, o "ninguno"
 - [ ] Endpoint documented in Swagger (summary, response_model)
 - [ ] No secrets, passwords or tokens in code or logs
 - [ ] Conventional Commit messages
-- [ ] Entrada en `docs/ai-log.md` con el uso de IA de esta historia
+- [ ] Entry in `docs/ai-log.md` with the AI use for this story
+- [ ] I have read and tested all the code in this PR, including any AI suggestions

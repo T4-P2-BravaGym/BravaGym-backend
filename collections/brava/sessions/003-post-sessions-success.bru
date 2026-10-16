@@ -1,0 +1,39 @@
+meta {
+  name: post-sessions-success
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/sessions
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenTrainer}}
+}
+
+body:json {
+  {
+    "class_type_id": "{{seedClassTypeId}}",
+    "starts_at": "{{futureSession}}",
+    "capacity": 12,
+    "duration_minutes": 60
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) bru.setVar("managedSessionId", res.getBody().id);
+}
+
+tests {
+  test("Expected HTTP 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}
+
+docs {
+  Operation: POST /api/v1/sessions. Expected HTTP 201. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

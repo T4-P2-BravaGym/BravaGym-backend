@@ -1,0 +1,16 @@
+meta {
+  name: sessions-success
+  type: ws
+  seq: 1
+}
+
+ws {
+  url: {{wsBaseUrl}}/api/v1/ws/sessions/{{seedSessionId}}
+  body: none
+  auth: none
+}
+
+docs {
+  Connect: the handshake is accepted. Book or cancel a session in a separate request to observe updates. No initial message is promised.
+  Manual Bruno desktop examples. HTTP CLI skips WebSocket requests.
+}

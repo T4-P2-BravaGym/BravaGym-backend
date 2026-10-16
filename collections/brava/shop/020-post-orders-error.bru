@@ -1,0 +1,37 @@
+meta {
+  name: post-orders-error
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{baseUrl}}/api/v1/orders
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+body:json {
+  {
+    "items": [
+      {
+        "product_id": "{{seedProductId}}",
+        "quantity": 1
+      }
+    ]
+  }
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for POST /api/v1/orders: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

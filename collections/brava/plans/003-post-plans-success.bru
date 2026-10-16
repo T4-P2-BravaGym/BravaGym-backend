@@ -1,0 +1,37 @@
+meta {
+  name: post-plans-success
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/plans
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenAdmin}}
+}
+
+body:json {
+  {
+    "name": "Bruno plan {{runId}}",
+    "monthly_price_cents": 4500
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) bru.setVar("managedPlanId", res.getBody().id);
+}
+
+tests {
+  test("Expected HTTP 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}
+
+docs {
+  Operation: POST /api/v1/plans. Expected HTTP 201. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+
