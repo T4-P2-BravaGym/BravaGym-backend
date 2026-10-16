@@ -228,3 +228,12 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** hacerlo como tarea aparte de la HU-32, porque toca `Field`, que usan todos los formularios; que el envoltorio del botón solo exista en los campos de contraseña, para no cambiar el HTML de los demás; y un nombre fijo ("Mostrar contraseña") con el estado en `aria-pressed`.
 - **Qué descarté:** primero propuso una casilla "Mostrar contraseñas" solo en mi formulario, para no tocar componentes comunes; preferí el ojo para toda la app y el equipo me dio la tarea. Tampoco añadí un ejemplo al Sandbox.
 - **Errores o alucinaciones:** nada inventado. Al principio no se podía añadir el ojo a "Cambiar contraseña" porque la HU-32 aún no estaba en `dev`; cuando se mergeó, traje `dev` a la rama y lo añadí en la misma PR.
+
+## T-03 · Auditoría de usuarias — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código, ejecuté los comandos y hice los commits.
+- **Prompt clave:** "vamos a hacer primero la T-03".
+- **Qué me explicó o propuso:** tres columnas en `users` con su migración de Alembic, y un ayudante `_mark_updated` que se llama justo antes del `commit` en los cinco cambios de una usuaria (perfil, rol, contraseña, edición y baja), para que un cambio rechazado no cuente.
+- **Qué acepté:** todo lo anterior; que un `PATCH` vacío no cuente como cambio; y dejar fuera la baja aprobada de la HU-20, porque no está en la issue y quién la aprueba ya se guarda en la solicitud.
+- **Qué descarté:** la subtarea opcional de enseñar "Última modificación" en el panel de admin, para esta entrega.
+- **Errores o alucinaciones:** la migración generada por Alembic funcionaba en una base vacía (la de CI y la que probó al principio) pero fallaba en la mía con datos: SQLite no puede borrar `users` mientras otras tablas la apuntan. Lo vi al ejecutar `alembic upgrade head`; lo arreglamos apagando las foreign keys solo mientras se reconstruye la tabla y lo probamos con datos. Antes de generarla también me avisó de que mi base iba atrasada (sin la migración de la HU-30), porque si no la migración nueva habría incluido una columna que no era mía. Al copiar el servicio puse dos líneas con la sangría mal, y una hacía que el cambio de rol no se guardara.
