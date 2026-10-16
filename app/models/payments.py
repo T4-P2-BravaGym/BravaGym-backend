@@ -25,6 +25,10 @@ class DiscountCode(Base):
         CheckConstraint(
             "max_uses IS NULL OR max_uses > 0", name="ck_discount_codes_max_uses"
         ),
+        CheckConstraint(
+            "applies_to IS NULL OR applies_to IN ('subscription', 'booking', 'order')",
+            name="ck_discount_codes_applies_to",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -33,6 +37,8 @@ class DiscountCode(Base):
     valid_from: Mapped[date]
     valid_until: Mapped[date]
     max_uses: Mapped[int | None]
+    # T-240: only for one payment concept (subscription, booking or order); empty = all
+    applies_to: Mapped[str | None] = mapped_column(String(20))
     is_active: Mapped[bool] = mapped_column(default=True)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
 

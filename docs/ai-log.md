@@ -310,3 +310,12 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué descarté:** igualar el tamaño del badge "Reservada" y el botón "Cancelar": uno es un estado y el otro una acción, y el botón tiene que medir al menos 44 px de alto. También dejé para otra tarea el componente común de la navegación por semanas.
 - **Errores o alucinaciones:** el middleware rompió `test_a_failed_save_leaves_no_file_behind`, que esperaba que la excepción saliera de la API. Lo vi con `pytest`. Cambiamos el test para comprobar el 500 y seguir comprobando que no queda ningún archivo; no se le bajó la exigencia. Claude tampoco pudo ejecutar `pytest` en su entorno antes de pasármelo.
 - **Cómo lo comprobé:** `pytest` con cobertura del 96,84 %, test nuevo de que el 500 lleva la cabecera CORS, Ruff, `npm test` (72 tests), `npm run lint` y `npm run build`. A mano, con `lucia`: "Mis reservas" con nombre y hora, la clase reservada marcada en el horario y las flechas en una línea en el móvil.
+
+## T-240 · Códigos de descuento por tipo de pago — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código, ejecuté los comandos y hice los commits.
+- **Prompt clave:** "me han dado la #240, descuentos por categoría; la descripción está vacía".
+- **Qué me explicó o propuso:** antes de programar, dos alcances posibles (por tipo de pago o por categoría de producto) y un mensaje para preguntar al equipo, que eligió el tipo de pago. Después, la columna `applies_to`, la comprobación en `get_valid_code` y un `concept` opcional en la validación.
+- **Qué acepté:** todo lo anterior. Cuando el equipo dijo "clases y tienda", me recomendó seguir su decisión; yo preferí dejar también las cuotas, porque no cuesta nada más y sirve para ofertas de la cuota.
+- **Qué descarté:** limitar por categoría de producto, que cambiaba el cálculo de RN-15 para un pedido con productos mezclados.
+- **Errores o alucinaciones:** nada inventado. Me avisó de antemano de que Alembic no detecta las `CHECK` y de que la migración iba a tener el mismo problema de foreign keys que la T-03, así que la probamos con datos desde el principio. Un test de la HU-25 comparaba la respuesta entera y hubo que añadirle `applies_to`.
