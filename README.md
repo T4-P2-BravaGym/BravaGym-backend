@@ -64,6 +64,16 @@ docs/                # diagrama ER, reglas de negocio, mapa de endpoints y permi
 
 Cada archivo empieza con un comentario que dice qué va dentro y en qué historia (`TODO(HU-12)`). Lo que ya funciona es la base: configuración, base de datos, manejo de errores, CORS y `/health`.
 
+## Sesiones: refresh y logout (HU-33, backend)
+
+Tras aplicar las migraciones con `alembic upgrade head`, el login conserva el formulario OAuth2 y la respuesta `{access_token, token_type}` de Swagger. También entrega el refresh en la cookie `brava.refresh`, HttpOnly, SameSite=Lax, sin Domain y con Path `/api/v1/auth`. No devuelve el refresh en JSON. `ACCESS_TOKEN_EXPIRE_MINUTES` y `REFRESH_TOKEN_EXPIRE_DAYS` configuran las duraciones (60 minutos y 7 días por defecto).
+
+`POST /api/v1/auth/refresh` usa esa cookie y devuelve un access nuevo mientras rota la cookie. `POST /api/v1/auth/logout` exige además el bearer access de la misma usuaria, revoca ambos tokens y devuelve 204. Admite un access ya caducado solo para cerrar su sesión con un refresh válido. Ambos endpoints requieren la cabecera `X-Brava-CSRF: 1`; en Swagger se introduce en el campo correspondiente. Los clientes de API deben conservar las cookies entre peticiones.
+
+Login, refresh y logout comprueban el origen del navegador. Solo se admiten los orígenes CORS configurados y el de la propia API (Swagger). Clientes sin Origin pueden usarlos; una petición marcada `Sec-Fetch-Site: cross-site` sin Origin se rechaza. La cookie usa Secure fuera de `ENVIRONMENT=local`, donde se permite HTTP. El contrato de producción requiere HTTPS y frontend/API en el mismo sitio (mismo esquema y dominio registrable), con CORS limitado al origen real del frontend; el frontend debe incluir la integración de HU-33 para renovar automáticamente.
+
+Las revocaciones de access caducadas se limpian al emitir, renovar o cerrar una sesión. Los JWT antiguos sin `jti` y `type` dejan de aceptarse: será necesario iniciar sesión de nuevo.
+
 ## Límite de intentos (login y registro)
 
 `POST /auth/login` y `POST /auth/register` usan un limitador **en memoria** (`app/core/rate_limit.py`, HU-34): marcas de tiempo por clave (email+IP en login, IP en registro). Los umbrales van en `.env` (`AUTH_LOGIN_*`, `AUTH_REGISTER_*`). Si se supera el límite, la API responde **429** con cabecera `Retry-After`.

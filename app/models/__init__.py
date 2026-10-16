@@ -1,3 +1,4 @@
+from app.models.auth_tokens import RefreshToken, RevokedToken
 from app.models.classes import Booking, ClassSession, ClassType
 from app.models.membership import CancellationRequest, MembershipPlan, Subscription
 from app.models.payments import DiscountCode, Payment
@@ -19,6 +20,8 @@ __all__ = [
     "Product",
     "ProductCategory",
     "ProductVariant",
+    "RefreshToken",
+    "RevokedToken",
     "Role",
     "Routine",
     "RoutineExercise",

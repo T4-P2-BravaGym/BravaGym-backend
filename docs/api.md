@@ -32,7 +32,9 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | --- | --- | --- | --- |
 | GET | `/health` | Público | Comprobación para Docker |
 | POST | `/auth/register` | Público | Crea siempre un `member` |
-| POST | `/auth/login` | Público | Devuelve el JWT |
+| POST | `/auth/login` | Público | Formulario OAuth2; access en JSON y refresh en cookie HttpOnly |
+| POST | `/auth/refresh` | Cookie refresh | Rota ambos tokens; exige `X-Brava-CSRF: 1`; 401 si no es válido |
+| POST | `/auth/logout` | Bearer y cookie de la misma usuaria | Revoca ambos; 204 sin cuerpo; exige `X-Brava-CSRF: 1` |
 | GET / PATCH | `/users/me` | Autenticado | Perfil propio |
 | GET | `/users` | Admin, superadmin | Filtros `role`, `is_active`, `q` |
 | PATCH | `/users/{id}/role` | Admin, superadmin | RN-18, RN-19 |
