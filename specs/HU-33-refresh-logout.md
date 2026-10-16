@@ -8,7 +8,7 @@ Issue: #182 · Entrega 2 · Tamaño L · Prioridad P2
 
 Actualmente el login devuelve solo un access token y el frontend lo guarda en `localStorage`. `AuthContext` cierra la sesión al caducar el token y `apiRequest` lo hace ante un 401. Esta historia añade renovación y revocación en el servidor. Depende de T-01 (Alembic).
 
-Esta spec comenzó antes de la implementación. Se acordó access token en memoria y refresh token en cookie HttpOnly. Se implementaron el backend local y la integración del frontend. Beste confirmó la comprobación manual básica de login, recarga y logout. Quedan pendientes la revisión humana, el merge y la confirmación del despliegue.
+Esta spec comenzó antes de la implementación. Se acordó access token en memoria y refresh token en cookie HttpOnly. Se implementaron el backend local y la integración del frontend. Beste confirmó la comprobación manual básica de login, recarga y logout. La implementación usa el contrato de cookie descrito aquí y exige HTTPS y mismo sitio en producción. Quedan pendientes la revisión humana y el merge; no se afirma que haya un despliegue de producción verificado.
 
 ## Requisitos
 
@@ -28,7 +28,7 @@ Esta spec comenzó antes de la implementación. Se acordó access token en memor
 14. Las operaciones de emisión, rotación y revocación se registran sin contraseñas, tokens ni hashes. Los nuevos endpoints tienen summary, ejemplos y respuestas de error en Swagger.
 15. Se actualizan `AGENTS.md` (claims `jti` y `type`), `.env.example`, la documentación de API y `docs/ai-log.md` con el alcance real de la ayuda de IA.
 16. La cookie no define Domain (solo host de la API), limita Path a `/api/v1/auth`, tiene caducidad coherente con el refresh y usa Secure en HTTPS de producción. La excepción local para HTTP debe ser explícita y documentada.
-17. En local se usa SameSite=Lax, sin Secure únicamente cuando ENVIRONMENT=local. Login valida Origin cuando está presente: debe ser un origen CORS permitido o el propio de la API (Swagger). Refresh y logout exigen además X-Brava-CSRF: 1. Clientes sin Origin (Bruno/CLI) pueden usarlos; Sec-Fetch-Site: cross-site sin Origin se rechaza. Un rechazo CSRF no borra cookies ni revoca tokens. La configuración para producción queda pendiente de confirmar el sitio del despliegue; no se usa CORS comodín con credenciales.
+17. En local se usa SameSite=Lax, sin Secure únicamente cuando ENVIRONMENT=local. Login valida Origin cuando está presente: debe ser un origen CORS permitido o el propio de la API (Swagger). Refresh y logout exigen además X-Brava-CSRF: 1. Clientes sin Origin (Bruno/CLI) pueden usarlos; Sec-Fetch-Site: cross-site sin Origin se rechaza. Un rechazo CSRF no borra cookies ni revoca tokens. La configuración de producción requiere HTTPS y frontend/API en el mismo sitio; no se usa CORS comodín con credenciales.
 
 ## Reglas
 
@@ -55,7 +55,7 @@ Esta spec comenzó antes de la implementación. Se acordó access token en memor
 
 ## Endpoints
 
-Prefijo: `/api/v1`. Login y refresh entregan el access en JSON y el refresh en cookie HttpOnly. Los detalles de despliegue pendientes se enumeran en Preguntas abiertas.
+Prefijo: `/api/v1`. Login y refresh entregan el access en JSON y el refresh en cookie HttpOnly. Los requisitos de despliegue se enumeran en Contrato y despliegue.
 
 | Método | Ruta | Quién | Respuesta | Errores |
 | --- | --- | --- | --- | --- |
@@ -82,10 +82,13 @@ Riesgos: HttpOnly dificulta la lectura directa del refresh por JavaScript, pero 
 - Pantalla de gestión de dispositivos o logout global de todas las sesiones.
 - Refactors o correcciones de formato de archivos ajenos a esta historia.
 
-## Preguntas abiertas
+## Contrato y despliegue
 
-- Confirmar con el equipo el contrato de la issue: ambos tokens se entregan, pero solo el access va en JSON; el refresh se entrega exclusivamente en cookie HttpOnly.
-- Confirmar que frontend y API comparten sitio en el despliegue. Si son de sitios diferentes, revisar SameSite y protección CSRF antes de implementar, sin desactivar controles para hacer funcionar la cookie.
+- Contrato adoptado con autorización de Beste: access en JSON y memoria; refresh exclusivamente en cookie HttpOnly. No se atribuye aprobación al resto del equipo.
+- Producción requiere HTTPS y frontend/API en el mismo sitio (mismo esquema y dominio registrable). Pueden ser subdominios; CORS debe permitir exactamente el origen del frontend y las credenciales. También puede usarse un proxy del mismo origen.
+- Configurar `ENVIRONMENT` con un valor distinto de `local`, `CORS_ORIGINS` con el origen HTTPS real y `VITE_API_URL` con la URL real de la API. Mantener SameSite=Lax, Secure, validación de Origin y X-Brava-CSRF.
+- El despliegue entre sitios diferentes no está soportado por este contrato: exige una revisión específica de cookies y CSRF. No se cambian estos controles para adaptar dominios desconocidos.
+- Antes de publicar, aplicar la migración y desplegar ambos repos coordinadamente. En las URLs reales comprobar login, recarga, renovación y logout con rechazo posterior de ambos tokens. Esta comprobación de producción no se ha ejecutado; no hay URLs configuradas en el repositorio.
 - Tras desplegar el cambio, los JWT antiguos sin jti/type requieren un nuevo login; no se aceptan silenciosamente.
 
 ## Decisiones
