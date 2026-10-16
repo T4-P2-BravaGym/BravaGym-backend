@@ -129,15 +129,13 @@ def _ensure_extra_class_payment(
     return payment
 
 
-def settle_booking_payment(
-    db: Session, booking: Booking, *, refund_paid: bool
-) -> PaymentStatus | None:
-    """RN-16 / RN-10: what happens to the extra-class payment of a cancelled booking.
+def settle_booking_payment(db: Session, booking: Booking) -> PaymentStatus | None:
+    """RN-16: what happens to the extra-class payment of a cancelled booking.
 
-    A pending payment is cancelled (nothing was charged). A paid one is refunded
-    only when the gym cancels (refund_paid=True: session cancelled or membership
-    exit); when the member cancels, it stays paid and only administración can
-    refund it. Does not commit. Returns the new status, or None if nothing changed.
+    A pending payment is cancelled (nothing was charged) and a paid one is
+    refunded. Same rule for HU-11, HU-13 and HU-20: the member can only cancel a
+    confirmed booking with 60 minutes or more left (RN-05). Does not commit.
+    Returns the new status, or None if there was no payment to settle.
     """
     payment = db.scalar(
         select(Payment)
@@ -152,10 +150,8 @@ def settle_booking_payment(
 
     if payment.status == PaymentStatus.PENDING:
         payment.status = PaymentStatus.CANCELLED
-    elif refund_paid:
-        payment.status = PaymentStatus.REFUNDED
     else:
-        return None
+        payment.status = PaymentStatus.REFUNDED
 
     logger.info(
         "Payment %s of booking %s is now %s",
@@ -316,7 +312,6 @@ def _cancel_one_booking_applying_rn06(
     session: ClassSession,
     cancelled_at: datetime,
     enforce_deadline: bool,
-    refund_paid: bool,
     now: datetime | None,
 ) -> int | None:
     """Mark one booking cancelled, settle its payment (RN-16) and promote the
@@ -336,7 +331,7 @@ def _cancel_one_booking_applying_rn06(
 
     booking.status = BookingStatus.CANCELLED
     booking.cancelled_at = cancelled_at
-    settle_booking_payment(db, booking, refund_paid=refund_paid)
+    settle_booking_payment(db, booking)
     db.flush()
 
     if previous_status != BookingStatus.CONFIRMED:
@@ -387,7 +382,6 @@ def cancel_booking(
         session=session,
         cancelled_at=cancelled_at,
         enforce_deadline=True,
-        refund_paid=False,
         now=now,
     )
 
@@ -450,7 +444,6 @@ def cancel_future_bookings_for_user(
             session=session,
             cancelled_at=current,
             enforce_deadline=False,
-            refund_paid=True,
             now=now,
         )
         affected_session_ids.append(session.id)

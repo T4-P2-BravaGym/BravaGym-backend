@@ -619,7 +619,7 @@ def cancel_session(db: Session, actor: User, session_id: int) -> SessionWithFree
     for booking in bookings:
         booking.status = BookingStatus.CANCELLED
         booking.cancelled_at = now
-        if settle_booking_payment(db, booking, refund_paid=True) is not None:
+        if settle_booking_payment(db, booking) is not None:
             settled_payments += 1
 
     db.commit()

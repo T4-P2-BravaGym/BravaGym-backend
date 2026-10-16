@@ -1,4 +1,5 @@
 """Integration tests for trainer session management (HU-11.3 / HU-11.4)."""
+
 from datetime import UTC, datetime, timedelta
 
 from app.models import Booking, ClassSession, ClassType, Payment

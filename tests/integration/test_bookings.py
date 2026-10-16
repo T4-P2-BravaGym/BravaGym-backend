@@ -501,7 +501,7 @@ def test_rn16_member_cancel_cancels_pending_extra_payment(
     assert payment.status == PaymentStatus.CANCELLED
 
 
-def test_rn16_member_cancel_keeps_paid_extra_payment(
+def test_rn16_member_cancel_refunds_paid_extra_payment(
     client, db, make_user, make_plan, make_subscription
 ):
     member = make_user()
@@ -522,7 +522,7 @@ def test_rn16_member_cancel_keeps_paid_extra_payment(
 
     assert response.status_code == 200
     db.refresh(payment)
-    assert payment.status == PaymentStatus.PAID
+    assert payment.status == PaymentStatus.REFUNDED
 
 
 def test_rebooking_after_cancel_charges_once(
