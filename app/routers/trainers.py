@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_roles
+from app.core.openapi import error
 from app.models import User
 from app.models.enums import RoleName
 from app.schemas.user import TrainerOut, TrainerProfileUpdate
@@ -32,8 +33,8 @@ def list_trainers(db: Annotated[Session, Depends(get_db)]) -> list[TrainerOut]:
     response_model=TrainerOut,
     summary="Update my public trainer profile (specialty and bio)",
     responses={
-        401: {"description": "Not logged in"},
-        403: {"description": "Not a trainer"},
+        401: error("Not logged in"),
+        403: error("Not a trainer"),
     },
 )
 def update_my_profile(

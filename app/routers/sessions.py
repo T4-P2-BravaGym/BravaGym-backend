@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import CurrentMember, require_roles
+from app.core.openapi import error
 from app.models import User
 from app.models.enums import RoleName
 from app.schemas.booking import BookingOut
@@ -118,10 +119,10 @@ def list_sessions(
         "Overlapping sessions for the same trainer are rejected (RN-09)."
     ),
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Only trainers can create personal-training slots"},
-        404: {"description": "No active personal-training class type"},
-        409: {"description": "Overlapping session for this trainer (RN-09)"},
+        401: error("Missing, invalid or expired token"),
+        403: error("Only trainers can create personal-training slots"),
+        404: error("No active personal-training class type"),
+        409: error("Overlapping session for this trainer (RN-09)"),
         422: {"description": "class_type_id is not personal training"},
     },
 )
@@ -149,12 +150,10 @@ def create_personal_training_slot(
         "Overlapping sessions for the same trainer return 409 (RN-09)."
     ),
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Caller is not a trainer or superadmin"},
-        404: {"description": "Class type not found"},
-        409: {
-            "description": "Overlap with another session of the same trainer (RN-09)"
-        },
+        401: error("Missing, invalid or expired token"),
+        403: error("Caller is not a trainer or superadmin"),
+        404: error("Class type not found"),
+        409: error("Overlap with another session of the same trainer (RN-09)"),
         422: {"description": "Invalid body or missing trainer_id for superadmin"},
     },
 )
@@ -175,12 +174,10 @@ def create_session(
         "Overlaps with another of the trainer's sessions return 409 (RN-09)."
     ),
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Not the session trainer (RN-10)"},
-        404: {"description": "Session not found"},
-        409: {
-            "description": "Overlap (RN-09), cancelled session, or capacity below confirmed"
-        },
+        401: error("Missing, invalid or expired token"),
+        403: error("Not the session trainer (RN-10)"),
+        404: error("Session not found"),
+        409: error("Overlap (RN-09), cancelled session, or capacity below confirmed"),
     },
 )
 def update_session(
@@ -202,10 +199,10 @@ def update_session(
         "payments become refunded."
     ),
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Not the session trainer (RN-10)"},
-        404: {"description": "Session not found"},
-        409: {"description": "Session already cancelled"},
+        401: error("Missing, invalid or expired token"),
+        403: error("Not the session trainer (RN-10)"),
+        404: error("Session not found"),
+        409: error("Session already cancelled"),
     },
 )
 def cancel_session(
@@ -225,9 +222,9 @@ def cancel_session(
         "Allowed for the session trainer, admin and superadmin."
     ),
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Not allowed to view this session's bookings"},
-        404: {"description": "Session not found"},
+        401: error("Missing, invalid or expired token"),
+        403: error("Not allowed to view this session's bookings"),
+        404: error("Session not found"),
     },
 )
 def list_session_bookings(
@@ -261,19 +258,15 @@ def list_session_bookings(
         "Classes with an extra price create a pending payment on confirm."
     ),
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {
-            "description": (
-                "Only members can book, no active subscription (RN-01), "
-                "or plan without personal training (RN-08)"
-            )
-        },
-        404: {"description": "The session does not exist"},
-        409: {
-            "description": (
-                "Duplicate booking (RN-03), or the session is past / cancelled (RN-04)"
-            )
-        },
+        401: error("Missing, invalid or expired token"),
+        403: error(
+            "Only members can book, no active subscription (RN-01), "
+            "or plan without personal training (RN-08)"
+        ),
+        404: error("The session does not exist"),
+        409: error(
+            "Duplicate booking (RN-03), or the session is past / cancelled (RN-04)"
+        ),
     },
 )
 def book_session(

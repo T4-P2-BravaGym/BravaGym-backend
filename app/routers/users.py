@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_roles
+from app.core.openapi import error
 from app.models.enums import RoleName
 from app.models.user import User
 from app.schemas.auth import PasswordChange
@@ -39,8 +40,8 @@ CurrentAdmin = Annotated[
         "Ordered by last name, first name and id."
     ),
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Only admin and superadmin can list users"},
+        401: error("Missing, invalid or expired token"),
+        403: error("Only admin and superadmin can list users"),
         422: {"description": "Unknown role, size over 100 or invalid query parameters"},
     },
 )
@@ -75,8 +76,8 @@ def list_users(
     response_model=list[MemberOption],
     summary="List active member for trainers (id and name only)",
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Only trainers and superadmin can list members"},
+        401: error("Missing, invalid or expired token"),
+        403: error("Only trainers and superadmin can list members"),
     },
 )
 def list_members(
@@ -92,7 +93,7 @@ def list_members(
     "/me",
     response_model=UserOut,
     summary="Get my profile",
-    responses={401: {"description": "Not logged in"}},
+    responses={401: error("Not logged in")},
 )
 def get_me(current_user: CurrentUser) -> UserOut:
     return current_user
@@ -103,8 +104,8 @@ def get_me(current_user: CurrentUser) -> UserOut:
     response_model=UserOut,
     summary="Update my profile (name, phone and email)",
     responses={
-        401: {"description": "Not logged in"},
-        409: {"description": "Email already in use"},
+        401: error("Not logged in"),
+        409: error("Email already in use"),
     },
 )
 def update_me(
@@ -120,12 +121,12 @@ def update_me(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Change my password",
     responses={
-        400: {"description": "The current password is wrong"},
-        401: {"description": "Not logged in"},
+        400: error("The current password is wrong"),
+        401: error("Not logged in"),
         422: {
             "description": "New password too short, too long or the same as the current one"
         },
-        429: {"description": "Too many wrong current passwords, see Retry-After"},
+        429: error("Too many wrong current passwords, see Retry-After"),
     },
 )
 def change_my_password(
@@ -139,12 +140,10 @@ def change_my_password(
     response_model=UserOut,
     summary="Change a user's role (RN-18, RN-19)",
     responses={
-        401: {"description": "Not logged in"},
-        403: {
-            "description": "Not admin, or an admin trying to give or remove admin/superadmin"
-        },
-        404: {"description": "The user does not exist"},
-        409: {"description": "Changing your own role, or removing the last superadmin"},
+        401: error("Not logged in"),
+        403: error("Not admin, or an admin trying to give or remove admin/superadmin"),
+        404: error("The user does not exist"),
+        409: error("Changing your own role, or removing the last superadmin"),
     },
 )
 def change_role(
@@ -155,11 +154,9 @@ def change_role(
 
 # The /{user_id} routes go after /me: FastAPI would read "me" as an id otherwise
 ADMIN_ERRORS = {
-    401: {"description": "Not logged in"},
-    403: {
-        "description": "Not admin, or an admin trying to manage an admin or superadmin"
-    },
-    404: {"description": "The user does not exist"},
+    401: error("Not logged in"),
+    403: error("Not admin, or an admin trying to manage an admin or superadmin"),
+    404: error("The user does not exist"),
 }
 
 
@@ -177,7 +174,7 @@ def get_user(user_id: int, admin: CurrentAdmin, db: DbSession) -> UserOut:
     "/{user_id}",
     response_model=UserOut,
     summary="Edit a user's name, phone and email (admin)",
-    responses={**ADMIN_ERRORS, 409: {"description": "Email already in use"}},
+    responses={**ADMIN_ERRORS, 409: error("Email already in use")},
 )
 def update_user(
     user_id: int, changes: UserAdminUpdate, admin: CurrentAdmin, db: DbSession
@@ -195,7 +192,7 @@ def update_user(
     ),
     responses={
         **ADMIN_ERRORS,
-        409: {"description": "Deactivating yourself, or the last superadmin"},
+        409: error("Deactivating yourself, or the last superadmin"),
     },
 )
 def deactivate_user(user_id: int, admin: CurrentAdmin, db: DbSession) -> None:
