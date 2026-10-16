@@ -238,16 +238,17 @@ def test_without_token_returns_401(client, product, images_dir, method):
 
 
 def test_a_failed_save_leaves_no_file_behind(
-    client, admin_headers, product, images_dir, db, monkeypatch
+        client, admin_headers, product, images_dir, db, monkeypatch
 ):
     def broken_commit():
         raise RuntimeError("database is down")
 
     monkeypatch.setattr(db, "commit", broken_commit)
 
-    with pytest.raises(RuntimeError):
-        _upload(client, product.id, JPEG, admin_headers)
+    response = _upload(client, product.id, JPEG, admin_headers)
 
+    assert response.status_code == 500
+    assert response.json()["code"] == "internal_error"
     assert _stored(images_dir) == []
 
 
