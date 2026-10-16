@@ -56,3 +56,13 @@ Cambia el esquema: columna `discount_codes.applies_to` (texto, opcional: `subscr
 
 - Limitar un código a una categoría de la tienda (ropa, proteína…) o a un plan concreto: el equipo eligió el tipo de pago.
 - Limitar un código a varios tipos a la vez.
+
+## Decisiones
+
+| Decisión | Por qué |
+| --- | --- |
+| Se puede limitar a cuotas, clases o tienda, aunque se habló de clases y tienda | Cuesta lo mismo y permite ofertas solo para la cuota ("primer mes -20 %"). |
+| `applies_to` usa el mismo `PaymentConcept` que los pagos | Los valores válidos viven en un solo sitio; Pydantic da el 422 con cualquier otro. |
+| La comprobación está en `get_valid_code`, que usan la validación y el pago | La regla vive en un solo sitio (DRY); el pago saca el concepto del propio pago, no de la petición. |
+| En la validación, `concept` es opcional | Sin él se comprueba como antes, así el front actual no se rompe. |
+| La migración añade la `CHECK` a mano y apaga las foreign keys de SQLite mientras reconstruye la tabla | Alembic no detecta las `CHECK`, y `payments` apunta a `discount_codes` (mismo problema que en la T-03). |
