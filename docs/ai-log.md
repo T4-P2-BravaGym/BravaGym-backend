@@ -364,3 +364,37 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
     - con `carmen` ("Tu plan" en Básico, y el 409 de la API al elegir otro);
     - con una socia nueva, que contrata Premium y ve la cuota en Mis pagos;
     - con "Reducir movimiento" activado.
+
+## `CurrentAdmin` compartido en `deps.py` — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora. Leyó el backend con mi permiso, solo lectura. El código lo escribí y lo commiteé yo, y los comandos los ejecuté yo en mi equipo.
+- **Prompt clave:** "Lo que podemos hacer, si vale la pena y no tengo que esperar algún merge de mis PRs que están pendientes: compartir la dependencia CurrentAdmin en deps.py […]".
+- **Qué me explicó o propuso:**
+  - Que la tarea ya no eran tres routers sino seis: `users`, `payments`, `cancellation_requests` y `discount_codes` definían su propio `CurrentAdmin`, `products` lo llamaba `ShopAdmin` y `plans` repetía `require_roles(...)` en cuatro endpoints.
+  - Que `TrainerAdminOrSuperadmin` de `sessions.py` se quedaba como estaba, porque incluye a la entrenadora.
+  - Que no chocaba con mis PR abiertas, pero sí con la rama de Stripe en `payments.py`.
+  - Definirlo en `deps.py` junto a `CurrentMember` y mencionarlo en `AGENTS.md`.
+- **Qué acepté:** el refactor en los seis routers, también `payments.py`, avisando del conflicto en la PR. Comprobarlo sin tocar ningún test: si los 401 y 403 de siempre pasan, el comportamiento no ha cambiado.
+- **Qué descarté:** dejar `payments.py` fuera hasta que se mergee la HU-29. Preferí dejarlo cerrado hoy y que el conflicto se resuelva al mergear.
+- **Errores o alucinaciones:**
+  - Al darme los imports nuevos de `payments.py` y `cancellation_requests.py` los puso fuera de orden y Ruff marcó I001; se arregló con `ruff check --fix`.
+  - Yo hice sin querer en esta rama los commits de la otra tarea (los pagos). Lo vimos con `git log` y lo separamos con `cherry-pick`, `reset` y `commit --amend` antes de hacer push.
+- **Cómo lo comprobé:** `ruff check` y `ruff format --check`, un `grep` de `ShopAdmin` y de `CurrentAdmin = ` (solo queda el de `deps.py`), `pytest` con 767 tests sin cambiar ninguno, y el candado de los endpoints de admin en `/docs`.
+
+## Pagos de las reservas canceladas (HU-11, HU-13, HU-20) — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora, en el mismo chat. Solo lectura; el código y los comandos, míos.
+- **Prompt clave:** "Refactor de HU-13/HU-20 y HU-11/RN-10 (que se supone que es de Mariana, pero no se ha conectado […])" y después el texto de la issue.
+- **Qué me explicó o propuso:**
+  - Qué pasaba en cada camino: al cancelar la socia (HU-13) o aprobar una baja (HU-20), el pago de la clase extra no cambiaba. Al cancelar la entrenadora una clase (HU-11), los pagos `pending` pasaban a `refunded` aunque no se hubiera cobrado nada, y no se avisaba por websocket.
+  - Un helper común, `settle_booking_payment`, usado por `_cancel_one_booking_applying_rn06` y `cancel_session`.
+- **Qué acepté:**
+  - El helper y la regla de la issue: `pending` → `cancelled` y `paid` → `refunded` en los tres casos. Es seguro porque la socia solo puede cancelar con 60 minutos o más (RN-05).
+  - Actualizar RN-10, RN-13, RN-16 y `api.md`.
+  - Cambiar los dos tests que esperaban `REFUNDED` para un pago pendiente, porque comprobaban el comportamiento que corregíamos, y añadir cuatro: cancelar con pago pendiente y con pago pagado, baja aprobada y volver a reservar.
+- **Qué descarté:** su primera versión, que dejaba `paid` el pago cuando cancela la socia siguiendo la RN-16 tal como estaba escrita ("solo administración puede marcarlo `refunded`"). Al pasarle la issue vimos que el equipo ya había propuesto reembolsar también ahí y cambiar la RN-16, así que lo ajustamos en un segundo commit y quitamos el parámetro `refund_paid`, que ya no hacía falta.
+- **Errores o alucinaciones:**
+  - En tres tests marcaba un pago como `PAID` sin `paid_at` y la `CHECK` `ck_payments_paid_at` los rechazaba al preparar los datos. Se arregló poniendo la fecha; el fallo estaba en el test, no en el código.
+  - No había visto la issue al proponer la primera versión, ni la línea de `api.md` que había que cambiar.
+  - Al pegar, sustituí `_ensure_extra_class_payment` por la función nueva en vez de añadirla debajo (Ruff: F821). También se me borraron docstrings y quedaron dos `- ` sueltos en `business-rules.md`. Lo vimos revisando el diff antes del push.
+- **Cómo lo comprobé:** `ruff check` y `ruff format --check`, `pytest` con 770 tests (cobertura 96,76 %) y un último repaso del diff de las dos ramas para comprobar que cada una solo tenía sus archivos.
