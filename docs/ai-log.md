@@ -291,7 +291,7 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
   - Unificar el tamaño del título (AdminUsers y AdminCancellations usaban el de por defecto) y el ancho de la entradilla a 48rem.
 - **Qué descarté:** meter en esta PR MemberHome, las páginas que solo tienen un `<h1>` y la cabecera del Sandbox. Tampoco convertí aquí en componente la navegación por semanas, que está repetida en cuatro páginas: va en otra tarea.
 - **Errores o alucinaciones:**
-  - En Tienda y Horario me dijo que cambiara `<header>` por `<div>` pero no repitió el cambio del cierre, y quedó un `</header>` suelto. Se detectó `npm run lint`. Al arreglarlo borré también el envoltorio y la barra de la semana quedó más separada; lo vimos leyendo el archivo.
+  - En Tienda y Horario me dijo que cambiara `<header>` por `<div>` pero no repitió el cambio del cierre, y quedó un `</header>` suelto. Lo detectó `npm run lint`. Al arreglarlo borré también el envoltorio y la barra de la semana quedó más separada; lo vimos leyendo el archivo.
   - Claude no pudo pasar lint, tests ni build antes de darme el código: en su entorno no podía instalar las dependencias. Lo avisó.
   - Me dijo al revés qué socia tiene entrenamiento personal en el seed: es `lucia` (plan Premium), no `carmen`.
   - El IDE me metió el import como `"@/components/ui/PageHeader/index.js";` en diez páginas, con otro estilo que el resto; Claude lo vio al revisar. Lo dejé como en el resto de componentes.
