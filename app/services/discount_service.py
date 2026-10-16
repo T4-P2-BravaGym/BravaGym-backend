@@ -18,12 +18,18 @@ from app.schemas.payment import (
     DiscountCodeCreate,
     DiscountCodeOut,
     DiscountCodeUpdate,
+    PaymentConcept,
 )
 
 logger = logging.getLogger(__name__)
 
 CODE_TAKEN = "Ya existe un código con ese nombre."
 CODE_NOT_FOUND = "No existe ese código de descuento."
+CONCEPT_NAMES = {
+    "subscription": "cuotas",
+    "booking": "clases",
+    "order": "pedidos de la tienda",
+}
 
 
 def count_uses(db: Session, code_id: int) -> int:
@@ -43,6 +49,7 @@ def _to_out(db: Session, code: DiscountCode) -> DiscountCodeOut:
         valid_from=code.valid_from,
         valid_until=code.valid_until,
         max_uses=code.max_uses,
+        applies_to=code.applies_to,
         is_active=code.is_active,
         uses=count_uses(db, code.id),
     )
@@ -115,8 +122,11 @@ def deactivate_code(db: Session, admin: User, code_id: int) -> None:
     logger.info("User %s deactivated discount code %s", admin.id, code.id)
 
 
-def get_valid_code(db: Session, code_text: str) -> DiscountCode:
-    """RN-14: active, within its dates and under max_uses. 422 otherwise. Reused when paying (HU-24)."""
+def get_valid_code(
+    db: Session, code_text: str, concept: PaymentConcept | None = None
+) -> DiscountCode:
+    """RN-14: active, within its dates and under max_uses. 422 otherwise. Reused when paying (HU-24).
+    T-240: with a concept, a code limited to another concept is also a 422."""
     code = db.scalar(
         select(DiscountCode).where(DiscountCode.code == code_text.strip().upper())
     )
@@ -130,5 +140,9 @@ def get_valid_code(db: Session, code_text: str) -> DiscountCode:
     if code.max_uses is not None and count_uses(db, code.id) >= code.max_uses:
         raise ValidationAppError(
             "Este código de descuento ya se ha usado el máximo de veces."
+        )
+    if concept is not None and code.applies_to not in (None, concept):
+        raise ValidationAppError(
+            f"Este código solo vale para {CONCEPT_NAMES[code.applies_to]}."
         )
     return code

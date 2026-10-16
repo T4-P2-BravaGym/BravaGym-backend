@@ -9,6 +9,7 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import oauth2_scheme
 from app.core.exceptions import PermissionDeniedError, UnauthorizedError
+from app.core.openapi import error
 from app.core.rate_limit import (
     TOO_MANY_ATTEMPTS,
     client_ip,
@@ -87,9 +88,9 @@ def _invalid_session(exc: UnauthorizedError) -> JSONResponse:
     status_code=status.HTTP_201_CREATED,
     summary="Register a new member",
     responses={
-        409: {"description": "Email already registered"},
+        409: error("Email already registered"),
         429: {
-            "description": "Too many registrations from this IP",
+            **error("Too many registrations from this IP"),
             "content": {
                 "application/json": {
                     "example": {
@@ -118,10 +119,10 @@ def register(
     response_model=LoginResponse,
     summary="Log in and get an access token",
     responses={
-        401: {"description": "Wrong email or password, or inactive user"},
-        403: {"description": "Untrusted browser origin"},
+        401: error("Wrong email or password, or inactive user"),
+        403: error("Untrusted browser origin"),
         429: {
-            "description": "Too many failed login attempts for this email and IP",
+            **error("Too many failed login attempts for this email and IP"),
             "content": {
                 "application/json": {
                     "example": {
@@ -166,8 +167,8 @@ def login(
                 }
             },
         },
-        401: {"description": "Missing, invalid, expired or revoked session"},
-        403: {"description": "Untrusted origin or missing X-Brava-CSRF: 1"},
+        401: error("Missing, invalid, expired or revoked session"),
+        403: error("Untrusted origin or missing X-Brava-CSRF: 1"),
     },
 )
 def refresh(
@@ -197,8 +198,8 @@ def refresh(
         204: {
             "description": "Session revoked; refresh cookie removed; no response body"
         },
-        401: {"description": "Missing or invalid session, or token owners differ"},
-        403: {"description": "Untrusted origin or missing X-Brava-CSRF: 1"},
+        401: error("Missing or invalid session, or token owners differ"),
+        403: error("Untrusted origin or missing X-Brava-CSRF: 1"),
     },
 )
 def logout(

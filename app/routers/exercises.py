@@ -7,12 +7,14 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_roles
+from app.core.openapi import error, errors
 from app.models import User
 from app.models.enums import RoleName
 from app.schemas.routine import ExerciseCreate, ExerciseOut, ExerciseUpdate
 from app.services import exercise_service
 
-router = APIRouter(prefix="/exercises", tags=["exercises"])
+# Every endpoint needs a login and a role, so 401 and 403 are documented for all of them
+router = APIRouter(prefix="/exercises", tags=["exercises"], responses=errors(401, 403))
 
 # Reusable type aliases so every endpoint stays short (DRY)
 # Only trainers and superadmin manage the catalog (docs/api.md)
@@ -31,7 +33,7 @@ def list_exercises(_trainer: CurrentTrainer, db: DbSession):
     "/{exercise_id}",
     response_model=ExerciseOut,
     summary="Get one exercise",
-    responses={404: {"description": "The exercise does not exist"}},
+    responses={404: error("The exercise does not exist")},
 )
 def get_exercise(exercise_id: int, _trainer: CurrentTrainer, db: DbSession):
     return exercise_service.get_exercise(db, exercise_id)
@@ -42,7 +44,7 @@ def get_exercise(exercise_id: int, _trainer: CurrentTrainer, db: DbSession):
     response_model=ExerciseOut,
     status_code=status.HTTP_201_CREATED,  # 201 = created, not just 200 OK
     summary="Add an exercise to the catalog",
-    responses={409: {"description": "An exercise with that name already exists"}},
+    responses={409: error("An exercise with that name already exists")},
 )
 def create_exercise(data: ExerciseCreate, _trainer: CurrentTrainer, db: DbSession):
     return exercise_service.create_exercise(db, data)
@@ -53,8 +55,8 @@ def create_exercise(data: ExerciseCreate, _trainer: CurrentTrainer, db: DbSessio
     response_model=ExerciseOut,
     summary="Update an exercise",
     responses={
-        404: {"description": "The exercise does not exist"},
-        409: {"description": "Duplicated name"},
+        404: error("The exercise does not exist"),
+        409: error("Duplicated name"),
     },
 )
 def update_exercise(
@@ -68,8 +70,8 @@ def update_exercise(
     status_code=status.HTTP_204_NO_CONTENT,  # 204 = done, nothing to return
     summary="Delete an exercise that no routine uses",
     responses={
-        404: {"description": "The exercise does not exist"},
-        409: {"description": "A routine uses it"},
+        404: error("The exercise does not exist"),
+        409: error("A routine uses it"),
     },
 )
 def delete_exercise(exercise_id: int, _trainer: CurrentTrainer, db: DbSession) -> None:

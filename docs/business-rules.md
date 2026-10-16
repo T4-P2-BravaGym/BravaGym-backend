@@ -23,7 +23,7 @@ Cada regla tiene un código (RN-xx) para enlazarla desde las historias y nombrar
 
 ### Pagos, códigos y tienda
 
-- **RN-14** Un código es válido si está activo, dentro de fechas y por debajo de `max_uses` (pagos `paid` que lo usan). Si no → 422. Vale para cualquier concepto: cuota, clase extra o pedido.
+- **RN-14** Un código es válido si está activo, dentro de fechas y por debajo de `max_uses` (pagos `paid` que lo usan). Si no → 422. Vale para cualquier concepto (cuota, clase extra o pedido), salvo que esté limitado a uno con `applies_to`: entonces, en otro concepto → 422 (T-240).
 - **RN-15** `final_amount_cents = base_amount_cents × (100 − percent_off) / 100`, redondeado al céntimo.
 - **RN-16** El pago simulado pasa de `pending` a `paid`. Si el pago es de un pedido, el pedido pasa a `paid` en la misma transacción. Un pago `paid` no se modifica; solo administración puede marcarlo `refunded`. Si se cancela lo que un pago `pending` iba a cobrar (un pedido, una reserva), el pago pasa a `cancelled` y ya no se puede pagar → 409 (igual que cualquier no `pending`).
 - **RN-17** Al crear un pedido se comprueba y descuenta el stock (sin stock → 409). Si el pedido se cancela (solo mientras él y su pago están `pending`), el stock se repone y el pago pasa a `cancelled`.

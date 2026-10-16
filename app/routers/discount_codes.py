@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import CurrentMember, require_roles
+from app.core.openapi import error
 from app.models import User
 from app.models.enums import RoleName
 from app.schemas.payment import (
@@ -18,6 +19,7 @@ from app.schemas.payment import (
     DiscountCodePage,
     DiscountCodeUpdate,
     DiscountValidationOut,
+    PaymentConcept,
 )
 from app.services import discount_service
 
@@ -28,8 +30,8 @@ CurrentAdmin = Annotated[
     User, Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN))
 ]
 ADMIN_ERRORS = {
-    401: {"description": "Not logged in"},
-    403: {"description": "Not admin"},
+    401: error("Not logged in"),
+    403: error("Not admin"),
 }
 
 
@@ -56,7 +58,7 @@ def list_codes(
     summary="Create a discount code",
     responses={
         **ADMIN_ERRORS,
-        409: {"description": "A code with that text already exists"},
+        409: error("A code with that text already exists"),
     },
 )
 def create_code(
@@ -70,22 +72,32 @@ def create_code(
     response_model=DiscountValidationOut,
     summary="Check a discount code before paying (RN-14)",
     responses={
-        401: {"description": "Not logged in"},
-        422: {"description": "Unknown, inactive, out of dates or used up"},
+        401: error("Not logged in"),
+        422: {
+            "description": "Unknown, inactive, out of dates, used up or for another concept"
+        },
     },
 )
 def validate_code(
-    code: str, member: CurrentMember, db: DbSession
+    code: str,
+    member: CurrentMember,
+    db: DbSession,
+    concept: Annotated[
+        PaymentConcept | None,
+        Query(description="The payment's concept, to check a limited code (T-240)"),
+    ] = None,
 ) -> DiscountValidationOut:
-    valid = discount_service.get_valid_code(db, code)
-    return DiscountValidationOut(code=valid.code, percent_off=valid.percent_off)
+    valid = discount_service.get_valid_code(db, code, concept)
+    return DiscountValidationOut(
+        code=valid.code, percent_off=valid.percent_off, applies_to=valid.applies_to
+    )
 
 
 @router.patch(
     "/{code_id}",
     response_model=DiscountCodeOut,
     summary="Update a discount code",
-    responses={**ADMIN_ERRORS, 404: {"description": "The code does not exist"}},
+    responses={**ADMIN_ERRORS, 404: error("The code does not exist")},
 )
 def update_code(
     code_id: int, changes: DiscountCodeUpdate, admin: CurrentAdmin, db: DbSession
@@ -97,7 +109,7 @@ def update_code(
     "/{code_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Deactivate a discount code",
-    responses={**ADMIN_ERRORS, 404: {"description": "The code does not exist"}},
+    responses={**ADMIN_ERRORS, 404: error("The code does not exist")},
 )
 def deactivate_code(code_id: int, admin: CurrentAdmin, db: DbSession) -> None:
     discount_service.deactivate_code(db, admin, code_id)

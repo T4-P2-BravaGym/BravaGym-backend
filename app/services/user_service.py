@@ -6,7 +6,7 @@ Business rules RN-18, RN-19: docs/business-rules.md.
 
 import logging
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -18,7 +18,7 @@ from app.core.exceptions import (
 )
 from app.core.rate_limit import password_change_limiter, password_change_rate_key
 from app.core.security import hash_password, verify_password
-from app.models import Role, TrainerProfile, User
+from app.models import RefreshToken, Role, TrainerProfile, User
 from app.models.enums import RoleName, SubscriptionStatus
 from app.models.types import utc_now
 from app.schemas.auth import PasswordChange
@@ -48,7 +48,8 @@ def update_me(db: Session, user: User, changes: UserUpdate) -> User:
 
 def change_password(db: Session, user: User, data: PasswordChange) -> None:
     """HU-32: 400 if the current password is wrong (not 401: the front logs out on a 401).
-    After 5 wrong tries in 15 minutes, 429 like the login (HU-34)."""
+    After 5 wrong tries in 15 minutes, 429 like the login (HU-34).
+    A new password closes every session: all her refresh tokens (HU-33) are revoked."""
     key = password_change_rate_key(user.id)
     password_change_limiter.assert_allowed(key)
     if not verify_password(data.current_password, user.password_hash):
@@ -58,9 +59,15 @@ def change_password(db: Session, user: User, data: PasswordChange) -> None:
 
     user.password_hash = hash_password(data.new_password)
     _mark_updated(user, user)
+    # Other devices can no longer renew their access token, so they are out within the hour
+    closed = db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=utc_now())
+    ).rowcount
     db.commit()
     password_change_limiter.reset(key)
-    logger.info("User %s changed her password", user.id)
+    logger.info("User %s changed her password (%s sessions closed)", user.id, closed)
 
 
 def _apply_profile_changes(

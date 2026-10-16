@@ -232,6 +232,7 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** todo lo anterior; añadir el límite de intentos aunque la issue no lo pedía; sacar la regla de los 72 bytes a una función común con el registro (DRY); y en el front, vaciar los campos al cambiarla para que las contraseñas no se queden en pantalla.
 - **Qué descarté:** crear una clase nueva de error 400 en `exceptions.py`, porque la `AppError` base ya es 400; y enviar "repetir contraseña" a la API, porque lo comprueba el front.
 - **Errores o alucinaciones:** nada inventado; cada paso se comprobó antes con los tests. Pero propuso cambiar `UserCreate` sin decir que era código de la HU-01 de otra compañera; lo pregunté yo y mantuvimos el cambio porque el comportamiento es el mismo. Al probar en Swagger cambié de verdad la contraseña de Lucía y la devolví con el mismo endpoint. También vi que "Mi perfil" solo existe para socias; queda fuera de alcance en la spec.
+- **Ampliación (HU-33 ya hecha):** al cambiar la contraseña se revocan todos sus refresh tokens y el front la lleva al login. Me explicó que la cookie del refresh solo viaja a `/api/v1/auth`, así que este endpoint no sabe cuál es la sesión actual; por eso se cierran todas, también esta. Acepté esa opción en vez de cambiar la cookie de la HU-33, que es de otra compañera.
 
 ## Frontend #75 · Botón para mostrar u ocultar la contraseña — Esra
 
@@ -280,3 +281,21 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué descarté:** guardar `ends_at` en la base de datos, porque podría desincronizarse con la duración.
 - **Errores o alucinaciones:** en el test me propuso `.replace("Z", "+00:00")` antes de `fromisoformat`; Ruff lo marcó (FURB162) porque desde Python 3.11 no hace falta, y lo quité. Al arrancar el backend el login daba 500 porque mi `brava.db` no tenía la migración de la T-03; lo arreglé con `alembic upgrade head`, no era un fallo de esta tarea.
 - **Cómo lo comprobé:** test de integración nuevo para `ends_at` en `GET /sessions`, `pytest` completo, Ruff en los archivos tocados y la respuesta de `/sessions` en Swagger.
+
+## T-02 · Swagger enriquecido — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código, ejecuté los comandos y hice los commits.
+- **Prompt clave:** "la T-02 no la entiendo bien" y, después, "si podemos, hagamos todos los routers nosotras".
+- **Qué me explicó o propuso:** qué es OpenAPI, el esquema `ErrorOut`, los ayudantes `errors()` y `error()`, las descripciones de los tags, y escribir primero un test que lea el OpenAPI y liste lo que falta antes de tocar los routers.
+- **Qué acepté:** el test primero (empezó con 187 errores sin `ErrorOut`, 13 endpoints sin 401 y 3 esquemas sin ejemplo, y fuimos bajando hasta cero); poner 401 y 403 en el `APIRouter` de `exercises` y `routines`; y dejar el 422 con el esquema de FastAPI.
+- **Qué descarté:** aplicar un parche ya preparado con todos los cambios de los routers; preferí hacerlo yo con buscar y reemplazar (regex) en VS Code para entender cada cambio.
+- **Errores o alucinaciones:** nada inventado. El primer reemplazo no encontraba nada porque la ruta de "files to include" no era la correcta en mi espacio de trabajo (`app/routers` en vez de `**/app/routers/**`); lo vimos con una captura.
+
+## T-240 · Códigos de descuento por tipo de pago — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código, ejecuté los comandos y hice los commits.
+- **Prompt clave:** "me han dado la #240, descuentos por categoría; la descripción está vacía".
+- **Qué me explicó o propuso:** antes de programar, dos alcances posibles (por tipo de pago o por categoría de producto) y un mensaje para preguntar al equipo, que eligió el tipo de pago. Después, la columna `applies_to`, la comprobación en `get_valid_code` y un `concept` opcional en la validación.
+- **Qué acepté:** todo lo anterior. Cuando el equipo dijo "clases y tienda", me recomendó seguir su decisión; yo preferí dejar también las cuotas, porque no cuesta nada más y sirve para ofertas de la cuota.
+- **Qué descarté:** limitar por categoría de producto, que cambiaba el cálculo de RN-15 para un pedido con productos mezclados.
+- **Errores o alucinaciones:** nada inventado. Me avisó de antemano de que Alembic no detecta las `CHECK` y de que la migración iba a tener el mismo problema de foreign keys que la T-03, así que la probamos con datos desde el principio. Un test de la HU-25 comparaba la respuesta entera y hubo que añadirle `applies_to`.

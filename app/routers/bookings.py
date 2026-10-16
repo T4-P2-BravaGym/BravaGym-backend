@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import CurrentMember
+from app.core.openapi import error
 from app.models.enums import BookingStatus
 from app.schemas.booking import BookingOut, BookingPage
 from app.services import booking_service
@@ -20,8 +21,8 @@ router = APIRouter(prefix="/bookings", tags=["bookings"])
 DbSession = Annotated[Session, Depends(get_db)]
 
 AUTH_RESPONSES = {
-    401: {"description": "Missing, invalid or expired token"},
-    403: {"description": "Only members can use this endpoint"},
+    401: error("Missing, invalid or expired token"),
+    403: error("Only members can use this endpoint"),
 }
 
 
@@ -85,12 +86,10 @@ def list_my_bookings(
     ),
     responses={
         **AUTH_RESPONSES,
-        404: {"description": "The booking does not exist or is not yours"},
-        409: {
-            "description": (
-                "Already cancelled, or confirmed cancel within 60 minutes of start (RN-05)"
-            )
-        },
+        404: error("The booking does not exist or is not yours"),
+        409: error(
+            "Already cancelled, or confirmed cancel within 60 minutes of start (RN-05)"
+        ),
     },
 )
 def cancel_booking(

@@ -29,6 +29,14 @@ class ExerciseCreate(BaseModel):
 class ExerciseUpdate(BaseModel):
     """Fields a trainer can change. Fields left out are not changed."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "description": "Barra sobre los trapecios, rodillas hacia fuera."
+            }
+        }
+    )
+
     name: str | None = Field(default=None, min_length=2, max_length=100)
     muscle_group: str | None = Field(default=None, min_length=2, max_length=50)
     description: str | None = Field(default=None, max_length=1000)
@@ -57,6 +65,19 @@ class ExerciseOut(BaseModel):
 
 class RoutineLineIn(BaseModel):
     """One line of a routine as the trainer sends it."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "exercise_id": 1,
+                "day_number": 1,
+                "position": 3,
+                "sets": 3,
+                "reps": 10,
+                "rest_seconds": 90,
+            }
+        }
+    )
 
     exercise_id: int = Field(ge=1)
     day_number: int = Field(ge=1, le=7)
@@ -107,6 +128,15 @@ class RoutineCreate(BaseModel):
 
 class RoutineUpdate(BaseModel):
     """Header fields a trainer can change. Lines have their own endpoints."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "name": "Fuerza base · 6 semanas",
+                "notes": "Añadimos un día de tren superior.",
+            }
+        }
+    )
 
     name: str | None = Field(default=None, min_length=2, max_length=100)
     start_date: date | None = None
