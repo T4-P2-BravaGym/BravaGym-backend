@@ -132,7 +132,7 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
 - **Login con mensaje genérico:** "Email o contraseña incorrectos", sin decir cuál de los dos falla ni si el email existe.
 - **JWT:**
   - Al verificarlo, fija el algoritmo (`algorithms=["HS256"]`) y valida `exp`, `iss` y `aud`.
-  - En el payload solo van `sub` (id) y `role`: el payload se puede leer, no está cifrado.
+  - El payload contiene `sub` (id), `role`, `jti` (identificador único), `type` (`access` o `refresh`) y los claims estándar `exp`, `iss` y `aud`. No incluye contraseñas ni datos personales adicionales: se puede leer, no está cifrado. Un refresh token no autoriza peticiones a recursos protegidos.
   - `SECRET_KEY` larga y aleatoria, en `.env`.
 - **Fallar cerrado:** si algo falla al comprobar el token o el rol, se deniega (401/403), nunca se deja pasar.
 
@@ -182,7 +182,7 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
 - **Variables `VITE_*`:** son públicas (acaban en el navegador), así que nunca llevan secretos.
 - **HTML:** nunca `dangerouslySetInnerHTML` con datos del usuario.
 - **Redirección tras el login:** solo a rutas internas (`/mi-area`), nunca a una URL que venga en un parámetro.
-- **Respuesta 401 de la API:** se cierra la sesión y se vuelve al login.
+- **Respuesta 401 de la API (HU-33):** el frontend intenta una renovación compartida y reintenta la petición autenticada una vez; si falla, borra la sesión y vuelve al login. Login y refresh no disparan renovaciones recursivas. Access solo en memoria y refresh en cookie HttpOnly; no persistir tokens en localStorage ni sessionStorage.
 
 ### Ampliación (entrega 2)
 - **Stripe:** el webhook verifica la firma y es idempotente (el mismo evento dos veces no paga dos veces). Las claves van en `.env`.

@@ -1,5 +1,7 @@
 from datetime import UTC, datetime, timedelta
+from hashlib import sha256
 from typing import Any
+from uuid import uuid4
 
 import bcrypt
 import jwt
@@ -24,25 +26,68 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
 
 
 def create_access_token(user_id: int, role: str) -> str:
+    lifetime = timedelta(minutes=get_settings().access_token_expire_minutes)
+    return _create_token(user_id, role, "access", lifetime)
+
+
+def create_refresh_token(user_id: int, role: str) -> str:
+    lifetime = timedelta(days=get_settings().refresh_token_expire_days)
+    return _create_token(user_id, role, "refresh", lifetime)
+
+
+def _create_token(user_id: int, role: str, token_type: str, lifetime: timedelta) -> str:
     settings = get_settings()
     payload = {
         "sub": str(user_id),
         "role": str(role),
-        "exp": datetime.now(UTC)
-        + timedelta(minutes=settings.access_token_expire_minutes),
+        "exp": datetime.now(UTC) + lifetime,
         "iss": settings.jwt_issuer,
         "aud": settings.jwt_audience,
+        "jti": uuid4().hex,
+        "type": token_type,
     }
     return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
+    return _decode_token(token, "access")
+
+
+def decode_refresh_token(token: str) -> dict[str, Any]:
+    return _decode_token(token, "refresh")
+
+
+def decode_access_token_for_logout(token: str) -> dict[str, Any]:
+    """Check access identity for logout, which also requires its owner's refresh."""
+    return _decode_token(token, "access", verify_exp=False)
+
+
+def _decode_token(
+    token: str, expected_type: str, *, verify_exp: bool = True
+) -> dict[str, Any]:
     settings = get_settings()
-    return jwt.decode(
+    payload = jwt.decode(
         token,
         settings.secret_key,
         algorithms=[settings.jwt_algorithm],
         audience=settings.jwt_audience,
         issuer=settings.jwt_issuer,
-        options={"require": ["sub", "role", "exp", "iss", "aud"]},
+        options={
+            "require": ["sub", "role", "exp", "iss", "aud", "jti", "type"],
+            "verify_exp": verify_exp,
+        },
     )
+    if payload["type"] != expected_type:
+        raise jwt.InvalidTokenError("Unexpected token type")
+    if not isinstance(payload["jti"], str) or not 1 <= len(payload["jti"]) <= 64:
+        raise jwt.InvalidTokenError("Invalid token identifier")
+    try:
+        datetime.fromtimestamp(payload["exp"], UTC)
+    except (ValueError, TypeError, OverflowError, OSError):
+        raise jwt.InvalidTokenError("Invalid token expiry") from None
+    return payload
+
+
+def hash_refresh_token(token: str) -> str:
+    """Hash a high-entropy refresh token for lookup without storing its value."""
+    return sha256(token.encode("utf-8")).hexdigest()

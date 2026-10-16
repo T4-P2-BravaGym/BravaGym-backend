@@ -138,7 +138,7 @@ class ProductOut(BaseModel):
     image_url: str | None = Field(
         default=None,
         description="Path of the product photo on the API host (/media/...). "
-                    "Null when the product has no photo.",
+        "Null when the product has no photo.",
     )
     price_cents: int = Field(ge=0)
     stock: int = Field(
