@@ -329,3 +329,38 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué descarté:** la primera idea de pasarle `label`, `onPrevious` y `onNext`, porque cada página seguía calculando la semana por su cuenta.
 - **Errores o alucinaciones:** nada inventado. Al pegar los cambios se me olvidaron dos de la lista en `PersonalTraining` (borrar `weekLabel` y cambiar el import de `utils/week`); lo detectó `npm run lint`. Claude no pudo pasar lint ni tests en su entorno antes de pasarme el código, y lo avisó.
 - **Cómo lo comprobé:** `npm run lint`, `npm test` y `npm run build`. A mano, en el horario sin sesión, en Reservar clases y Entrenamiento personal con `lucia` y en Mis clases con `ana`: las flechas cambian de semana, se cargan sus clases y en el móvil cabe en una línea.
+
+
+## Home y precios — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora. Leyó el front y el back con mi permiso, solo lectura. El código lo escribí y lo commiteé yo, y los comandos los ejecuté yo en mi equipo.
+- **Prompt clave:** "En la home, quiero destacar más lo de entrenamiento especializado de fuerza para mujeres, queda como perdido, es el feedback de la profe […] Precios está también muy equis, quiero que cuando pases encima de la card se muevan, y como glow o algo […] destacar más lo guay del premium", con capturas de las dos páginas.
+- **Qué me explicó o propuso:**
+  - Antes de empezar, comprobar que la landing de Viviana ya estaba mergeada y que ninguna rama abierta tocaba esos archivos.
+  - En la home, una línea con la especialidad justo debajo del título, animaciones de entrada, una banda de ejercicios y las cards de "Por qué Brava" que aparecen al hacer scroll con un hook `useInView` (`IntersectionObserver`, sin librerías).
+  - En precios, que `PricingCard` ya aceptaba `featured` y `features` pero la página no los usaba. Hover con elevación, glow y una luz que sigue al puntero, el plan con entrenamiento personal destacado, una sección de lo que incluyen todos los planes, un bloque sobre el entrenamiento personal y preguntas frecuentes.
+  - Al leer el código encontró tres cosas que no había pedido:
+    - el hook `useSubscribe` de la HU-09 nunca se conectó, así que una socia no podía contratar un plan desde el front;
+    - la próxima clase decía "con Entrenadora" porque la API no manda el nombre;
+    - el badge decía "La más elegida", algo que no podemos demostrar.
+- **Qué acepté:**
+  - Todo lo anterior en una sola rama y dos commits (home y precios).
+  - Conectar `useSubscribe` en la misma PR.
+  - Que los puntos de cada card salgan de los datos del plan (`includes_personal_training`) y no de textos escritos a mano por nombre de plan, porque administración puede editar los planes.
+  - Que todas las animaciones se paren con `prefers-reduced-motion`.
+  - Hacer los glows con `color-mix` sobre los tokens para no meter colores sueltos.
+- **Qué descarté:**
+  - Una tabla comparativa de planes: el plan no tiene un campo de clases por semana, así que habría que inventar las filas.
+  - Arreglar "Entrenadora" en el horario y en las reservas en esta PR: es un cambio del backend y se lo paso a Viviana.
+- **Errores o alucinaciones:**
+  - Nada inventado.
+  - Al revisar salió que el límite de "Hasta 2 clases a la semana" del plan Básico solo está en la descripción y el backend no lo comprueba. Va a la retro.
+  - Claude no pudo pasar lint, tests ni build en su entorno antes de darme el código, y lo avisó.
+- **Cómo lo comprobé:**
+  - `npm run lint`, `npm test` (3 tests nuevos de `PricingCard`) y `npm run build`.
+  - A mano:
+    - la home sin sesión, en escritorio y en móvil;
+    - Precios sin sesión ("Elegir" lleva a registro);
+    - con `carmen` ("Tu plan" en Básico, y el 409 de la API al elegir otro);
+    - con una socia nueva, que contrata Premium y ve la cuota en Mis pagos;
+    - con "Reducir movimiento" activado.
