@@ -20,7 +20,7 @@
 - Outbox private 0700 directory/0600 files, ignored by Git and not HTTP-served. No emails, tokens, passwords, hashes or links in logs or validation responses.
 - UI Spanish; code/comments/commits English; spec and shared AI log follow Spanish repository convention.
 - Preserve existing tests; no skips or relaxed expectations to pass the suite. Vitest only for frontend.
-- User approved invalidating all old access/refresh sessions. No real SMTP delivery or optional email verification.
+- Password reset invalidates all old access/refresh sessions. No real SMTP delivery or optional email verification.
 
 ## Review Focus
 
@@ -93,6 +93,6 @@
 - [x] Commit documentation; verify clean working trees. Only after all work passes: push feature branches, prepare/open PRs to dev according to user's instruction, monitor CI and report concrete review links. Never self-approve or merge.
 
 
-Execution record: user approved native execution and global sign-out. Tasks 1–4 implemented with failing-before-passing tests. Tasks 2/3 share a single feature commit because their API-validation tests share one file. Task 5 runtime/migration/browser/security review completed; final audits and CI results are recorded in docs/ai-log.md and the PRs. Human approval, merge and production deployment remain external steps; checkboxes describe preparation/verification, not a claim to have merged.
+Execution record: implementation includes global sign-out. Tasks 1–4 implemented with failing-before-passing tests. Tasks 2/3 share a single feature commit because their API-validation tests share one file. Task 5 runtime/migration/browser/security review completed; final audits and CI results are recorded in docs/ai-log.md and the PRs. Human approval, merge and production deployment remain external steps; checkboxes describe preparation/verification, not a claim to have merged.
 
 Compatibility ruling after latest dev merge: parent only the unpublished HU-35 migration after team head36c107fd4abd; reuse team app.core.openapi.error/ErrorOut and preserve HU-32 refresh revocation semantics. Existing migration/OpenAPI tests exposed both integration gaps before correction. Final merged local checks: backend777/97.13%, frontend87, lint/format/build, audits0knownvulnerabilities, migration populated round-trip and realHTTP flow pass. Reviewer scoped follow-up found no further issues.
