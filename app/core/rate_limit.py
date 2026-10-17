@@ -77,6 +77,17 @@ class AttemptWindowLimiter:
             kept.append(now)
             self._attempts[key] = kept
 
+    def record_if_allowed(self, key: str) -> bool:
+        """Atomically reserve one attempt, for background recovery deliveries."""
+        with self._lock:
+            now = self._clock()
+            kept = self._prune_unlocked(key, now)
+            if len(kept) >= self.max_attempts:
+                return False
+            kept.append(now)
+            self._attempts[key] = kept
+            return True
+
     def assert_allowed(self, key: str, *, detail: str = TOO_MANY_ATTEMPTS) -> None:
         wait = self.retry_after_seconds(key)
         if wait > 0:

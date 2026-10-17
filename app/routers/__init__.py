@@ -6,6 +6,7 @@ from app.routers import (
     discount_codes,
     exercises,
     orders,
+    password_reset,
     payments,
     plans,
     products,
@@ -19,6 +20,7 @@ from app.routers import (
 
 api_routers = [
     auth.router,
+    password_reset.router,
     users.router,
     trainers.router,
     plans.router,

@@ -1,6 +1,7 @@
 from app.models.auth_tokens import RefreshToken, RevokedToken
 from app.models.classes import Booking, ClassSession, ClassType
 from app.models.membership import CancellationRequest, MembershipPlan, Subscription
+from app.models.password_reset import PasswordResetToken
 from app.models.payments import DiscountCode, Payment
 from app.models.routines import Exercise, Routine, RoutineExercise
 from app.models.shop import Order, OrderItem, Product, ProductCategory, ProductVariant
@@ -16,6 +17,7 @@ __all__ = [
     "MembershipPlan",
     "Order",
     "OrderItem",
+    "PasswordResetToken",
     "Payment",
     "Product",
     "ProductCategory",

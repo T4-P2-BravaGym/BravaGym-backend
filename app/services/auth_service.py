@@ -41,7 +41,7 @@ def _token_expiry(payload: dict) -> datetime:
 
 
 def _new_session_tokens(db: Session, user: User) -> SessionTokens:
-    refresh = create_refresh_token(user.id, user.role.name)
+    refresh = create_refresh_token(user.id, user.role.name, user.session_version)
     db.add(
         RefreshToken(
             user_id=user.id,
@@ -49,7 +49,9 @@ def _new_session_tokens(db: Session, user: User) -> SessionTokens:
             expires_at=_token_expiry(decode_refresh_token(refresh)),
         )
     )
-    return SessionTokens(create_access_token(user.id, user.role.name), refresh)
+    return SessionTokens(
+        create_access_token(user.id, user.role.name, user.session_version), refresh
+    )
 
 
 def issue_session(db: Session, user: User) -> SessionTokens:
@@ -71,7 +73,11 @@ def refresh_session(db: Session, refresh_token: str) -> SessionTokens:
     except (jwt.InvalidTokenError, ValueError, TypeError):
         raise UnauthorizedError(INVALID_SESSION_TOKEN) from None
     user = db.get(User, user_id, populate_existing=True)
-    if user is None or not user.is_active:
+    if (
+        user is None
+        or not user.is_active
+        or user.session_version != payload.get("ver", 0)
+    ):
         raise UnauthorizedError(INVALID_SESSION_TOKEN)
     now = utc_now()
     consumed = db.execute(
@@ -81,7 +87,12 @@ def refresh_session(db: Session, refresh_token: str) -> SessionTokens:
             RefreshToken.user_id == user.id,
             RefreshToken.revoked_at.is_(None),
             RefreshToken.expires_at > now,
-            RefreshToken.user_id.in_(select(User.id).where(User.is_active.is_(True))),
+            RefreshToken.user_id.in_(
+                select(User.id).where(
+                    User.is_active.is_(True),
+                    User.session_version == payload.get("ver", 0),
+                )
+            ),
         )
         .values(revoked_at=now)
         .execution_options(synchronize_session="fetch")
@@ -122,6 +133,8 @@ def logout_session(db: Session, access_token: str, refresh_token: str) -> None:
         or saved.expires_at <= utc_now()
         or user is None
         or not user.is_active
+        or user.session_version != access.get("ver", 0)
+        or user.session_version != refresh.get("ver", 0)
     ):
         raise UnauthorizedError(INVALID_SESSION_TOKEN)
     if saved.revoked_at is None:
