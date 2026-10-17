@@ -1,14 +1,14 @@
 """Add password recovery tokens and account session versions.
 
 Revision ID: d735a190bc02
-Revises: 01a8afa11746
+Revises: 36c107fd4abd
 """
 
 import sqlalchemy as sa
 from alembic import op
 
 revision = "d735a190bc02"
-down_revision = "01a8afa11746"
+down_revision = "36c107fd4abd"
 branch_labels = None
 depends_on = None
 

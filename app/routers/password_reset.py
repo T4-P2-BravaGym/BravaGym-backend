@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.openapi import error
 from app.core.password_reset_delivery import (
     deliver_password_reset,
     get_reset_email_sender,
@@ -58,7 +59,7 @@ router = APIRouter(
             "description": "Same response for every valid email",
             "content": {"application/json": {"example": {"detail": ACCEPTED_DETAIL}}},
         },
-        422: {"description": "Invalid input; values are not echoed"},
+        422: error("Invalid input; values are not echoed"),
     },
 )
 def request_reset(
@@ -89,7 +90,7 @@ def request_reset(
             "description": "Password changed and every old session invalidated; no body"
         },
         400: {
-            "description": "Invalid, expired or already-used link",
+            **error("Invalid, expired or already-used link"),
             "content": {
                 "application/json": {
                     "example": {
@@ -99,7 +100,7 @@ def request_reset(
                 }
             },
         },
-        422: {"description": "Invalid input; secrets are not echoed"},
+        422: error("Invalid input; secrets are not echoed"),
     },
 )
 def confirm_reset(

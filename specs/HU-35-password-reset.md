@@ -91,4 +91,4 @@ Nueva tabla propuesta `password_reset_tokens`: id, user_id con FK e índice, tok
 Referencia para la revisión: https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html
 
 
-Validación de implementación: pytest/freezegun y Vitest existentes; migración reversible comprobada sobre SQLite temporal con una usuaria ficticia. Flujo HTTP real comprobado con outbox local y rechazo posterior de access/refresh previos. Revisión independiente completada y corrección de Cache-Control en errores 400 cubierta por regresión. No se afirma despliegue de producción ni revisión humana/merge realizados.
+Validación de implementación: 777 tests pytest (97,13 % de cobertura) y 87 tests Vitest, después de integrar dev del equipo; migración reversible comprobada sobre SQLite temporal con una usuaria ficticia. Flujo HTTP real comprobado con outbox local y rechazo posterior de access/refresh previos. Revisión independiente completada y corrección de Cache-Control en errores 400 cubierta por regresión. No se afirma despliegue de producción ni revisión humana/merge realizados.
