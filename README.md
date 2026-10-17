@@ -4,19 +4,100 @@ API de Brava, gimnasio de fuerza para mujeres: reservas de clases, entrenamiento
 
 **Stack:** Python 3.11+, FastAPI, SQLite, SQLAlchemy 2, Alembic, Pydantic 2, pytest. La documentación interactiva está en [`/docs`](http://localhost:8000/docs) (Swagger).
 
+## Documentación de entrega
+
+Esta guía cubre el backend ([#284](https://github.com/T4-P2-BravaGym/BravaGym-backend/issues/284), parte de [D-07 · #200](https://github.com/T4-P2-BravaGym/BravaGym-backend/issues/200)). La instalación y el uso del frontend se mantienen en su [README propio](https://github.com/T4-P2-BravaGym/BravaGym-frontend/blob/dev/README.md), tarea [#283](https://github.com/T4-P2-BravaGym/BravaGym-backend/issues/283).
+
+| Recurso | Enlace |
+| --- | --- |
+| Swagger local: explorar endpoints y autorizar peticiones | [http://localhost:8000/docs](http://localhost:8000/docs) |
+| ReDoc local: consultar el contrato de la API | [http://localhost:8000/redoc](http://localhost:8000/redoc) |
+| Contrato OpenAPI local | [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json) |
+| Estado del servidor | [http://localhost:8000/health](http://localhost:8000/health) |
+| Colección de Bruno | [`collections/brava/`](collections/brava/) y [cómo ejecutarla](#colección-de-bruno-d-05) |
+| Especificaciones | [`specs/`](specs/) |
+| Bitácora de IA | [`docs/ai-log.md`](docs/ai-log.md) |
+| Modelo entidad-relación | [`docs/er.md`](docs/er.md) |
+| Endpoints y permisos | [`docs/api.md`](docs/api.md) |
+| Reglas de negocio | [`docs/business-rules.md`](docs/business-rules.md) |
+| Retrospectiva | Pendiente de publicación y enlace en [D-07 · #200](https://github.com/T4-P2-BravaGym/BravaGym-backend/issues/200) |
+| URL desplegada de la API | Pendiente de confirmación en [HU-36 · #185](https://github.com/T4-P2-BravaGym/BravaGym-backend/issues/185) |
+
+Los enlaces `localhost` necesitan el servidor local arrancado. La retrospectiva y la URL pública todavía no están publicadas en `dev`; esta tabla identifica las tareas pendientes sin presentar una dirección ficticia como entregable terminado.
+
 ## Arrancar en local
 
+Requisitos: Git y Python **3.12** (la versión usada por CI). Ejecutar los comandos desde la raíz del repositorio backend. Si aún no lo tienes:
+
 ```bash
-python3 -m venv .venv
+git clone https://github.com/T4-P2-BravaGym/BravaGym-backend.git
+cd BravaGym-backend
+git switch dev
+```
+
+```bash
+python3.12 -m venv .venv
 source .venv/bin/activate          # con fish: source .venv/bin/activate.fish
 pip install -r requirements-dev.txt
-cp .env.example .env               # y pon un SECRET_KEY de verdad:
-python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+cp .env.example .env
+```
+
+Genera una clave y copia el resultado en `SECRET_KEY` dentro de `.env`, sustituyendo `change-me`. No compartas ni subas ese archivo:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Con la configuración guardada:
+
+```bash
 alembic upgrade head               # crea las tablas (la API ya no las crea al arrancar)
 python -m scripts.seed             # opcional: datos de prueba (solo con ENVIRONMENT=local)
 uvicorn app.main:app --reload      # http://localhost:8000/docs
-pytest                             # tests
 ```
+
+Detén Uvicorn con `Ctrl+C`. Los comandos de tests se ejecutan en otra terminal con el mismo entorno virtual activado.
+
+### Configuración local
+
+Los valores y opciones completos están en [`.env.example`](.env.example). Las rutas relativas se resuelven desde la raíz del backend.
+
+| Variable | Uso local |
+| --- | --- |
+| `ENVIRONMENT` | `local`; permite el seed y cookies sin HTTPS para desarrollo |
+| `SECRET_KEY` | Clave privada generada para esta instalación; no usar `change-me` |
+| `DATABASE_URL` | `sqlite:///./brava.db`; Alembic y la API deben usar la misma base |
+| `CORS_ORIGINS` | Lista JSON de orígenes permitidos; por defecto `["http://localhost:5173"]` |
+| `MEDIA_ROOT` | `media`; contiene las fotos de productos y debe conservarse junto con la base |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` / `REFRESH_TOKEN_EXPIRE_DAYS` | Duración de las sesiones: 60 minutos / 7 días por defecto |
+
+No mezcles `localhost` y `127.0.0.1` entre frontend y API cuando pruebes cookies. Si cambias el puerto del frontend, actualiza `CORS_ORIGINS`; la URL de la API se configura en el frontend siguiendo su README. Ningún secreto del backend debe ir en una variable `VITE_*`.
+
+### Datos de demostración y primer uso
+
+`python -m scripts.seed` solo funciona con `ENVIRONMENT=local`, después de las migraciones y sobre una base sin datos. Crea planes, clases, reservas, rutinas, productos y cuentas ficticias:
+
+| Rol | Email de demostración |
+| --- | --- |
+| Socia | `lucia@example.com`, `carmen@example.com` |
+| Entrenadora | `ana@example.com`, `marta@example.com` |
+| Administración | `admin@example.com` |
+| Superadministración | `superadmin@example.com` |
+
+La contraseña ficticia por defecto es `BravaDemo2026!`; puede sustituirse con `SEED_PASSWORD` antes de ejecutar el seed. No son cuentas de producción. El script actual imprime la contraseña de demostración al finalizar: no uses una contraseña personal ni publiques esa salida. No vuelvas a ejecutar el seed sobre una base con datos.
+
+Para probar la API, abre Swagger, pulsa **Authorize** e introduce el email de una cuenta de demo en `username` y su contraseña. Después ejecuta `GET /api/v1/users/me`. El formulario de login usa OAuth2 (`application/x-www-form-urlencoded`), no JSON. Consulta la sección de sesiones para refresh/logout y la colección de Bruno para flujos completos.
+
+### Fotos de productos
+
+La API sirve los archivos de `MEDIA_ROOT` bajo `/media`. El directorio se crea al arrancar y sus archivos no se suben a Git. Conserva tanto la base SQLite como `media/` para mantener las fotos y sus referencias. El volumen para contenedores se coordina en [#173](https://github.com/T4-P2-BravaGym/BravaGym-backend/issues/173).
+
+## Docker y despliegue
+
+Docker corresponde a [HU-27 · #112](https://github.com/T4-P2-BravaGym/BravaGym-backend/issues/112), con instrucciones en [#115](https://github.com/T4-P2-BravaGym/BravaGym-backend/issues/115). `dev` todavía no incluye un `Dockerfile` ni un archivo Compose: usa el arranque local anterior. El comando `docker compose up` se documentará y verificará al integrar esos archivos; no funciona con este estado del repositorio.
+
+El despliegue público corresponde a [HU-36 · #185](https://github.com/T4-P2-BravaGym/BravaGym-backend/issues/185). Antes de publicar su URL hay que confirmar HTTPS, el origen CORS real y persistencia para SQLite y `media/`. Las cookies de HU-33 requieren frontend y API en el mismo sitio y usan `Secure` fuera de local. Esta tarea de README no añade infraestructura ni realiza un despliegue.
+
 ## Migraciones de base de datos
 
 El esquema se gestiona con [Alembic](https://alembic.sqlalchemy.org/). **Cualquier cambio de modelo lleva su migración.**
@@ -143,10 +224,19 @@ Formato y scripts de referencia: [archivos Bru](https://docs.usebruno.com/bru-la
 
 Todo está en [`AGENTS.md`](AGENTS.md): la IA como mentora, idioma, DRY y SOLID, MVC, seguridad, ramas, Conventional Commits y Definition of Done. Las tareas están en el GitHub Project **Brava** de la organización.
 
-Antes de abrir una PR:
+## Verificación antes de una PR
+
+Con el entorno virtual activado y las dependencias de desarrollo instaladas:
 
 ```bash
+ruff check app tests
+ruff format --check app tests
+alembic upgrade head
 alembic check
-pytest
+pytest --cov=app --cov-fail-under=80
 pip-audit -r requirements.txt
 ```
+
+`alembic upgrade head` y `alembic check` trabajan sobre la base configurada: usa una base local o temporal. pytest usa SQLite en memoria y sus propias fixtures; el test de migraciones usa una base temporal. La cobertura mínima es 80 %. CI ejecuta estos controles en [`.github/workflows/tests.yml`](.github/workflows/tests.yml); la auditoría se ejecuta con `continue-on-error`, por lo que un workflow verde no sustituye revisar su resultado.
+
+Si la API no arranca, comprueba que `SECRET_KEY` está configurada, el entorno virtual está activado y ejecutaste las migraciones. Si el seed indica que hay datos, conserva esa base y usa otra base temporal como en la sección de Bruno. Para un error CORS, revisa el origen completo del frontend (esquema, hostname y puerto).
