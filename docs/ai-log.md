@@ -288,3 +288,14 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** todo lo anterior. Cuando el equipo dijo "clases y tienda", me recomendó seguir su decisión; yo preferí dejar también las cuotas, porque no cuesta nada más y sirve para ofertas de la cuota.
 - **Qué descarté:** limitar por categoría de producto, que cambiaba el cálculo de RN-15 para un pedido con productos mezclados.
 - **Errores o alucinaciones:** nada inventado. Me avisó de antemano de que Alembic no detecta las `CHECK` y de que la migración iba a tener el mismo problema de foreign keys que la T-03, así que la probamos con datos desde el principio. Un test de la HU-25 comparaba la respuesta entera y hubo que añadirle `applies_to`.
+
+## D-07 · README backend (#284) — Beste
+
+- **Herramienta y modelo:** OpenAI Codex / GPT-6, con autorización explícita para editar documentación y ejecutar verificaciones.
+- **Prompt clave:** «okay do whatever needed to be done and tell me». Aclaración de alcance: «tehre is separate frontend readme» y «i gave you».
+- **Qué me explicó o propuso:** contrastar #284 y su padre #200 con el README, configuración, seed, rutas y CI existentes; añadir instalación, uso e índice de entrega sin introducir herramientas.
+- **Qué acepté:** README solo del backend, enlace al README frontend, cuentas ficticias del seed, variables de configuración, persistencia de fotos y comandos de calidad existentes. Docker, retrospectiva y URL pública se señalan pendientes con sus tareas.
+- **Qué descarté:** editar el README frontend (#283), duplicar sus instrucciones, implementar Docker o inventar una URL desplegada o una retrospectiva.
+- **Errores o alucinaciones:** inicialmente se consideró incluir instrucciones frontend; la persona recordó el alcance separado antes de escribirlas. Se corrigió a un enlace. No se atribuye a esta tarea haber terminado Docker, despliegue o retrospectiva.
+- **Verificación:** enlaces relativos del README comprobados; `alembic upgrade head`, `alembic check` y seed ejecutados sobre SQLite temporal; health, Swagger, ReDoc, OpenAPI, login de demo y perfil autenticado comprobados con el cliente existente de FastAPI. Sin modificar la base habitual.
+- **Resultado final:** 737 tests existentes pasan, cobertura 96,98 %; Ruff lint y formato pasan (121 archivos); `git diff --check` pasa. La ejecución parcial inicial pasó sus 7 casos pero no alcanzó la cobertura global; se ejecutó la suite completa sin cambiar tests ni umbrales. Entorno local Python 3.11.9; CI usa Python 3.12, documentado como versión de referencia.
