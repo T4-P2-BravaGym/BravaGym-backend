@@ -6,7 +6,7 @@ Issue: #184 · Entrega 2 · Tamaño M · Prioridad P3 · Depende de: T-01 (Alemb
 
 > Como usuaria quiero recuperar el acceso si olvido la contraseña.
 
-Existen login y cambio de contraseña autenticado (HU-32), pero no recuperación sin sesión. HU-33 aporta renovación y revocación de sesiones. Esta historia añade solicitud y confirmación públicas y dos páginas del frontend. La spec se redacta antes del código. Beste aprobó el diseño y el cierre de todas las sesiones tras el reset.
+Existen login y cambio de contraseña autenticado (HU-32), pero no recuperación sin sesión. HU-33 aporta renovación y revocación de sesiones. Esta historia añade solicitud y confirmación públicas y dos páginas del frontend. La spec se redacta antes del código. El reset invalida todas las sesiones anteriores.
 
 ## Requisitos
 
@@ -73,14 +73,13 @@ Nueva tabla propuesta `password_reset_tokens`: id, user_id con FK e índice, tok
 
 ## Preguntas abiertas
 
-- Diseño y plan aprobados por Beste; se ejecuta en este chat con revisión independiente al final.
 - Producción requiere un adaptador real de correo y una URL HTTPS del frontend; esta entrega ofrece exclusivamente el adaptador de desarrollo solicitado.
 
 ## Decisiones
 
 | Decisión | Por qué |
 | --- | --- |
-| Cierre global de sesiones aprobado por Beste | Evitar que una sesión antigua conserve acceso tras recuperar la cuenta. |
+| Cierre global de sesiones | Evitar que una sesión antigua conserve acceso tras recuperar la cuenta. |
 | Versión de sesión en cuenta y JWT | Invalidar access y refresh en una transacción, preservando tokens históricos solo hasta el primer reset. |
 | Spec antes del código | Requisito de #184 y del equipo. |
 | Reutilizar Vitest del equipo | Mantener un solo runner frontend. |
