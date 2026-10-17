@@ -299,3 +299,13 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Errores o alucinaciones:** inicialmente se consideró incluir instrucciones frontend; la persona recordó el alcance separado antes de escribirlas. Se corrigió a un enlace. No se atribuye a esta tarea haber terminado Docker, despliegue o retrospectiva.
 - **Verificación:** enlaces relativos del README comprobados; `alembic upgrade head`, `alembic check` y seed ejecutados sobre SQLite temporal; health, Swagger, ReDoc, OpenAPI, login de demo y perfil autenticado comprobados con el cliente existente de FastAPI. Sin modificar la base habitual.
 - **Resultado final:** 737 tests existentes pasan, cobertura 96,98 %; Ruff lint y formato pasan (121 archivos); `git diff --check` pasa. La ejecución parcial inicial pasó sus 7 casos pero no alcanzó la cobertura global; se ejecutó la suite completa sin cambiar tests ni umbrales. Entorno local Python 3.11.9; CI usa Python 3.12, documentado como versión de referencia.
+
+## D-07 · README frontend (#283) — Beste
+
+- **Herramienta y modelo:** OpenAI Codex / GPT-6, con autorización para editar documentación, verificar, hacer push y abrir la PR.
+- **Prompt clave:** «okay do it for frontend too» y «do frontends and push also». El alcance incluye el proyecto completo del equipo, no solo las historias de Beste.
+- **Qué me explicó o propuso:** instalación con el lockfile existente, configuración pública de la API, demo por roles, rutas, build/preview, documentación compartida y pendientes reales de entrega.
+- **Qué acepté:** README frontend basado en dev, Node 22 como CI, npm ci, Vitest/Testing Library existentes y enlaces al backend para Alembic y seed. Se añadieron spec frontend y enlaces a Swagger, ReDoc, Bruno, specs, bitácora y ER.
+- **Qué descarté:** integrar HU-35 aún en revisión, inventar URLs públicas o infraestructura Docker, cambiar código, tests, herramientas o dependencias.
+- **Errores o alucinaciones:** el README anterior decía que el lockfile debía generarse y que las rutas privadas dejaban pasar a todo el mundo; se contrastó con el repositorio y se corrigió. Se documentaron los pagos como simulados, de acuerdo con la pantalla existente.
+- **Verificación:** npm run lint, npm test (74 tests) y npm run build pasan; enlaces locales y rutas contrastados con paths.js y AppRouter.jsx; git diff --check pasa. Entorno local Node 24.18.0; CI usa Node 22. No se afirma haber repetido una instalación limpia ni una prueba manual nueva de toda la interfaz para este cambio documental.
