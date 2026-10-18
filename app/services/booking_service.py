@@ -1,4 +1,4 @@
-"""Book, cancel and list bookings (RN-01 to RN-07).
+"""Book, cancel and list bookings (RN-01 to RN-07, RN-16).
 
 Capacity check and write happen in one transaction. Waitlist position is
 computed from created_at order and never stored.
@@ -127,6 +127,39 @@ def _ensure_extra_class_payment(
     )
     db.add(payment)
     return payment
+
+
+def settle_booking_payment(db: Session, booking: Booking) -> PaymentStatus | None:
+    """RN-16: what happens to the extra-class payment of a cancelled booking.
+
+    A pending payment is cancelled (nothing was charged) and a paid one is
+    refunded. Same rule for HU-11, HU-13 and HU-20: the member can only cancel a
+    confirmed booking with 60 minutes or more left (RN-05). Does not commit.
+    Returns the new status, or None if there was no payment to settle.
+    """
+    payment = db.scalar(
+        select(Payment)
+        .where(
+            Payment.booking_id == booking.id,
+            Payment.status.in_((PaymentStatus.PENDING, PaymentStatus.PAID)),
+        )
+        .with_for_update()
+    )
+    if payment is None:
+        return None
+
+    if payment.status == PaymentStatus.PENDING:
+        payment.status = PaymentStatus.CANCELLED
+    else:
+        payment.status = PaymentStatus.REFUNDED
+
+    logger.info(
+        "Payment %s of booking %s is now %s",
+        payment.id,
+        booking.id,
+        payment.status.value,
+    )
+    return payment.status
 
 
 def _load_booking_with_session(db: Session, booking_id: int) -> Booking:
@@ -281,7 +314,8 @@ def _cancel_one_booking_applying_rn06(
     enforce_deadline: bool,
     now: datetime | None,
 ) -> int | None:
-    """Mark one booking cancelled and promote waitlist when it was confirmed (RN-06).
+    """Mark one booking cancelled, settle its payment (RN-16) and promote the
+    waitlist when it was confirmed (RN-06).
 
     Does not commit. Returns the promoted booking id when a waitlisted booking
     took the freed spot, otherwise None.
@@ -297,6 +331,7 @@ def _cancel_one_booking_applying_rn06(
 
     booking.status = BookingStatus.CANCELLED
     booking.cancelled_at = cancelled_at
+    settle_booking_payment(db, booking)
     db.flush()
 
     if previous_status != BookingStatus.CONFIRMED:

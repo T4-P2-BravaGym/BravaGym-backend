@@ -22,8 +22,8 @@ from app.core.exceptions import (
     PermissionDeniedError,
     ValidationAppError,
 )
-from app.models import Booking, ClassSession, ClassType, Payment, User
-from app.models.enums import BookingStatus, PaymentStatus, RoleName, SessionStatus
+from app.models import Booking, ClassSession, ClassType, User
+from app.models.enums import BookingStatus, RoleName, SessionStatus
 from app.models.types import utc_now
 from app.schemas.classes import (
     ClassTypeCreate,
@@ -31,7 +31,11 @@ from app.schemas.classes import (
     SessionCreate,
     SessionUpdate,
 )
-from app.services.booking_service import waitlist_position_for
+from app.services.booking_service import (
+    notify_sessions_updated,
+    settle_booking_payment,
+    waitlist_position_for,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -579,7 +583,11 @@ def update_session(
 
 
 def cancel_session(db: Session, actor: User, session_id: int) -> SessionWithFreeSpots:
-    """Cancel a session, its bookings, and refund related extra-class payments (RN-10)."""
+    """Cancel a session and its bookings (RN-10).
+
+    Extra-class payments follow RN-16: pending ones are cancelled (nothing was
+    charged) and paid ones are refunded, because the gym cancels the class.
+    """
     session = db.scalar(
         select(ClassSession)
         .options(joinedload(ClassSession.class_type))
@@ -607,34 +615,22 @@ def cancel_session(db: Session, actor: User, session_id: int) -> SessionWithFree
             .with_for_update()
         ).all()
     )
-    booking_ids = [booking.id for booking in bookings]
+    settled_payments = 0
     for booking in bookings:
         booking.status = BookingStatus.CANCELLED
         booking.cancelled_at = now
-
-    refunded = 0
-    if booking_ids:
-        payments = list(
-            db.scalars(
-                select(Payment)
-                .where(
-                    Payment.booking_id.in_(booking_ids),
-                    Payment.status.in_((PaymentStatus.PENDING, PaymentStatus.PAID)),
-                )
-                .with_for_update()
-            ).all()
-        )
-        for payment in payments:
-            payment.status = PaymentStatus.REFUNDED
-            refunded += 1
+        if settle_booking_payment(db, booking) is not None:
+            settled_payments += 1
 
     db.commit()
+    notify_sessions_updated([session.id])
     logger.info(
-        "User %s cancelled session %s (%s bookings cancelled, %s payments refunded)",
+        "User %s cancelled session %s (%s bookings cancelled, "
+        "%s payments cancelled or refunded)",
         actor.id,
         session.id,
-        len(booking_ids),
-        refunded,
+        len(bookings),
+        settled_payments,
     )
     return _load_session_with_free_spots(db, session.id)
 

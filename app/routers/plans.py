@@ -1,17 +1,9 @@
-"""Controller for plans: receives the request, checks permissions, calls the service, returns a schema.
-
-TODO(HU-07, HU-08): GET /plans, POST/PATCH/DELETE /plans
-Keep endpoints thin: no business rules and no complex queries here.
-Every endpoint: response_model, summary, and require_roles(...) when it is not public.
-"""
-
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import require_roles
+from app.core.deps import CurrentAdmin
 from app.core.openapi import error
-from app.models.enums import RoleName
 from app.schemas.plan import (
     AdminPlanOut,
     AdminPlanPage,
@@ -89,8 +81,8 @@ def get_plans(db: Session = Depends(get_db)):
     },
 )
 def get_admin_plans(
+    _: CurrentAdmin,
     db: Session = Depends(get_db),
-    _=Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN)),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
 ):
@@ -116,8 +108,8 @@ def get_admin_plans(
 )
 def post_plan(
     body: PlanCreate,
+    _: CurrentAdmin,
     db: Session = Depends(get_db),
-    _=Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN)),
 ):
     return create_plan(db, body)
 
@@ -136,8 +128,8 @@ def post_plan(
 def patch_plan(
     plan_id: int,
     body: PlanUpdate,
+    _: CurrentAdmin,
     db: Session = Depends(get_db),
-    _=Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN)),
 ):
     return update_plan(db, plan_id, body)
 
@@ -157,7 +149,7 @@ def patch_plan(
 )
 def delete_plan(
     plan_id: int,
+    _: CurrentAdmin,
     db: Session = Depends(get_db),
-    _=Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN)),
 ):
     return deactivate_plan(db, plan_id)
