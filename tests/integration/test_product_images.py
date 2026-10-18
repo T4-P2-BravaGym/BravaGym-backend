@@ -245,9 +245,10 @@ def test_a_failed_save_leaves_no_file_behind(
 
     monkeypatch.setattr(db, "commit", broken_commit)
 
-    with pytest.raises(RuntimeError):
-        _upload(client, product.id, JPEG, admin_headers)
+    response = _upload(client, product.id, JPEG, admin_headers)
 
+    assert response.status_code == 500
+    assert response.json()["code"] == "internal_error"
     assert _stored(images_dir) == []
 
 
