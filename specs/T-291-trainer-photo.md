@@ -41,9 +41,10 @@ las saca a un módulo común y las usa también para las entrenadoras.
 
 ## Interfaz
 
-- "Mi perfil público": junto al avatar, "Cambiar foto" y "Quitar foto".
-- "Entrenadoras": cada tarjeta enseña la foto si la hay; si no, las iniciales.
+- "Mi perfil público": junto al avatar, "Ca.mbiar foto" y "Quitar foto".
+- "Entrenadoras": cada tarjeta enseña la foto si la hay; si no, las iniciales. La página usa `PageHeader` ("El equipo · Entrenadoras · Conoce a nuestras entrenadoras y elige con quién entrenar.") y "Entrenamiento personal" enseña las mismas tarjetas, también con la foto.
 - Estados: subiendo, aviso verde al cambiarla y aviso rojo con el mensaje de la API.
+
 
 ## Fuera de alcance
 
@@ -61,3 +62,5 @@ las saca a un módulo común y las usa también para las entrenadoras.
 | Guardar el archivo nuevo → commit → borrar el viejo; si el commit falla, se borra el nuevo | Nunca queda una foto a medias ni se pierde la anterior. |
 | Rutas `/trainers/me/photo` sin id | Cada entrenadora solo toca su propia foto (sin IDOR). |
 | La migración solo añade una columna | `trainer_profiles` no tiene otras tablas que apunten a ella ni CHECK nuevas, así que no hace falta apagar las foreign keys (a diferencia de T-03 y T-240). |
+| `Avatar` acepta `src` y, con foto, pinta una imagen en el mismo círculo | Mismo tamaño y forma que las iniciales; sin `src`, todo sigue igual en el resto de la app. |
+| Nuevo tamaño `xl` (120 px) para las tarjetas de entrenadoras | En 72 px una foto apenas se veía; las demás pantallas mantienen su tamaño. |
