@@ -77,7 +77,7 @@ Reglas del backend:
 
 - **Controladores finos:** cada endpoint cabe en unas pocas líneas y delega en un servicio.
 - **Sin capa de repositorios (T-08):** las consultas viven en el servicio, junto a la regla que las usa, y es el servicio quien hace el `commit`. Un router nunca hace consultas: recibe la sesión y se la pasa al servicio. El porqué está en el README.
-- **Permisos:** con la dependencia `require_roles("trainer", "superadmin")`, nunca con `if` sueltos en el endpoint.
+- **Permisos:** con la dependencia `require_roles("trainer", "superadmin")`, nunca con `if` sueltos en el endpoint. Para socias y para administración hay alias en `app/core/deps.py` (`CurrentMember`, `CurrentAdmin`): úsalos en vez de definir uno propio en cada router.
 - **Errores:** códigos HTTP coherentes. 401 sin token; 403 sin permiso; 404 si no existe o no es suyo; 409 si choca con el estado (aforo, duplicado, plazo de 1 hora, stock); 422 si los datos son inválidos. El mensaje dice qué pasó, en español.
 - **Dinero:** en céntimos enteros (`price_cents`), nunca `float`.
 - **Migraciones:** cualquier cambio de modelo lleva su migración (`alembic revision --autogenerate`, revisada a mano) en el mismo commit que el modelo. Nunca se edita una migración ya mergeada: se crea otra. `alembic check` tiene que pasar.

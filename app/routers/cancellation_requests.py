@@ -1,15 +1,12 @@
-"""Controller for cancellation requests (HU-19 RN-12, HU-20 RN-13)."""
-
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import CurrentMember, require_roles
+from app.core.deps import CurrentAdmin, CurrentMember
 from app.core.openapi import error
-from app.models.enums import CancellationStatus, RoleName
-from app.models.user import User
+from app.models.enums import CancellationStatus
 from app.schemas.cancellation import (
     CancellationApprove,
     CancellationReject,
@@ -22,9 +19,6 @@ from app.services import cancellation_service
 router = APIRouter(prefix="/cancellation-requests", tags=["cancellation requests"])
 
 DbSession = Annotated[Session, Depends(get_db)]
-CurrentAdmin = Annotated[
-    User, Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN))
-]
 
 AUTH_RESPONSES = {
     401: error("Missing, invalid or expired token"),
