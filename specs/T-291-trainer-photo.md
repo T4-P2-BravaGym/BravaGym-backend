@@ -50,3 +50,14 @@ las saca a un módulo común y las usa también para las entrenadoras.
 - Que administración suba o quite la foto de una entrenadora.
 - Recortar o comprimir la foto en el servidor.
 - Fotos de socias.
+
+## Decisiones
+
+| Decisión | Por qué |
+| --- | --- |
+| Las comprobaciones y el disco de la HU-30 pasan a `app/services/image_files.py`, que usan productos y entrenadoras | Una sola validación de fotos (DRY); es lo que protege de archivos falsos. La lógica no cambia y los tests de la HU-30 pasan sin tocarlos (solo cambia de dónde importan). |
+| `read_image`, `save_image` y `delete_image` reciben la carpeta | Así sirven para `media/products` y `media/trainers`. |
+| El tipo se lee de los primeros bytes y el nombre lo genera el servidor | Igual que la HU-30: un PDF llamado `foto.jpg` se rechaza y nadie elige la ruta del archivo. |
+| Guardar el archivo nuevo → commit → borrar el viejo; si el commit falla, se borra el nuevo | Nunca queda una foto a medias ni se pierde la anterior. |
+| Rutas `/trainers/me/photo` sin id | Cada entrenadora solo toca su propia foto (sin IDOR). |
+| La migración solo añade una columna | `trainer_profiles` no tiene otras tablas que apunten a ella ni CHECK nuevas, así que no hace falta apagar las foreign keys (a diferencia de T-03 y T-240). |
