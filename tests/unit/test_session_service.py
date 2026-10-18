@@ -421,9 +421,10 @@ def test_rn10_superadmin_can_update_other_trainer_session(db, make_user):
     assert updated.session.capacity == 6
 
 
-def test_rn10_cancel_cancels_bookings_and_refunds_payments(db, make_user):
+def test_rn10_cancel_cancels_bookings_and_settles_payments(db, make_user):
     trainer = make_user(RoleName.TRAINER)
-    member = make_user(RoleName.MEMBER)
+    owes = make_user(RoleName.MEMBER)
+    paid_member = make_user(RoleName.MEMBER)
     class_type = ClassType(
         name="Extra con pago",
         description="Clase con precio extra.",
@@ -439,32 +440,42 @@ def test_rn10_cancel_cancels_bookings_and_refunds_payments(db, make_user):
     )
     db.add(session)
     db.flush()
-    booking = Booking(
-        user=member,
-        class_session=session,
-        status=BookingStatus.CONFIRMED,
+    pending_booking = Booking(
+        user=owes, class_session=session, status=BookingStatus.CONFIRMED
     )
-    db.add(booking)
+    paid_booking = Booking(
+        user=paid_member, class_session=session, status=BookingStatus.CONFIRMED
+    )
+    db.add_all([pending_booking, paid_booking])
     db.flush()
-    payment = Payment(
-        user_id=member.id,
-        booking_id=booking.id,
+    pending = Payment(
+        user_id=owes.id,
+        booking_id=pending_booking.id,
         base_amount_cents=1500,
         final_amount_cents=1500,
         status=PaymentStatus.PENDING,
     )
-    db.add(payment)
+    paid = Payment(
+        user_id=paid_member.id,
+        booking_id=paid_booking.id,
+        base_amount_cents=1500,
+        final_amount_cents=1500,
+        status=PaymentStatus.PAID,
+        paid_at=datetime(2026, 10, 1, 10, 0),
+    )
+    db.add_all([pending, paid])
     db.commit()
 
     result = session_service.cancel_session(db, trainer, session.id)
 
-    db.refresh(session)
-    db.refresh(booking)
-    db.refresh(payment)
+    db.refresh(pending_booking)
+    db.refresh(pending)
+    db.refresh(paid)
     assert result.session.status == SessionStatus.CANCELLED
-    assert booking.status == BookingStatus.CANCELLED
-    assert booking.cancelled_at is not None
-    assert payment.status == PaymentStatus.REFUNDED
+    assert pending_booking.status == BookingStatus.CANCELLED
+    assert pending_booking.cancelled_at is not None
+    assert pending.status == PaymentStatus.CANCELLED
+    assert paid.status == PaymentStatus.REFUNDED
 
 
 def test_create_class_type_and_deactivate(db):

@@ -1,12 +1,10 @@
-"""Controller for users: receives the request, checks permissions, calls the service, returns a schema (HU-04, HU-05, HU-06, HU-31, HU-32)."""
-
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import CurrentUser, require_roles
+from app.core.deps import CurrentAdmin, CurrentUser, require_roles
 from app.core.openapi import error
 from app.models.enums import RoleName
 from app.models.user import User
@@ -24,10 +22,6 @@ from app.services import user_service
 router = APIRouter(prefix="/users", tags=["users"])
 
 DbSession = Annotated[Session, Depends(get_db)]
-
-CurrentAdmin = Annotated[
-    User, Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN))
-]
 
 
 @router.get(

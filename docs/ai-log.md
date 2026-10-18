@@ -252,6 +252,37 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué descarté:** aplicar un parche ya preparado con todos los cambios de los routers; preferí hacerlo yo con buscar y reemplazar (regex) en VS Code para entender cada cambio.
 - **Errores o alucinaciones:** nada inventado. El primer reemplazo no encontraba nada porque la ruta de "files to include" no era la correcta en mi espacio de trabajo (`app/routers` en vez de `**/app/routers/**`); lo vimos con una captura.
 
+## PageHeader común — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora. Leyó el front y el back con mi permiso, solo lectura. El código lo escribí y lo commiteé yo, y los comandos los ejecuté yo en mi equipo.
+- **Prompt clave:** "Vamos a trabajar en el PageHeader común (tarea técnica de frontend, rama refactor/page-header)", pidiendo que antes comprobara que `dev` estaba al día y revisara las siete páginas de la tarea y sus `.module.scss`.
+- **Qué me explicó o propuso:** que mi `dev` del front iba un merge por detrás (la #82) y que no eran siete páginas con la cabecera copiada sino doce. Un componente `PageHeader` en `components/ui` con `title`, `eyebrow`, `lead` y `action`, con los mixins `eyebrow` y `display-text`, ficha y demo en el Sandbox y tres tests con Vitest.
+- **Qué acepté:**
+  - Cambiar las doce páginas, con las cinco de más en un commit aparte por si preferíamos ceñirnos a la tarea.
+  - En Tienda y Horario, dejar los filtros fuera de `PageHeader` y conservar un envoltorio para no cambiar la separación con el texto.
+  - Unificar el tamaño del título (AdminUsers y AdminCancellations usaban el de por defecto) y el ancho de la entradilla a 48rem.
+- **Qué descarté:** meter en esta PR MemberHome, las páginas que solo tienen un `<h1>` y la cabecera del Sandbox. Tampoco convertí aquí en componente la navegación por semanas, que está repetida en cuatro páginas: va en otra tarea.
+- **Errores o alucinaciones:**
+  - En Tienda y Horario me dijo que cambiara `<header>` por `<div>` pero no repitió el cambio del cierre, y quedó un `</header>` suelto. Lo detectó `npm run lint`. Al arreglarlo borré también el envoltorio y la barra de la semana quedó más separada; lo vimos leyendo el archivo.
+  - Claude no pudo pasar lint, tests ni build antes de darme el código: en su entorno no podía instalar las dependencias. Lo avisó.
+  - Me dijo al revés qué socia tiene entrenamiento personal en el seed: es `lucia` (plan Premium), no `carmen`.
+  - El IDE me metió el import como `"@/components/ui/PageHeader/index.js";` en diez páginas, con otro estilo que el resto; Claude lo vio al revisar. Lo dejé como en el resto de componentes.
+- **Cómo lo comprobé:** `npm test` (70 tests), `npm run lint` y `npm run build`, y las doce páginas a mano en escritorio y en móvil, sin sesión y con una socia, una entrenadora y admin.
+
+## Arreglos: reservas, navegación por semanas y errores 500 — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora, en el mismo chat del PageHeader. Solo lectura; el código y los comandos, míos.
+- **Prompt clave:** "sin login - en la sección entrenadoras sale No hemos podido cargar las entrenadoras … ¿es normal o es un error nuestro?", con el log de uvicorn, y después las capturas de "Mis reservas" y de la semana en el móvil.
+- **Qué me explicó o propuso:**
+  - El fallo de entrenadoras era mi `brava.db` sin la migración de auditoría de usuarias (`no such column: users.created_by_id`); se arregló con `alembic upgrade head`, no era un bug del código.
+  - El mensaje de "no se ha podido conectar" salía porque FastAPI responde los errores inesperados fuera de `CORSMiddleware`: el 500 llegaba sin cabeceras CORS y el navegador lo bloqueaba. Propuso un middleware que devuelve el 500 genérico dentro de CORS.
+  - "Mis reservas" mostraba "Clase · Fecha por confirmar" porque el front leía `session` y la API manda `class_session` desde la HU-12. Por eso tampoco se marcaban como reservadas las clases en el horario.
+  - En el móvil, "Anterior" y "Siguiente" no cabían con la fecha: cambiarlos por flechas, que conservan el `aria-label`.
+- **Qué acepté:** los tres arreglos, en dos PR (una del backend y otra del front), con un test nuevo en cada repo.
+- **Qué descarté:** igualar el tamaño del badge "Reservada" y el botón "Cancelar": uno es un estado y el otro una acción, y el botón tiene que medir al menos 44 px de alto. También dejé para otra tarea el componente común de la navegación por semanas.
+- **Errores o alucinaciones:** el middleware rompió `test_a_failed_save_leaves_no_file_behind`, que esperaba que la excepción saliera de la API. Lo vi con `pytest`. Cambiamos el test para comprobar el 500 y seguir comprobando que no queda ningún archivo; no se le bajó la exigencia. Claude tampoco pudo ejecutar `pytest` en su entorno antes de pasármelo.
+- **Cómo lo comprobé:** `pytest` con cobertura del 96,84 %, test nuevo de que el 500 lleva la cabecera CORS, Ruff, `npm test` (72 tests), `npm run lint` y `npm run build`. A mano, con `lucia`: "Mis reservas" con nombre y hora, la clase reservada marcada en el horario y las flechas en una línea en el móvil.
+
 ## T-240 · Códigos de descuento por tipo de pago — Esra
 
 - **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código, ejecuté los comandos y hice los commits.
@@ -261,7 +292,84 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué descarté:** limitar por categoría de producto, que cambiaba el cálculo de RN-15 para un pedido con productos mezclados.
 - **Errores o alucinaciones:** nada inventado. Me avisó de antemano de que Alembic no detecta las `CHECK` y de que la migración iba a tener el mismo problema de foreign keys que la T-03, así que la probamos con datos desde el principio. Un test de la HU-25 comparaba la respuesta entera y hubo que añadirle `applies_to`.
 
-## D-07 · README backend (#284) — Beste
+## WeekNav común — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora, en el mismo chat del PageHeader. Leyó el front con mi permiso, solo lectura; el código y los comandos, míos.
+- **Prompt clave:** "haremos la otra rama para hacer lo de las flechas un componente reutilizable", después de cambiar "Anterior" y "Siguiente" por flechas en las cuatro páginas.
+- **Qué me explicó o propuso:** que la navegación por semanas estaba copiada en `Schedule`, `Bookings`, `PersonalTraining` y `TrainerSessions` (marcado, salto de 7 días y estilos iguales). Un componente `WeekNav` que recibe la fecha (`anchor`) y `onChange`, en vez del texto y dos funciones, para que calcule él la semana y el salto y las páginas solo guarden la fecha.
+- **Qué acepté:** esa interfaz, ponerlo en `components/domain` porque usa la semana de Madrid de `utils/week`, la ficha y la demo en el Sandbox y dos tests con Vitest. También esperar a que se mergeara la PR de las flechas antes de sacar la rama, porque tocaba las mismas líneas.
+- **Qué descarté:** la primera idea de pasarle `label`, `onPrevious` y `onNext`, porque cada página seguía calculando la semana por su cuenta.
+- **Errores o alucinaciones:** nada inventado. Al pegar los cambios se me olvidaron dos de la lista en `PersonalTraining` (borrar `weekLabel` y cambiar el import de `utils/week`); lo detectó `npm run lint`. Claude no pudo pasar lint ni tests en su entorno antes de pasarme el código, y lo avisó.
+- **Cómo lo comprobé:** `npm run lint`, `npm test` y `npm run build`. A mano, en el horario sin sesión, en Reservar clases y Entrenamiento personal con `lucia` y en Mis clases con `ana`: las flechas cambian de semana, se cargan sus clases y en el móvil cabe en una línea.
+
+
+## Home y precios — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora. Leyó el front y el back con mi permiso, solo lectura. El código lo escribí y lo commiteé yo, y los comandos los ejecuté yo en mi equipo.
+- **Prompt clave:** "En la home, quiero destacar más lo de entrenamiento especializado de fuerza para mujeres, queda como perdido, es el feedback de la profe […] Precios está también muy equis, quiero que cuando pases encima de la card se muevan, y como glow o algo […] destacar más lo guay del premium", con capturas de las dos páginas.
+- **Qué me explicó o propuso:**
+  - Antes de empezar, comprobar que la landing de Viviana ya estaba mergeada y que ninguna rama abierta tocaba esos archivos.
+  - En la home, una línea con la especialidad justo debajo del título, animaciones de entrada, una banda de ejercicios y las cards de "Por qué Brava" que aparecen al hacer scroll con un hook `useInView` (`IntersectionObserver`, sin librerías).
+  - En precios, que `PricingCard` ya aceptaba `featured` y `features` pero la página no los usaba. Hover con elevación, glow y una luz que sigue al puntero, el plan con entrenamiento personal destacado, una sección de lo que incluyen todos los planes, un bloque sobre el entrenamiento personal y preguntas frecuentes.
+  - Al leer el código encontró tres cosas que no había pedido:
+    - el hook `useSubscribe` de la HU-09 nunca se conectó, así que una socia no podía contratar un plan desde el front;
+    - la próxima clase decía "con Entrenadora" porque la API no manda el nombre;
+    - el badge decía "La más elegida", algo que no podemos demostrar.
+- **Qué acepté:**
+  - Todo lo anterior en una sola rama y dos commits (home y precios).
+  - Conectar `useSubscribe` en la misma PR.
+  - Que los puntos de cada card salgan de los datos del plan (`includes_personal_training`) y no de textos escritos a mano por nombre de plan, porque administración puede editar los planes.
+  - Que todas las animaciones se paren con `prefers-reduced-motion`.
+  - Hacer los glows con `color-mix` sobre los tokens para no meter colores sueltos.
+- **Qué descarté:**
+  - Una tabla comparativa de planes: el plan no tiene un campo de clases por semana, así que habría que inventar las filas.
+  - Arreglar "Entrenadora" en el horario y en las reservas en esta PR: es un cambio del backend y se lo paso a Viviana.
+- **Errores o alucinaciones:**
+  - Nada inventado.
+  - Al revisar salió que el límite de "Hasta 2 clases a la semana" del plan Básico solo está en la descripción y el backend no lo comprueba. Va a la retro.
+  - Claude no pudo pasar lint, tests ni build en su entorno antes de darme el código, y lo avisó.
+- **Cómo lo comprobé:**
+  - `npm run lint`, `npm test` (3 tests nuevos de `PricingCard`) y `npm run build`.
+  - A mano:
+    - la home sin sesión, en escritorio y en móvil;
+    - Precios sin sesión ("Elegir" lleva a registro);
+    - con `carmen` ("Tu plan" en Básico, y el 409 de la API al elegir otro);
+    - con una socia nueva, que contrata Premium y ve la cuota en Mis pagos;
+    - con "Reducir movimiento" activado.
+
+## `CurrentAdmin` compartido en `deps.py` — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora. Leyó el backend con mi permiso, solo lectura. El código lo escribí y lo commiteé yo, y los comandos los ejecuté yo en mi equipo.
+- **Prompt clave:** "Lo que podemos hacer, si vale la pena y no tengo que esperar algún merge de mis PRs que están pendientes: compartir la dependencia CurrentAdmin en deps.py […]".
+- **Qué me explicó o propuso:**
+  - Que la tarea ya no eran tres routers sino seis: `users`, `payments`, `cancellation_requests` y `discount_codes` definían su propio `CurrentAdmin`, `products` lo llamaba `ShopAdmin` y `plans` repetía `require_roles(...)` en cuatro endpoints.
+  - Que `TrainerAdminOrSuperadmin` de `sessions.py` se quedaba como estaba, porque incluye a la entrenadora.
+  - Que no chocaba con mis PR abiertas, pero sí con la rama de Stripe en `payments.py`.
+  - Definirlo en `deps.py` junto a `CurrentMember` y mencionarlo en `AGENTS.md`.
+- **Qué acepté:** el refactor en los seis routers, también `payments.py`, avisando del conflicto en la PR. Comprobarlo sin tocar ningún test: si los 401 y 403 de siempre pasan, el comportamiento no ha cambiado.
+- **Qué descarté:** dejar `payments.py` fuera hasta que se mergee la HU-29. Preferí dejarlo cerrado hoy y que el conflicto se resuelva al mergear.
+- **Errores o alucinaciones:**
+  - Al darme los imports nuevos de `payments.py` y `cancellation_requests.py` los puso fuera de orden y Ruff marcó I001; se arregló con `ruff check --fix`.
+  - Yo hice sin querer en esta rama los commits de la otra tarea (los pagos). Lo vimos con `git log` y lo separamos con `cherry-pick`, `reset` y `commit --amend` antes de hacer push.
+- **Cómo lo comprobé:** `ruff check` y `ruff format --check`, un `grep` de `ShopAdmin` y de `CurrentAdmin = ` (solo queda el de `deps.py`), `pytest` con 767 tests sin cambiar ninguno, y el candado de los endpoints de admin en `/docs`.
+
+## Pagos de las reservas canceladas (HU-11, HU-13, HU-20) — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora, en el mismo chat. Solo lectura; el código y los comandos, míos.
+- **Prompt clave:** "Refactor de HU-13/HU-20 y HU-11/RN-10 (que se supone que es de Mariana, pero no se ha conectado […])" y después el texto de la issue.
+- **Qué me explicó o propuso:**
+  - Qué pasaba en cada camino: al cancelar la socia (HU-13) o aprobar una baja (HU-20), el pago de la clase extra no cambiaba. Al cancelar la entrenadora una clase (HU-11), los pagos `pending` pasaban a `refunded` aunque no se hubiera cobrado nada, y no se avisaba por websocket.
+  - Un helper común, `settle_booking_payment`, usado por `_cancel_one_booking_applying_rn06` y `cancel_session`.
+- **Qué acepté:**
+  - El helper y la regla de la issue: `pending` → `cancelled` y `paid` → `refunded` en los tres casos. Es seguro porque la socia solo puede cancelar con 60 minutos o más (RN-05).
+  - Actualizar RN-10, RN-13, RN-16 y `api.md`.
+  - Cambiar los dos tests que esperaban `REFUNDED` para un pago pendiente, porque comprobaban el comportamiento que corregíamos, y añadir cuatro: cancelar con pago pendiente y con pago pagado, baja aprobada y volver a reservar.
+- **Qué descarté:** su primera versión, que dejaba `paid` el pago cuando cancela la socia siguiendo la RN-16 tal como estaba escrita ("solo administración puede marcarlo `refunded`"). Al pasarle la issue vimos que el equipo ya había propuesto reembolsar también ahí y cambiar la RN-16, así que lo ajustamos en un segundo commit y quitamos el parámetro `refund_paid`, que ya no hacía falta.
+- **Errores o alucinaciones:**
+  - En tres tests marcaba un pago como `PAID` sin `paid_at` y la `CHECK` `ck_payments_paid_at` los rechazaba al preparar los datos. Se arregló poniendo la fecha; el fallo estaba en el test, no en el código.
+  - No había visto la issue al proponer la primera versión, ni la línea de `api.md` que había que cambiar.
+  - Al pegar, sustituí `_ensure_extra_class_payment` por la función nueva en vez de añadirla debajo (Ruff: F821). También se me borraron docstrings y quedaron dos `- ` sueltos en `business-rules.md`. Lo vimos revisando el diff antes del push.
+- **Cómo lo comprobé:** `ruff check` y `ruff format --check`, `pytest` con 770 tests (cobertura 96,76 %) y un último repaso del diff de las dos ramas para comprobar que cada una solo tenía sus archivos.## D-07 · README backend (#284) — Beste
 
 - **Herramienta y modelo:** OpenAI Codex / GPT-6.
 - **Trabajo y verificación:** README backend: instalación, configuración, Alembic, seed, uso de API y enlaces de entrega. Validación: 737 tests existentes, migraciones y seed en SQLite temporal, endpoints de documentación y login; lint y formato correctos.

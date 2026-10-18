@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from app import models
 from app.core.cache import configure_response_cache
 from app.core.config import get_settings
-from app.core.exceptions import register_exception_handlers
+from app.core.exceptions import UnexpectedErrorMiddleware, register_exception_handlers
 from app.core.logging import setup_logging
 from app.core.openapi import API_DESCRIPTION, OPENAPI_TAGS
 from app.core.media import MEDIA_URL_PREFIX, PRODUCT_IMAGES_DIR
@@ -30,6 +30,7 @@ app = FastAPI(
     openapi_tags=OPENAPI_TAGS,
 )
 
+app.add_middleware(UnexpectedErrorMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

@@ -4,10 +4,8 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.deps import CurrentAdmin
 from app.core.openapi import error
-from app.core.deps import require_roles
-from app.models import User
-from app.models.enums import RoleName
 from app.schemas.shop import (
     MAX_PRICE_CENTS,
     CategoryIn,
@@ -25,7 +23,6 @@ router = APIRouter(prefix="/products", tags=["shop"])
 categories_router = APIRouter(prefix="/product-categories", tags=["shop"])
 
 DbSession = Annotated[Session, Depends(get_db)]
-ShopAdmin = Annotated[User, Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN))]
 
 AUTH_ERRORS = {
     401: error("Missing, invalid or expired token"),
@@ -99,7 +96,7 @@ def list_categories(db: DbSession) -> list[CategoryOut]:
     responses=AUTH_ERRORS,
 )
 def list_products_for_admin(
-        _: ShopAdmin,
+        _: CurrentAdmin,
         db: DbSession,
         category_id: Annotated[int | None, Query(ge=1)] = None,
         q: Annotated[
@@ -146,7 +143,7 @@ def list_products_for_admin(
         422: {"description": "Negative price or stock, empty name, unknown category, repeated size or stock sent together with sizes"},
     },
 )
-def create_product(body: ProductCreate, _: ShopAdmin, db: DbSession) -> ProductAdminOut:
+def create_product(body: ProductCreate, _: CurrentAdmin, db: DbSession) -> ProductAdminOut:
     return ProductAdminOut.from_product(shop_service.create_product(db, body))
 
 
@@ -166,7 +163,7 @@ def create_product(body: ProductCreate, _: ShopAdmin, db: DbSession) -> ProductA
     },
 )
 def update_product(
-        product_id: int, body: ProductUpdate, _: ShopAdmin, db: DbSession
+        product_id: int, body: ProductUpdate, _: CurrentAdmin, db: DbSession
 ) -> ProductAdminOut:
     return ProductAdminOut.from_product(shop_service.update_product(db, product_id, body))
 
@@ -181,7 +178,7 @@ def update_product(
     ),
     responses={**AUTH_ERRORS, 404: error("Product not found")},
 )
-def deactivate_product(product_id: int, _: ShopAdmin, db: DbSession) -> ProductAdminOut:
+def deactivate_product(product_id: int, _: CurrentAdmin, db: DbSession) -> ProductAdminOut:
     return ProductAdminOut.from_product(shop_service.deactivate_product(db, product_id))
 
 @router.put(
@@ -202,7 +199,7 @@ def deactivate_product(product_id: int, _: ShopAdmin, db: DbSession) -> ProductA
 def upload_product_image(
         product_id: int,
         file: Annotated[UploadFile, File(description="JPEG, PNG or WebP, up to 2 MB")],
-        _: ShopAdmin,
+        _: CurrentAdmin,
         db: DbSession,
 ) -> ProductAdminOut:
     product = product_image_service.set_product_image(db, product_id, file.file)
@@ -216,7 +213,7 @@ def upload_product_image(
     description="Deletes the photo and its file. Without a photo it changes nothing (200).",
     responses={**AUTH_ERRORS, 404: error("Product not found")},
 )
-def delete_product_image(product_id: int, _: ShopAdmin, db: DbSession) -> ProductAdminOut:
+def delete_product_image(product_id: int, _: CurrentAdmin, db: DbSession) -> ProductAdminOut:
     product = product_image_service.remove_product_image(db, product_id)
     return ProductAdminOut.from_product(product)
 
@@ -231,7 +228,7 @@ def delete_product_image(product_id: int, _: ShopAdmin, db: DbSession) -> Produc
         409: error("A category with that name already exists"),
     },
 )
-def create_category(body: CategoryIn, _: ShopAdmin, db: DbSession) -> CategoryOut:
+def create_category(body: CategoryIn, _: CurrentAdmin, db: DbSession) -> CategoryOut:
     return CategoryOut.model_validate(shop_service.create_category(db, body))
 
 
@@ -246,7 +243,7 @@ def create_category(body: CategoryIn, _: ShopAdmin, db: DbSession) -> CategoryOu
     },
 )
 def update_category(
-        category_id: int, body: CategoryIn, _: ShopAdmin, db: DbSession
+        category_id: int, body: CategoryIn, _: CurrentAdmin, db: DbSession
 ) -> CategoryOut:
     return CategoryOut.model_validate(shop_service.update_category(db, category_id, body))
 
@@ -262,5 +259,5 @@ def update_category(
         409: error("The category still has products"),
     },
 )
-def delete_category(category_id: int, _: ShopAdmin, db: DbSession) -> None:
+def delete_category(category_id: int, _: CurrentAdmin, db: DbSession) -> None:
     shop_service.delete_category(db, category_id)
