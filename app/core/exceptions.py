@@ -2,8 +2,15 @@ import logging
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.responses import Response
 
 logger = logging.getLogger(__name__)
+
+INTERNAL_ERROR = {
+    "detail": "Ha ocurrido un error inesperado.",
+    "code": "internal_error",
+}
 
 
 class AppError(Exception):
@@ -61,6 +68,25 @@ class RateLimitError(AppError):
         self.headers = {"Retry-After": str(retry_after)}
 
 
+class UnexpectedErrorMiddleware(BaseHTTPMiddleware):
+    """Turns any unhandled error into the generic 500, inside CORSMiddleware.
+
+    An exception handler for `Exception` runs outside every middleware, so its 500
+    had no CORS headers: the browser hid it and the front showed a network error.
+    """
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        try:
+            return await call_next(request)
+        except Exception:
+            logger.exception(
+                "Unexpected error on %s %s", request.method, request.url.path
+            )
+            return JSONResponse(status_code=500, content=INTERNAL_ERROR)
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def handle_app_error(_request: Request, exc: AppError) -> JSONResponse:
@@ -68,15 +94,4 @@ def register_exception_handlers(app: FastAPI) -> None:
             status_code=exc.status_code,
             content={"detail": exc.detail, "code": exc.code},
             headers=exc.headers,
-        )
-
-    @app.exception_handler(Exception)
-    async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
-        logger.exception("Unexpected error on %s %s", request.method, request.url.path)
-        return JSONResponse(
-            status_code=500,
-            content={
-                "detail": "Ha ocurrido un error inesperado.",
-                "code": "internal_error",
-            },
         )

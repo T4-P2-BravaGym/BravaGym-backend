@@ -13,19 +13,19 @@ Cada regla tiene un código (RN-xx) para enlazarla desde las historias y nombrar
 - **RN-07** Si la clase tiene `extra_price_cents > 0`, al confirmarse la reserva se crea un pago `pending` asociado (también cuando sube desde la lista de espera).
 - **RN-08** Entrenamiento personal: sesión de un tipo con `is_personal_training = true`, `capacity = 1` y 60 minutos. Solo la reservan socias cuyo plan tiene `includes_personal_training` → si no, 403.
 - **RN-09** Un entrenador no puede tener dos sesiones **programadas** solapadas (intervalos `[starts_at, starts_at + duration)`). Si se solapan → 409. Las sesiones `cancelled` no cuentan.
-- **RN-10** Solo el entrenador de la sesión o el superadmin la editan o cancelan → si no, 403. Cancelar una sesión la deja `cancelled`, pasa sus reservas `confirmed`/`waitlisted` a `cancelled` y deja los pagos de clases extra (`pending` o `paid`) como `refunded`.
+- **RN-10** Solo el entrenador de la sesión o el superadmin la editan o cancelan → si no, 403. Cancelar una sesión la deja `cancelled` y pasa sus reservas `confirmed`/`waitlisted` a `cancelled`. Sus pagos de clases extra siguen RN-16: los `pending` pasan a `cancelled` (no se cobró nada) y los `paid` a `refunded`, porque cancela el gimnasio.
 
 ### Suscripciones y bajas
 
 - **RN-11** Una sola suscripción `active` por usuario a la vez → 409.
 - **RN-12** No existe endpoint para que la socia se borre. Solo puede crear una solicitud de baja, y solo una `pending` a la vez → 409.
-- **RN-13** Al aprobar la baja: suscripción `cancelled`, `users.is_active = false`, `deactivated_at` relleno y reservas futuras canceladas (aplicando RN-06). Rechazarla exige `admin_notes`.
+- **RN-13** Al aprobar la baja: suscripción `cancelled`, `users.is_active = false`, `deactivated_at` relleno y reservas futuras canceladas (aplicando RN-06). Sus pagos de clases extra, como en RN-10: `pending` → `cancelled` y `paid` → `refunded`. Rechazarla exige `admin_notes`.
 
 ### Pagos, códigos y tienda
 
 - **RN-14** Un código es válido si está activo, dentro de fechas y por debajo de `max_uses` (pagos `paid` que lo usan). Si no → 422. Vale para cualquier concepto (cuota, clase extra o pedido), salvo que esté limitado a uno con `applies_to`: entonces, en otro concepto → 422 (T-240).
 - **RN-15** `final_amount_cents = base_amount_cents × (100 − percent_off) / 100`, redondeado al céntimo.
-- **RN-16** El pago simulado pasa de `pending` a `paid`. Si el pago es de un pedido, el pedido pasa a `paid` en la misma transacción. Un pago `paid` no se modifica; solo administración puede marcarlo `refunded`. Si se cancela lo que un pago `pending` iba a cobrar (un pedido, una reserva), el pago pasa a `cancelled` y ya no se puede pagar → 409 (igual que cualquier no `pending`).
+- **RN-16** El pago simulado pasa de `pending` a `paid`. Si el pago es de un pedido, el pedido pasa a `paid` en la misma transacción. Un pago `paid` no lo cambia la socia: lo marca `refunded` administración (HU-26) o el sistema al cancelar la reserva de una clase extra (la socia a tiempo, RN-05; una baja aprobada, RN-13; o la clase entera, RN-10). Si se cancela lo que un pago `pending` iba a cobrar (un pedido, una reserva), el pago pasa a `cancelled` y ya no se puede pagar → 409 (igual que cualquier no `pending`).
 - **RN-17** Al crear un pedido se comprueba y descuenta el stock (sin stock → 409). Si el pedido se cancela (solo mientras él y su pago están `pending`), el stock se repone y el pago pasa a `cancelled`.
 - **RN-20** La ropa puede tener tallas (XS, S, M, L, XL). Si un producto tiene tallas, su stock está en cada talla y `products.stock` se queda a 0: el stock que se muestra es la suma de las tallas activas. Un pedido de ese producto tiene que indicar una talla que se venda (si no → 422) y descuenta o repone el stock de esa talla (sin stock → 409). Una talla que se quita no se borra: queda inactiva con stock 0, porque los pedidos antiguos la siguen nombrando.
 - **RN-21** Un producto tiene como mucho una foto: JPEG, PNG o WebP de hasta 2 MB, comprobada por su contenido (si no → 422). Cambiarla o quitarla borra el archivo anterior. Desactivar un producto no borra su foto, porque se puede reactivar.

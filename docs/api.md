@@ -49,11 +49,11 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | POST / PATCH / DELETE | `/class-types`, `/class-types/{id}` | Trainer, superadmin | DELETE = desactivar (`is_active=false`) |
 | GET | `/sessions` | Público | Filtros `from`, `to`, `class_type_id`, `trainer_id`, `only_available`; incluye plazas libres |
 | POST / PATCH | `/sessions`, `/sessions/{id}` | Trainer, superadmin | RN-09, RN-10; el trainer es dueña; superadmin pasa `trainer_id` al crear |
-| POST | `/sessions/{id}/cancel` | Trainer (propia), superadmin | RN-10; cancela reservas y marca pagos de clase extra como `refunded` |
+| POST | `/sessions/{id}/cancel` | Trainer (propia), superadmin | RN-10; cancela reservas; pagos de clase extra `pending` → `cancelled` y `paid` → `refunded` (RN-16) |
 | GET | `/sessions/{id}/bookings` | Trainer (propia), admin, superadmin | Confirmadas y lista de espera (con datos de la socia) |
 | POST | `/sessions/{id}/bookings` | Member | RN-01 a RN-04, RN-07, RN-08 |
 | GET | `/bookings/me` | Member | Filtro `status`, próximas o pasadas |
-| POST | `/bookings/{id}/cancel` | Member (propia) | RN-05, RN-06 |
+| POST | `/bookings/{id}/cancel` | Member (propia) | RN-05, RN-06; su pago de clase extra `pending` → `cancelled` y `paid` → `refunded` (RN-16) |
 | WS | `/ws/sessions/{id}` | Público | Emite plazas libres al cambiar |
 | CRUD | `/exercises` | Trainer, superadmin | Catálogo de ejercicios |
 | POST / GET | `/routines` | Trainer, superadmin | GET filtra por `member_id` |

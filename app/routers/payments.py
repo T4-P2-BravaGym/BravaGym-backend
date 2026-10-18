@@ -1,9 +1,3 @@
-"""Controller for member payments (HU-24) and admin list/export/refund (HU-26).
-
-Keep endpoints thin: no business rules and no complex queries here.
-Every endpoint: response_model, summary, and require_roles(...) when it is not public.
-"""
-
 from datetime import datetime
 from typing import Annotated
 
@@ -12,19 +6,15 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import CurrentMember, require_roles
+from app.core.deps import CurrentAdmin, CurrentMember
 from app.core.openapi import error
-from app.models import User
-from app.models.enums import PaymentStatus, RoleName
+from app.models.enums import PaymentStatus
 from app.schemas.payment import PaymentConcept, PaymentOut, PaymentPage, PayRequest
 from app.services import payment_service
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 DbSession = Annotated[Session, Depends(get_db)]
-CurrentAdmin = Annotated[
-    User, Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN))
-]
 
 MEMBER_AUTH_RESPONSES = {
     401: error("Missing, invalid or expired token"),
