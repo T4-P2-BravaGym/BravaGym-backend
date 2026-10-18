@@ -1,5 +1,5 @@
 import pytest
-from app.services.product_image_service import detect_image_extension
+from app.services.image_files import detect_image_extension
 
 from tests.image_samples import EXE, JPEG, PDF, PNG, SVG, WEBP
 
