@@ -416,3 +416,12 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** el módulo común `image_files.py` (DRY), la columna `photo_path`, `PUT` y `DELETE /trainers/me/photo`, y tests que miran los archivos en disco.
 - **Qué descarté:** copiar el código para no tocar el archivo de otra compañera; como su única rama abierta se mezclaba sin conflictos (lo comprobamos), preferí no duplicar la validación de fotos.
 - **Errores o alucinaciones:** nada inventado. Al crear el archivo nuevo lo llamé `images_files.py` por error y lo renombré. Un test de la HU-15 comparaba la tarjeta entera y hubo que añadirle `photo_url`.
+
+## Frontend#101 · Mi perfil y contraseña para entrenadoras y administración — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código y los commits. Spec: `specs/T-101-account-all-roles.md` en el repo del frontend.
+- **Prompt clave:** "Mi perfil para todos los roles, ¿dónde lo hacemos?".
+- **Qué me explicó o propuso:** que el menú y la protección dependen de la ruta de cada área, sacar "Mis datos" y "Cambiar contraseña" a un bloque común (`pages/shared/Account`) y una página "Mi cuenta" para administración.
+- **Qué acepté:** el bloque común para los tres roles y la página de administración. Para las entrenadoras propuso una entrada de menú nueva; preferí no añadirla y poner el bloque en la misma página que su perfil público, bajo el título "Mi cuenta", y llamar al menú "Mi perfil y cuenta".
+- **Qué descarté:** renombrar la página a "Mi perfil" sin más (se perdía lo de "público", que hicimos en la HU-15) y un nombre de menú más largo que no cabía en una línea.
+- **Errores o alucinaciones:** nada inventado. Al copiar, tres archivos quedaron fuera de su carpeta, el `index.js` acabó pegado dentro de otro archivo y un import salió repetido (el build falló); lo vimos en la revisión y lo corregí.
