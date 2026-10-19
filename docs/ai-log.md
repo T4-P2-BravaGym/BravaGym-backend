@@ -436,3 +436,26 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Prompt clave:** "okay can you do it" (actualizar la rama backend con dev).
 - **Trabajo:** integrar dev en feature/hu-35-recovery, conservar las entradas de ambas ramas en esta bitácora y añadir una migración de unión para las migraciones paralelas de recuperación y foto de entrenadoras.
 - **Verificación:** 794 tests, cobertura 97,07 %; Ruff lint/formato correctos; pip-audit sin vulnerabilidades conocidas; upgrade/check, downgrade explícito al ancestro común y nuevo upgrade/check en SQLite temporal.
+
+## HU-14 y T-11 · Franjas de entrenamiento personal para entrenadoras — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora. Leyó los dos repos con mi permiso, solo lectura. El código lo pegué y lo commiteé yo, y los comandos los ejecuté yo en mi equipo.
+- **Prompt clave:** "Como entrenadora, ¿cómo pongo mis franjas horarias para entrenamiento personal? Como usuaria veo la que tengo con mi entrenadora, pero no lo puedo elegir como entrenadora" y después "¿podemos poner como franjas siempre las mismas horas, por ejemplo lunes, miércoles y viernes a las 11?".
+- **Qué me explicó o propuso:**
+  - Que HU-14 estaba hecha en el backend (`POST /sessions/personal-training`) pero en el front `TrainerSlots` era solo un `TODO`. La conectamos siguiendo el patrón de `TrainerSessions` (PR #103 del front).
+  - Para el horario fijo, tres opciones: N llamadas desde el front, un endpoint en bloque o una plantilla de disponibilidad. Elegí el endpoint en bloque, `POST /sessions/personal-training/bulk`, con spec propia (`specs/T-11-recurring-pt-slots.md`).
+  - Las horas se interpretan en `Europe/Madrid` y se convierten en el servidor con `zoneinfo`, para que el cambio de hora del 25 de octubre no mueva las franjas. Se añade `tzdata` porque en Windows Python no trae la base de zonas horarias.
+  - Las franjas que se solapan (RN-09) o que ya han pasado no tumban el lote: se devuelven en `skipped` con el motivo. Todo va en una transacción, con una sola consulta de solapes en memoria que también detecta solapes dentro del mismo lote.
+  - Sacar la comprobación de solapes a `_trainer_busy_intervals` y `_overlaps_any`, para que RN-09 viva en un solo sitio.
+  - En el front: formulario semanal con días, horas, fecha de inicio y semanas; vista previa antes de confirmar; resumen de franjas creadas y saltadas.
+- **Qué acepté:**
+  - El endpoint en bloque, los límites (máximo 4 horas y 8 semanas) y los tests: creación, cambio de hora, solape, solape dentro del lote, sesión cancelada, pasado, 401, 403, 404 y 422. "Ahora" se congela en los tests para que no caduquen.
+  - Mantener la opción de abrir una franja suelta en una pestaña aparte.
+  - No poner botón de "Editar" en las franjas: con el PATCH genérico se podrían cambiar la duración o el aforo y romper RN-08.
+  - Documentar en `api.md` también el endpoint de HU-14, que no estaba.
+- **Qué descarté:** la plantilla de disponibilidad semanal con generación automática (tabla nueva y migración). No llegaba para la entrega; queda como mejora en la retrospectiva.
+- **Errores o alucinaciones:**
+  - La primera versión de `TrainerSlots.jsx` tenía casi 600 líneas. Se lo señalé y la dividimos en `SlotForm`, `WeeklyFields`, `SlotRow` y `slotHelpers`, siguiendo el patrón de `AdminProducts`.
+  - Al pegar, puse la función nueva en `services/session.js` (el servicio de login) en vez de en `services/sessions.js`, y la página salía en blanco.
+  - Al revisarlo, la IA leyó mal el commit: creyó que `session.js` era un archivo nuevo y me dijo que lo borrara. Era el que usa `AuthContext`, así que se quedó en blanco toda la app y fallaron 2 suites de tests. Lo recuperé desde `dev` con `git checkout dev -- src/services/session.js`.
+- **Cómo lo comprobé:** `ruff check`, `ruff format`, `pytest` con [N] tests, `npm run lint` y `npm test` (16 suites), y el flujo a mano. Abrí franjas lunes, miércoles y viernes a las 11:00 durante 2 semanas, comprobé que la semana del 26 de octubre seguían a las 11:00, repetí el lote para ver los avisos de solape y reservé una franja como socia para verla como "Reservada".
