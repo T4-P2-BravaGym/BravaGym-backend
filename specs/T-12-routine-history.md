@@ -63,3 +63,6 @@ relaciones (`selectinload`). Sin cambios de esquema ni migración.
 | Orden por start_date desc y id desc | El historial se lee por fecha; el id solo desempata rutinas del mismo día. |
 | selectinload en el listado | Evita el N+1: el número de consultas no crece con el número de rutinas. |
 | Sin test para el N+1 | 	Contar consultas en un test sería frágil; se comprueba revisando el código. |
+| RoutineHistory recibe las socias como prop | 	como prop	TrainerRoutines ya las carga para el editor; no se piden dos veces. |
+| El editor se oculta con hidden y el historial se monta al abrirlo | 	Una rutina a medio escribir no se pierde al cambiar de pestaña, y el historial siempre carga datos nuevos. |
+
