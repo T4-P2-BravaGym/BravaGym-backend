@@ -54,6 +54,18 @@ class Settings(BaseSettings):
         self.frontend_url = str(url).rstrip("/")
         return self
 
+    # Stripe (HU-29). Empty / missing secret → simulated pay only (HU-24).
+    stripe_secret_key: str | None = None
+    stripe_publishable_key: str | None = None
+    stripe_webhook_secret: str | None = None
+    stripe_success_url: str = "http://localhost:5173/mi-area/pagos?stripe=success"
+    stripe_cancel_url: str = "http://localhost:5173/mi-area/pagos?stripe=cancel"
+
+    @property
+    def stripe_enabled(self) -> bool:
+        """True when a Stripe secret key is configured (test or live)."""
+        return bool(self.stripe_secret_key and self.stripe_secret_key.strip())
+
 
 @lru_cache
 def get_settings() -> Settings:

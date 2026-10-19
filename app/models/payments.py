@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import CheckConstraint, ForeignKey, String
+from sqlalchemy import JSON, CheckConstraint, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -88,3 +88,16 @@ class Payment(Base):
     booking: Mapped[Optional["Booking"]] = relationship()
     order: Mapped[Optional["Order"]] = relationship()
     discount_code: Mapped[Optional["DiscountCode"]] = relationship()
+
+
+class PaymentCheckout(Base):
+    """One durable Stripe attempt per payment; its request remains immutable."""
+
+    __tablename__ = "payment_checkouts"
+
+    payment_id: Mapped[int] = mapped_column(ForeignKey("payments.id"), primary_key=True)
+    attempt_key: Mapped[str] = mapped_column(String(64), unique=True)
+    request: Mapped[dict] = mapped_column(JSON)
+    session_id: Mapped[str | None] = mapped_column(String(255), unique=True)
+    checkout_url: Mapped[str | None] = mapped_column(String(2048))
+    created_at: Mapped[datetime] = mapped_column(default=utc_now)

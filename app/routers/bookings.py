@@ -87,6 +87,7 @@ def list_my_bookings(
     responses={
         **AUTH_RESPONSES,
         404: error("The booking does not exist or is not yours"),
+        503: error("Active Stripe checkout could not be safely expired"),
         409: error(
             "Already cancelled, or confirmed cancel within 60 minutes of start (RN-05)"
         ),

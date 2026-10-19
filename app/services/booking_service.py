@@ -148,7 +148,11 @@ def settle_booking_payment(db: Session, booking: Booking) -> PaymentStatus | Non
     if payment is None:
         return None
 
+    from app.services.checkout_guard import lock_payment, retire_checkout
+
+    lock_payment(db, payment)
     if payment.status == PaymentStatus.PENDING:
+        retire_checkout(db, payment)
         payment.status = PaymentStatus.CANCELLED
     else:
         payment.status = PaymentStatus.REFUNDED

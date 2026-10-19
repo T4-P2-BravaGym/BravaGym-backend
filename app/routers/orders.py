@@ -76,6 +76,7 @@ def list_my_orders(
         **AUTH_RESPONSES,
         404: error("The order does not exist or belongs to someone else"),
         409: error("The order or its payment is no longer pending"),
+        503: error("Active Stripe checkout could not be safely expired"),
     },
 )
 def cancel_order(order_id: int, member: CurrentMember, db: DbSession) -> OrderOut:
