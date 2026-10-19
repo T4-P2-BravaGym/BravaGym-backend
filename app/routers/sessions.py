@@ -50,6 +50,7 @@ def _to_session_out(row: SessionWithFreeSpots) -> SessionOut:
     return SessionOut(
         id=session.id,
         trainer_id=session.trainer_id,
+        trainer_name=session.trainer_name,
         starts_at=session.starts_at,
         duration_minutes=session.duration_minutes,
         capacity=session.capacity,

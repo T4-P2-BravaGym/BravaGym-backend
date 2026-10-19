@@ -10,6 +10,7 @@ from app.schemas.common import Page
 SESSION_EXAMPLE = {
     "id": 3,
     "trainer_id": 2,
+    "trainer_name": "Ana Torres",
     "starts_at": "2026-10-07T17:30:00Z",
     "duration_minutes": 60,
     "ends_at": "2026-10-07T18:30:00Z",
@@ -88,6 +89,7 @@ class SessionOut(SessionTimeMixin):
 
     id: int
     trainer_id: int
+    trainer_name: str
     capacity: int = Field(ge=1)
     status: SessionStatus
     free_spots: int = Field(ge=0)
