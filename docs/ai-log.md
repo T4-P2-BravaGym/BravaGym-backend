@@ -397,11 +397,17 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 
 - **Herramienta y modelo:** OpenAI Codex / GPT-6.
 - **Trabajo y verificación:** README backend: instalación, configuración, Alembic, seed, uso de API y enlaces de entrega. Validación: 737 tests existentes, migraciones y seed en SQLite temporal, endpoints de documentación y login; lint y formato correctos.
+- **Actualización tras revisión del equipo (19 de octubre):** README backend breve en inglés desde dev: descripción, versiones declaradas, instalación, uso de Swagger, demo, estructura, controles y autoras. Guía de Bruno conservada en docs/api-testing.md. Verificación actual: 794 tests, 97,07 % de cobertura, lint/formato y enlaces correctos; instalación limpia en Python 3.12, migraciones, seed, health, documentación y login/perfil de demo comprobados.
+- **Prompt clave:** "ok lets do it fix my work", después de acordar dos READMEs concisos en inglés.
+
 
 ## D-07 · README frontend (#283) — Beste
 
 - **Herramienta y modelo:** OpenAI Codex / GPT-6.
 - **Trabajo y verificación:** README frontend del proyecto completo: instalación, configuración pública, áreas por rol, demo, build, preview y enlaces de entrega. Validación: 74 tests existentes, lint y build correctos; rutas y enlaces locales contrastados.
+- **Actualización tras revisión del equipo (19 de octubre):** README frontend breve en inglés desde dev: descripción, versiones del lockfile, instalación y conexión a la API, demo, estructura, controles y autoras. Verificación actual: 92 tests, lint y build correctos; enlaces y versiones del lockfile contrastados.
+- **Prompt clave:** "ok lets do it fix my work", después de acordar dos READMEs concisos en inglés.
+
 
 ## Frontend #93 · Menú lateral que se puede contraer — Esra
 
