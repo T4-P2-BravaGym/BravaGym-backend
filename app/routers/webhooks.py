@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.openapi import error
 from app.services import stripe_service
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
@@ -28,8 +29,8 @@ DbSession = Annotated[Session, Depends(get_db)]
                 "application/json": {"example": {"received": True}},
             },
         },
-        400: {"description": "Invalid payload or signature"},
-        503: {"description": "STRIPE_WEBHOOK_SECRET not configured"},
+        400: error("Invalid payload or signature"),
+        503: error("STRIPE_WEBHOOK_SECRET not configured"),
     },
 )
 async def stripe_webhook(

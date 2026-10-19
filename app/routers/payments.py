@@ -193,12 +193,10 @@ def export_payments(
     ),
     responses={
         **MEMBER_AUTH_RESPONSES,
-        404: {"description": "Payment does not exist or is not yours"},
-        409: {"description": "Payment is not pending"},
-        422: {
-            "description": "Discount code unknown, inactive, out of dates or used up"
-        },
-        503: {"description": "Stripe secret key not configured"},
+        404: error("Payment does not exist or is not yours"),
+        409: error("Payment is not pending"),
+        422: error("Discount code unknown, inactive, out of dates or used up"),
+        503: error("Stripe secret key not configured"),
     },
 )
 def create_checkout(
@@ -230,9 +228,7 @@ def create_checkout(
         **MEMBER_AUTH_RESPONSES,
         404: error("Payment does not exist or is not yours"),
         409: error("Payment is not pending (already paid or refunded)"),
-        422: {
-            "description": "Discount code unknown, inactive, out of dates or used up"
-        },
+        422: error("Discount code unknown, inactive, out of dates or used up"),
     },
 )
 def pay_payment(
