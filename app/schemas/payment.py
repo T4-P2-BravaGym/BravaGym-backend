@@ -27,8 +27,14 @@ PAYMENT_EXAMPLE = {
     "final_amount_cents": 4720,
     "status": "paid",
     "method": "simulated",
+    "provider_ref": None,
     "created_at": "2026-10-06T10:00:00",
     "paid_at": "2026-10-06T10:05:00",
+}
+
+CHECKOUT_EXAMPLE = {
+    "checkout_url": "https://checkout.stripe.com/c/pay/cs_test_example",
+    "session_id": "cs_test_example",
 }
 
 
@@ -115,7 +121,7 @@ class DiscountValidationOut(BaseModel):
 
 
 class PayRequest(BaseModel):
-    """Optional body for POST /payments/{id}/pay. Amounts are never accepted from the client."""
+    """Optional body for POST /payments/{id}/pay or /checkout. Amounts never from the client."""
 
     model_config = ConfigDict(
         extra="forbid",
@@ -131,6 +137,15 @@ class PayRequest(BaseModel):
             return None
         normalized = value.strip().upper()
         return normalized or None
+
+
+class CheckoutSessionOut(BaseModel):
+    """Hosted Checkout URL for the member to complete card payment (HU-29)."""
+
+    model_config = ConfigDict(json_schema_extra={"example": CHECKOUT_EXAMPLE})
+
+    checkout_url: str
+    session_id: str
 
 
 class PaymentOut(BaseModel):
@@ -152,6 +167,7 @@ class PaymentOut(BaseModel):
     final_amount_cents: int
     status: PaymentStatus
     method: PaymentMethod
+    provider_ref: str | None = None
     created_at: datetime
     paid_at: datetime | None
 
@@ -181,6 +197,7 @@ class PaymentOut(BaseModel):
             final_amount_cents=payment.final_amount_cents,
             status=payment.status,
             method=payment.method,
+            provider_ref=payment.provider_ref,
             created_at=payment.created_at,
             paid_at=payment.paid_at,
         )

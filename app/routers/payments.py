@@ -9,8 +9,14 @@ from app.core.database import get_db
 from app.core.deps import CurrentAdmin, CurrentMember
 from app.core.openapi import error
 from app.models.enums import PaymentStatus
-from app.schemas.payment import PaymentConcept, PaymentOut, PaymentPage, PayRequest
-from app.services import payment_service
+from app.schemas.payment import (
+    CheckoutSessionOut,
+    PaymentConcept,
+    PaymentOut,
+    PaymentPage,
+    PayRequest,
+)
+from app.services import payment_service, stripe_service
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -175,21 +181,54 @@ def export_payments(
 
 
 @router.post(
+    "/{payment_id}/checkout",
+    response_model=CheckoutSessionOut,
+    summary="Start Stripe Checkout for a pending payment",
+    description=(
+        "Creates a Stripe Checkout Session (test or live keys from .env) for the "
+        "member's own pending payment (HU-29). Optional discount_code applies "
+        "RN-14 and RN-15 before creating the session. The payment stays pending "
+        "until the Stripe webhook marks it paid. Without STRIPE_SECRET_KEY → 503 "
+        "(use the simulated pay endpoint instead)."
+    ),
+    responses={
+        **MEMBER_AUTH_RESPONSES,
+        404: error("Payment does not exist or is not yours"),
+        409: error("Payment is not pending"),
+        422: error("Discount code unknown, inactive, out of dates or used up"),
+        503: error("Stripe secret key not configured"),
+    },
+)
+def create_checkout(
+    payment_id: int,
+    member: CurrentMember,
+    db: DbSession,
+    data: PayRequest | None = None,
+) -> CheckoutSessionOut:
+    payload = data or PayRequest()
+    return stripe_service.create_checkout_session(
+        db,
+        member,
+        payment_id,
+        discount_code_text=payload.discount_code,
+    )
+
+
+@router.post(
     "/{payment_id}/pay",
     response_model=PaymentOut,
     summary="Pay a pending payment (simulated)",
     description=(
         "Marks the member's own pending payment as paid (RN-16). "
         "Optional discount_code applies RN-14 and RN-15. "
-        "The final amount is computed on the server; the client never sends prices."
+        "The final amount is computed on the server; the client never sends prices. "
+        "This simulated path remains available when Stripe is not configured (HU-29)."
     ),
     responses={
         **MEMBER_AUTH_RESPONSES,
         404: error("Payment does not exist or is not yours"),
         409: error("Payment is not pending (already paid or refunded)"),
-        422: {
-            "description": "Discount code unknown, inactive, out of dates or used up"
-        },
+        422: error("Discount code unknown, inactive, out of dates or used up"),
     },
 )
 def pay_payment(
