@@ -436,3 +436,13 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Prompt clave:** "okay can you do it" (actualizar la rama backend con dev).
 - **Trabajo:** integrar dev en feature/hu-35-recovery, conservar las entradas de ambas ramas en esta bitácora y añadir una migración de unión para las migraciones paralelas de recuperación y foto de entrenadoras.
 - **Verificación:** 794 tests, cobertura 97,07 %; Ruff lint/formato correctos; pip-audit sin vulnerabilidades conocidas; upgrade/check, downgrade explícito al ancestro común y nuevo upgrade/check en SQLite temporal.
+
+
+## T-12 · Historial de rutinas de una socia — Viviana (backend hecho, frontend en curso)
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Leyó el código con mi permiso; yo escribí el código, ejecuté los tests y hice los commits.
+- **Prompt clave:** "una entrenadora hace las rutinas de una socia, pero jamás las puede ver como historial; dime cómo podemos desarrollar esta solución juntos".
+- **Qué me explicó o propuso:** que el backend ya tenía casi todo (`GET /routines?member_id=` y la baja lógica que guarda el historial) y que faltaba sobre todo la pantalla; ordenar por `start_date` con el `id` como desempate; `selectinload` para evitar el N+1 del listado; tests primero, con uno en rojo antes de tocar el servicio.
+- **Qué acepté:** todo lo anterior, y sacar `RoutineDays` de "Mi rutina" para reutilizarlo en el historial.
+- **Qué descarté:** dejar para otras tareas que la socia vea su historial, duplicar rutinas como plantilla y que cada entrenadora vea solo sus rutinas. Tampoco hice un test que cuente consultas para el N+1: sería frágil.
+- **Errores o alucinaciones:** al principio propuso llamarla HU-30, que ya existía (foto de producto); lo vio al revisar el backlog y la dejamos como T-12.
