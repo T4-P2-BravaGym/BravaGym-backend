@@ -24,6 +24,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    session_version: Mapped[int] = mapped_column(default=0, server_default="0")
     first_name: Mapped[str] = mapped_column(String(80))
     last_name: Mapped[str] = mapped_column(String(80))
     phone: Mapped[str | None] = mapped_column(String(20))
@@ -41,6 +42,11 @@ class User(Base):
         back_populates="user"
     )
 
+    @property
+    def full_name(self) -> str:
+        """Nombre y apellido, como se muestra en las fichas públicas."""
+        return f"{self.first_name} {self.last_name}"
+
 
 class TrainerProfile(Base):
     __tablename__ = "trainer_profiles"
@@ -48,5 +54,7 @@ class TrainerProfile(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     bio: Mapped[str | None] = mapped_column(Text)
     specialty: Mapped[str | None] = mapped_column(String(120))
+    # T-291: name of the photo file under media/trainers; empty = initials avatar
+    photo_path: Mapped[str | None] = mapped_column(String(255))
 
     user: Mapped["User"] = relationship(back_populates="trainer_profile")

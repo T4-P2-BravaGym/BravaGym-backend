@@ -2,6 +2,11 @@
 
 Cómo hemos usado la IA en cada historia. Es un entregable de la asignatura (apartado 10 de `AGENTS.md`) y cubre los dos repos.
 
+## HU-35 · Recuperación de contraseña — Beste Özaydın (implementado, pendiente de revisión humana)
+
+- **Herramienta y modelo:** OpenAI Codex / GPT-6.
+- **Trabajo y verificación:** Recuperación de contraseña con tokens hash de un solo uso, caducidad de 30 minutos, outbox privado y revocación de sesiones. Reutiliza FastAPI, SQLAlchemy, Alembic, pytest y Vitest. Validación registrada: 777 tests backend, 87 frontend, migraciones, lint y build.
+
 ## HU-33 · Refresh tokens y logout — Beste Özaydın (en curso)
 
 - **Herramienta y modelo:** OpenAI Codex / GPT-6.
@@ -386,15 +391,23 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
   - En tres tests marcaba un pago como `PAID` sin `paid_at` y la `CHECK` `ck_payments_paid_at` los rechazaba al preparar los datos. Se arregló poniendo la fecha; el fallo estaba en el test, no en el código.
   - No había visto la issue al proponer la primera versión, ni la línea de `api.md` que había que cambiar.
   - Al pegar, sustituí `_ensure_extra_class_payment` por la función nueva en vez de añadirla debajo (Ruff: F821). También se me borraron docstrings y quedaron dos `- ` sueltos en `business-rules.md`. Lo vimos revisando el diff antes del push.
-- **Cómo lo comprobé:** `ruff check` y `ruff format --check`, `pytest` con 770 tests (cobertura 96,76 %) y un último repaso del diff de las dos ramas para comprobar que cada una solo tenía sus archivos.## D-07 · README backend (#284) — Beste
+- **Cómo lo comprobé:** `ruff check` y `ruff format --check`, `pytest` con 770 tests (cobertura 96,76 %) y un último repaso del diff de las dos ramas para comprobar que cada una solo tenía sus archivos.
+
+## D-07 · README backend (#284) — Beste
 
 - **Herramienta y modelo:** OpenAI Codex / GPT-6.
 - **Trabajo y verificación:** README backend: instalación, configuración, Alembic, seed, uso de API y enlaces de entrega. Validación: 737 tests existentes, migraciones y seed en SQLite temporal, endpoints de documentación y login; lint y formato correctos.
+- **Actualización tras revisión del equipo (19 de octubre):** README backend breve en inglés desde dev: descripción, versiones declaradas, instalación, uso de Swagger, demo, estructura, controles y autoras. Guía de Bruno conservada en docs/api-testing.md. Verificación actual: 794 tests, 97,07 % de cobertura, lint/formato y enlaces correctos; instalación limpia en Python 3.12, migraciones, seed, health, documentación y login/perfil de demo comprobados.
+- **Prompt clave:** "ok lets do it fix my work", después de acordar dos READMEs concisos en inglés.
+
 
 ## D-07 · README frontend (#283) — Beste
 
 - **Herramienta y modelo:** OpenAI Codex / GPT-6.
 - **Trabajo y verificación:** README frontend del proyecto completo: instalación, configuración pública, áreas por rol, demo, build, preview y enlaces de entrega. Validación: 74 tests existentes, lint y build correctos; rutas y enlaces locales contrastados.
+- **Actualización tras revisión del equipo (19 de octubre):** README frontend breve en inglés desde dev: descripción, versiones del lockfile, instalación y conexión a la API, demo, estructura, controles y autoras. Verificación actual: 92 tests, lint y build correctos; enlaces y versiones del lockfile contrastados.
+- **Prompt clave:** "ok lets do it fix my work", después de acordar dos READMEs concisos en inglés.
+
 
 ## HU-29 · Stripe frontend and smoke — Mariana
 
@@ -404,3 +417,37 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** alcance autorizado en el prompt: rama frontend, PR draft, smoke y corrección de URLs de retorno; no equivale a aprobación humana del código.
 - **Qué descarté:** merges y Stripe Refunds API, excluidos expresamente por la usuaria.
 - **Errores o alucinaciones:** la suite completa detectó errores OpenAPI sin `ErrorOut` en la implementación existente de HU-29; se corrigieron con el helper común. Tras la corrección: 754 tests pasan y cobertura 96,51 %. El checkout real se creó (200) y continuó pending; firma inválida (400). La prueba de tarjeta alojada se documenta en la PR frontend, separada de los tests con mocks.
+
+## Frontend #93 · Menú lateral que se puede contraer — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código y los commits. Spec: `specs/T-93-sidebar-collapse.md` en el repo del frontend.
+- **Prompt clave:** "tengo la #239 (colapso del menú lateral opcional)"; la issue no tenía descripción.
+- **Qué me explicó o propuso:** contraer el menú a sus iconos solo en ordenador, el nombre como texto oculto y `title`, un botón con `aria-pressed` y guardar la elección en `localStorage`.
+- **Qué acepté:** todo lo anterior. No tenía opinión sobre el diseño y me explicó que el diseño no incluía una versión contraída, así que seguimos el patrón habitual y lo revisé en el navegador.
+- **Qué descarté:** cambiar el icono repetido (Entrenamiento personal y Mi perfil usan el mismo); lo dejé anotado en la PR.
+- **Errores o alucinaciones:** VS Code marcaba como error `@media (min-width: $breakpoint-md + 1px)`, que Sass compila bien; lo escribimos como `#{...}` y comprobamos que el CSS final era el mismo. Al probarlo vi que "Administración" pisaba el botón "Salir" (venía de antes) y lo arreglé en la misma PR.
+
+## T-291 · Foto de las entrenadoras — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código, ejecuté los comandos y hice los commits.
+- **Prompt clave:** "hace falta la foto de las entrenadoras" (no había issue; la abrimos juntas).
+- **Qué me explicó o propuso:** reutilizar la subida de fotos de la HU-30 y dos caminos: sacarla a un módulo común o copiarla. También comprobó si había ramas abiertas que tocaran esos archivos antes de decidir.
+- **Qué acepté:** el módulo común `image_files.py` (DRY), la columna `photo_path`, `PUT` y `DELETE /trainers/me/photo`, y tests que miran los archivos en disco.
+- **Qué descarté:** copiar el código para no tocar el archivo de otra compañera; como su única rama abierta se mezclaba sin conflictos (lo comprobamos), preferí no duplicar la validación de fotos.
+- **Errores o alucinaciones:** nada inventado. Al crear el archivo nuevo lo llamé `images_files.py` por error y lo renombré. Un test de la HU-15 comparaba la tarjeta entera y hubo que añadirle `photo_url`.
+
+## Frontend #101 · Mi perfil y contraseña para entrenadoras y administración — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código y los commits. Spec: `specs/T-101-account-all-roles.md` en el repo del frontend.
+- **Prompt clave:** "Mi perfil para todos los roles, ¿dónde lo hacemos?".
+- **Qué me explicó o propuso:** que el menú y la protección dependen de la ruta de cada área, sacar "Mis datos" y "Cambiar contraseña" a un bloque común (`pages/shared/Account`) y una página "Mi cuenta" para administración.
+- **Qué acepté:** el bloque común para los tres roles y la página de administración. Para las entrenadoras propuso una entrada de menú nueva; preferí no añadirla y poner el bloque en la misma página que su perfil público, bajo el título "Mi cuenta", y llamar al menú "Mi perfil y cuenta".
+- **Qué descarté:** renombrar la página a "Mi perfil" sin más (se perdía lo de "público", que hicimos en la HU-15) y un nombre de menú más largo que no cabía en una línea.
+- **Errores o alucinaciones:** nada inventado. Al copiar, tres archivos quedaron fuera de su carpeta, el `index.js` acabó pegado dentro de otro archivo y un import salió repetido (el build falló); lo vimos en la revisión y lo corregí.
+
+## HU-35 · Actualización con dev — Beste
+
+- **Herramienta y modelo:** OpenAI Codex / GPT-6.
+- **Prompt clave:** "okay can you do it" (actualizar la rama backend con dev).
+- **Trabajo:** integrar dev en feature/hu-35-recovery, conservar las entradas de ambas ramas en esta bitácora y añadir una migración de unión para las migraciones paralelas de recuperación y foto de entrenadoras.
+- **Verificación:** 794 tests, cobertura 97,07 %; Ruff lint/formato correctos; pip-audit sin vulnerabilidades conocidas; upgrade/check, downgrade explícito al ancestro común y nuevo upgrade/check en SQLite temporal.

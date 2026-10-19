@@ -23,3 +23,6 @@ media/
 .vscode/
 .idea/
 .DS_Store
+
+# Private development email links (HU-35)
+outbox/

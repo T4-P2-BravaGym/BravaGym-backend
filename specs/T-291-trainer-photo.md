@@ -1,0 +1,66 @@
+# T-291 · Foto de las entrenadoras
+
+Issue: #291 · Entrega 2 · Tamaño M
+
+## Contexto
+
+> Como visitante quiero ver la foto de cada entrenadora para conocer al equipo antes de entrenar.
+
+Toca entrenadoras (HU-15) y fotos (HU-30). Hoy las tarjetas de "Entrenadoras" enseñan un avatar
+con las iniciales. La HU-30 ya sube fotos de productos con todas las comprobaciones; esta tarea
+las saca a un módulo común y las usa también para las entrenadoras.
+
+## Requisitos
+
+1. Una entrenadora sube su foto (JPEG, PNG o WebP, hasta 2 MB) y la puede cambiar o quitar.
+2. El listado público de entrenadoras enseña la foto; sin foto, el avatar con las iniciales.
+3. Un archivo que no es una imagen o es demasiado grande se rechaza y no cambia nada.
+4. Solo la entrenadora cambia su propia foto.
+5. Las fotos de productos siguen funcionando igual.
+
+## Criterios de aceptación
+
+- **Dado** que soy entrenadora, **cuando** subo una foto válida, **entonces** recibo 200 con `photo_url` (`/media/trainers/...`) y el listado la enseña.
+- **Dado** que ya tenía foto, **cuando** subo otra, **entonces** se guarda la nueva y se borra el archivo de la vieja.
+- **Dado** que quito mi foto, **entonces** `photo_url` es `null`, se borra el archivo y el listado vuelve a las iniciales; sin foto, quitarla no cambia nada (200).
+- **Dado** un PDF, un SVG o un archivo vacío, **entonces** recibo 422 (`invalid_image`) y no se guarda nada, aunque el nombre acabe en `.jpg`.
+- **Dado** una foto de más de 2 MB, **entonces** recibo 422 (`image_too_large`).
+- **Dado** que soy socia, **entonces** recibo 403; sin sesión, 401.
+- **Dado** los tests de fotos de productos (HU-30), **cuando** pasan, **entonces** siguen en verde.
+
+## Endpoints
+
+| Método | Ruta | Quién | Respuesta | Errores |
+| --- | --- | --- | --- | --- |
+| PUT | `/trainers/me/photo` | Trainer | 200 `TrainerOut` | 401, 403, 422 |
+| DELETE | `/trainers/me/photo` | Trainer | 200 `TrainerOut` | 401, 403 |
+| GET | `/trainers` | Público | 200 `list[TrainerOut]` (ahora con `photo_url`) | — |
+
+`PUT` recibe un formulario multipart con el campo `file`. Cambia el esquema: columna
+`trainer_profiles.photo_path` (texto, opcional), con su migración de Alembic.
+
+## Interfaz
+
+- "Mi perfil público": junto al avatar, "Ca.mbiar foto" y "Quitar foto".
+- "Entrenadoras": cada tarjeta enseña la foto si la hay; si no, las iniciales. La página usa `PageHeader` ("El equipo · Entrenadoras · Conoce a nuestras entrenadoras y elige con quién entrenar.") y "Entrenamiento personal" enseña las mismas tarjetas, también con la foto.
+- Estados: subiendo, aviso verde al cambiarla y aviso rojo con el mensaje de la API.
+
+
+## Fuera de alcance
+
+- Que administración suba o quite la foto de una entrenadora.
+- Recortar o comprimir la foto en el servidor.
+- Fotos de socias.
+
+## Decisiones
+
+| Decisión | Por qué |
+| --- | --- |
+| Las comprobaciones y el disco de la HU-30 pasan a `app/services/image_files.py`, que usan productos y entrenadoras | Una sola validación de fotos (DRY); es lo que protege de archivos falsos. La lógica no cambia y los tests de la HU-30 pasan sin tocarlos (solo cambia de dónde importan). |
+| `read_image`, `save_image` y `delete_image` reciben la carpeta | Así sirven para `media/products` y `media/trainers`. |
+| El tipo se lee de los primeros bytes y el nombre lo genera el servidor | Igual que la HU-30: un PDF llamado `foto.jpg` se rechaza y nadie elige la ruta del archivo. |
+| Guardar el archivo nuevo → commit → borrar el viejo; si el commit falla, se borra el nuevo | Nunca queda una foto a medias ni se pierde la anterior. |
+| Rutas `/trainers/me/photo` sin id | Cada entrenadora solo toca su propia foto (sin IDOR). |
+| La migración solo añade una columna | `trainer_profiles` no tiene otras tablas que apunten a ella ni CHECK nuevas, así que no hace falta apagar las foreign keys (a diferencia de T-03 y T-240). |
+| `Avatar` acepta `src` y, con foto, pinta una imagen en el mismo círculo | Mismo tamaño y forma que las iniciales; sin `src`, todo sigue igual en el resto de la app. |
+| Nuevo tamaño `xl` (120 px) para las tarjetas de entrenadoras | En 72 px una foto apenas se veía; las demás pantallas mantienen su tamaño. |
