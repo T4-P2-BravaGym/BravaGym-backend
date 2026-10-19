@@ -46,7 +46,7 @@ def get_my_routine(
     "",
     response_model=TrainerRoutineOut,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a routine for a member (her previous routine becones inactive)",
+    summary="Create a routine for a member (her previous routine becomes inactive)",
     responses={
         404: error("The member or an exercise does not exist"),
         409: error("Two lines share the same day and position"),

@@ -5,7 +5,7 @@ from itertools import groupby
 
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.exceptions import ConflictError, NotFoundError
 from app.models import Exercise, Routine, RoutineExercise, User
@@ -115,7 +115,14 @@ def create_routine(
 
 def list_routines(db: Session, member_id: int | None = None) -> list[TrainerRoutineOut]:
     """All routines, newest first. With member_id, only that member's routines."""
-    query = select(Routine).order_by(Routine.id.desc())
+    query = (
+        select(Routine)
+        .options(
+            selectinload(Routine.items).selectinload(RoutineExercise.exercise),
+            selectinload(Routine.trainer),
+        )
+        .order_by(Routine.start_date.desc(), Routine.id.desc())
+    )
     if member_id is not None:
         query = query.where(Routine.member_id == member_id)
     return [_to_trainer_out(routine) for routine in db.scalars(query).all()]
