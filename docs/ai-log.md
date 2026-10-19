@@ -397,11 +397,26 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 
 - **Herramienta y modelo:** OpenAI Codex / GPT-6.
 - **Trabajo y verificación:** README backend: instalación, configuración, Alembic, seed, uso de API y enlaces de entrega. Validación: 737 tests existentes, migraciones y seed en SQLite temporal, endpoints de documentación y login; lint y formato correctos.
+- **Actualización tras revisión del equipo (19 de octubre):** README backend breve en inglés desde dev: descripción, versiones declaradas, instalación, uso de Swagger, demo, estructura, controles y autoras. Guía de Bruno conservada en docs/api-testing.md. Verificación actual: 794 tests, 97,07 % de cobertura, lint/formato y enlaces correctos; instalación limpia en Python 3.12, migraciones, seed, health, documentación y login/perfil de demo comprobados.
+- **Prompt clave:** "ok lets do it fix my work", después de acordar dos READMEs concisos en inglés.
+
 
 ## D-07 · README frontend (#283) — Beste
 
 - **Herramienta y modelo:** OpenAI Codex / GPT-6.
 - **Trabajo y verificación:** README frontend del proyecto completo: instalación, configuración pública, áreas por rol, demo, build, preview y enlaces de entrega. Validación: 74 tests existentes, lint y build correctos; rutas y enlaces locales contrastados.
+- **Actualización tras revisión del equipo (19 de octubre):** README frontend breve en inglés desde dev: descripción, versiones del lockfile, instalación y conexión a la API, demo, estructura, controles y autoras. Verificación actual: 92 tests, lint y build correctos; enlaces y versiones del lockfile contrastados.
+- **Prompt clave:** "ok lets do it fix my work", después de acordar dos READMEs concisos en inglés.
+
+
+## HU-29 · Stripe frontend and smoke — Mariana
+
+- **Herramienta y modelo:** Codex (GPT-6), implementación y verificación autorizadas por la usuaria; modalidad de suscripción no comprobada.
+- **Prompt clave:** «Brava Gym HU-29 Stripe. Termina FE + smoke. NO merges.» «CRÍTICO: STRIPE_SUCCESS/CANCEL_URL → http://localhost:5173/mi-area/pagos?stripe=… (no /member/payments).»
+- **Qué me explicó o propuso:** añadió checkout en Mis pagos conservando el pago simulado, retorno que consulta el estado de la API y manejo de 503. Preparó pruebas con una base aislada y Stripe test.
+- **Qué acepté:** alcance autorizado en el prompt: rama frontend, PR draft, smoke y corrección de URLs de retorno; no equivale a aprobación humana del código.
+- **Qué descarté:** merges y Stripe Refunds API, excluidos expresamente por la usuaria.
+- **Errores o alucinaciones:** la suite completa detectó errores OpenAPI sin `ErrorOut` en la implementación existente de HU-29; se corrigieron con el helper común. Tras la corrección: 754 tests pasan y cobertura 96,51 %. El checkout real se creó (200) y continuó pending; firma inválida (400). La prueba de tarjeta alojada se documenta en la PR frontend, separada de los tests con mocks.
 
 ## Frontend #93 · Menú lateral que se puede contraer — Esra
 
@@ -459,3 +474,12 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
   - Al pegar, puse la función nueva en `services/session.js` (el servicio de login) en vez de en `services/sessions.js`, y la página salía en blanco.
   - Al revisarlo, la IA leyó mal el commit: creyó que `session.js` era un archivo nuevo y me dijo que lo borrara. Era el que usa `AuthContext`, así que se quedó en blanco toda la app y fallaron 2 suites de tests. Lo recuperé desde `dev` con `git checkout dev -- src/services/session.js`.
 - **Cómo lo comprobé:** `ruff check`, `ruff format`, `pytest` con [N] tests, `npm run lint` y `npm test` (16 suites), y el flujo a mano. Abrí franjas lunes, miércoles y viernes a las 11:00 durante 2 semanas, comprobé que la semana del 26 de octubre seguían a las 11:00, repetí el lote para ver los avisos de solape y reservé una franja como socia para verla como "Reservada".
+
+## T-12 · Historial de rutinas de una socia — Viviana (backend hecho, frontend en curso)
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Leyó el código con mi permiso; yo escribí el código, ejecuté los tests y hice los commits.
+- **Prompt clave:** "una entrenadora hace las rutinas de una socia, pero jamás las puede ver como historial; dime cómo podemos desarrollar esta solución juntos".
+- **Qué me explicó o propuso:** que el backend ya tenía casi todo (`GET /routines?member_id=` y la baja lógica que guarda el historial) y que faltaba sobre todo la pantalla; ordenar por `start_date` con el `id` como desempate; `selectinload` para evitar el N+1 del listado; tests primero, con uno en rojo antes de tocar el servicio.
+- **Qué acepté:** todo lo anterior, y sacar `RoutineDays` de "Mi rutina" para reutilizarlo en el historial.
+- **Qué descarté:** dejar para otras tareas que la socia vea su historial, duplicar rutinas como plantilla y que cada entrenadora vea solo sus rutinas. Tampoco hice un test que cuente consultas para el N+1: sería frágil.
+- **Errores o alucinaciones:** al principio propuso llamarla HU-30, que ya existía (foto de producto); lo vio al revisar el backlog y la dejamos como T-12.

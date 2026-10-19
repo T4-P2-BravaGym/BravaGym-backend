@@ -50,6 +50,13 @@ class ConflictError(AppError):
     code = "conflict"
 
 
+class BadRequestError(AppError):
+    """Malformed request (HTTP 400), e.g. invalid Stripe webhook signature."""
+
+    status_code = 400
+    code = "bad_request"
+
+
 class ValidationAppError(AppError):
     """Business/input validation that should surface as HTTP 422."""
 
@@ -66,6 +73,13 @@ class RateLimitError(AppError):
     def __init__(self, detail: str, *, retry_after: int):
         super().__init__(detail)
         self.headers = {"Retry-After": str(retry_after)}
+
+
+class ServiceUnavailableError(AppError):
+    """Feature not configured or temporarily unavailable (HTTP 503)."""
+
+    status_code = 503
+    code = "service_unavailable"
 
 
 class UnexpectedErrorMiddleware(BaseHTTPMiddleware):

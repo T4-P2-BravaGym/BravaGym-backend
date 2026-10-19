@@ -1,39 +1,37 @@
 # D-07 · README backend de entrega
 
-Issue: #284 · Parent: #200 · Entrega 2 · Tamaño S
+Issue: T4-P2-BravaGym/BravaGym-backend#284 · Parent: #200 · Entrega 2 · Tamaño S
 
 ## Contexto
 
-Como equipo queremos que la profesora pueda instalar y probar la API y encontrar los documentos de entrega desde el README. La instalación del frontend se mantiene en su repositorio y en #283.
+El equipo revisó la documentación el 19 de octubre y pidió un README breve del producto, en inglés, en cada repositorio. Las instrucciones de la revisión sustituyen el índice extenso de historias y entregables pendientes de la primera versión.
 
 ## Requisitos
 
-1. Explicar instalación local, configuración, Alembic, seed y primer uso de Swagger a partir del código de `dev`.
-2. Enlazar Swagger, ReDoc, OpenAPI, Bruno, specs, bitácora de IA y diagrama ER.
-3. Identificar la retrospectiva, Docker y la URL desplegada con su estado real y tareas responsables; no inventar archivos, comandos operativos ni URLs.
-4. Documentar los controles de calidad existentes y la persistencia de SQLite y fotos.
+1. Describir Brava, sus funciones principales y la relación entre frontend y backend.
+2. Mostrar tecnologías y versiones verificadas en dependencias y CI.
+3. Explicar requisitos, instalación local, configuración y primer uso con cuentas ficticias.
+4. Incluir un árbol breve de carpetas, comandos de calidad, autoras y enlace a Issues.
+5. Enlazar el README del otro repositorio y documentación técnica existente.
+6. Omitir Docker/despliegue, pendientes de entrega y narración de historias del README; conservar la guía operativa de Bruno fuera del README backend.
+7. No atribuir una licencia que no exista en el repositorio.
 
 ## Criterios de aceptación
 
-- Dado el repositorio backend, cuando se sigue la guía con sus dependencias instaladas, entonces las migraciones y el seed funcionan sobre una base temporal y la API expone health, Swagger y ReDoc.
-- Dado el índice de documentación, cuando se siguen enlaces a archivos del repositorio, entonces esos archivos existen.
-- Dadas las dependencias de entrega no publicadas, cuando se consulta el README, entonces aparecen como pendientes enlazadas a sus tareas.
-- Dada la tarea frontend #283, cuando se consulta esta guía, entonces remite al README frontend sin duplicar sus instrucciones.
+- El README está en inglés, es fácil de recorrer y permite iniciar el proyecto localmente.
+- Las versiones, rutas, variables, credenciales ficticias y comandos coinciden con el código integrado en dev.
+- Los enlaces relativos apuntan a archivos existentes y ambos repositorios se enlazan entre sí.
+- La guía frontend indica que la API debe estar arrancada y usar un origen compatible para cookies/CORS.
+- La guía backend configura una clave privada, aplica migraciones y limita el seed a una base local vacía.
 
 ## Fuera de alcance
 
-- Implementar Docker (HU-27), desplegar (HU-36), redactar la retrospectiva del equipo o editar el README frontend.
-- Cambiar código, dependencias, frameworks o tests.
-
-## Preguntas abiertas
-
-- Publicación de la retrospectiva: seguimiento en #200.
-- Integración de Docker y URL pública: seguimiento en #112, #115 y #185.
+Cambiar código, dependencias, tests, infraestructura o integrar funcionalidades pendientes.
 
 ## Decisiones
 
 | Decisión | Por qué |
 | --- | --- |
-| Python 3.12 como versión de referencia | Coincide con CI. |
-| Cambios sobre `origin/dev` en una rama de documentación independiente | Evita incluir HU-35, que todavía está en revisión. |
-| Dependencias pendientes visibles | La documentación no puede prometer entregables que no existen en `dev`. |
+| Un README en inglés por repositorio | Acuerdo explícito de la revisión del equipo. |
+| Rama de documentación creada desde origin/dev | Describir el producto integrado y separar la documentación de las ramas funcionales. |
+| Detalles en enlaces y guía de Bruno separada | Mantener una portada breve sin perder instrucciones operativas de API. |
