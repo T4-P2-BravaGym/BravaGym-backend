@@ -2,6 +2,11 @@
 
 Cómo hemos usado la IA en cada historia. Es un entregable de la asignatura (apartado 10 de `AGENTS.md`) y cubre los dos repos.
 
+## HU-35 · Recuperación de contraseña — Beste Özaydın (implementado, pendiente de revisión humana)
+
+- **Herramienta y modelo:** OpenAI Codex / GPT-6.
+- **Trabajo y verificación:** Recuperación de contraseña con tokens hash de un solo uso, caducidad de 30 minutos, outbox privado y revocación de sesiones. Reutiliza FastAPI, SQLAlchemy, Alembic, pytest y Vitest. Validación registrada: 777 tests backend, 87 frontend, migraciones, lint y build.
+
 ## HU-33 · Refresh tokens y logout — Beste Özaydın (en curso)
 
 - **Herramienta y modelo:** OpenAI Codex / GPT-6.
@@ -386,7 +391,9 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
   - En tres tests marcaba un pago como `PAID` sin `paid_at` y la `CHECK` `ck_payments_paid_at` los rechazaba al preparar los datos. Se arregló poniendo la fecha; el fallo estaba en el test, no en el código.
   - No había visto la issue al proponer la primera versión, ni la línea de `api.md` que había que cambiar.
   - Al pegar, sustituí `_ensure_extra_class_payment` por la función nueva en vez de añadirla debajo (Ruff: F821). También se me borraron docstrings y quedaron dos `- ` sueltos en `business-rules.md`. Lo vimos revisando el diff antes del push.
-- **Cómo lo comprobé:** `ruff check` y `ruff format --check`, `pytest` con 770 tests (cobertura 96,76 %) y un último repaso del diff de las dos ramas para comprobar que cada una solo tenía sus archivos.## D-07 · README backend (#284) — Beste
+- **Cómo lo comprobé:** `ruff check` y `ruff format --check`, `pytest` con 770 tests (cobertura 96,76 %) y un último repaso del diff de las dos ramas para comprobar que cada una solo tenía sus archivos.
+
+## D-07 · README backend (#284) — Beste
 
 - **Herramienta y modelo:** OpenAI Codex / GPT-6.
 - **Trabajo y verificación:** README backend: instalación, configuración, Alembic, seed, uso de API y enlaces de entrega. Validación: 737 tests existentes, migraciones y seed en SQLite temporal, endpoints de documentación y login; lint y formato correctos.
@@ -422,3 +429,10 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** el bloque común para los tres roles y la página de administración. Para las entrenadoras propuso una entrada de menú nueva; preferí no añadirla y poner el bloque en la misma página que su perfil público, bajo el título "Mi cuenta", y llamar al menú "Mi perfil y cuenta".
 - **Qué descarté:** renombrar la página a "Mi perfil" sin más (se perdía lo de "público", que hicimos en la HU-15) y un nombre de menú más largo que no cabía en una línea.
 - **Errores o alucinaciones:** nada inventado. Al copiar, tres archivos quedaron fuera de su carpeta, el `index.js` acabó pegado dentro de otro archivo y un import salió repetido (el build falló); lo vimos en la revisión y lo corregí.
+
+## HU-35 · Actualización con dev — Beste
+
+- **Herramienta y modelo:** OpenAI Codex / GPT-6.
+- **Prompt clave:** "okay can you do it" (actualizar la rama backend con dev).
+- **Trabajo:** integrar dev en feature/hu-35-recovery, conservar las entradas de ambas ramas en esta bitácora y añadir una migración de unión para las migraciones paralelas de recuperación y foto de entrenadoras.
+- **Verificación:** 794 tests, cobertura 97,07 %; Ruff lint/formato correctos; pip-audit sin vulnerabilidades conocidas; upgrade/check, downgrade explícito al ancestro común y nuevo upgrade/check en SQLite temporal.

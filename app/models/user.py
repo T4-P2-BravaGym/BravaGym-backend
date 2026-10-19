@@ -24,6 +24,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    session_version: Mapped[int] = mapped_column(default=0, server_default="0")
     first_name: Mapped[str] = mapped_column(String(80))
     last_name: Mapped[str] = mapped_column(String(80))
     phone: Mapped[str | None] = mapped_column(String(20))

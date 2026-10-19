@@ -33,7 +33,11 @@ def get_current_user(
         raise UnauthorizedError(INVALID_SESSION)
 
     user = db.get(User, user_id)
-    if user is None or not user.is_active:
+    if (
+        user is None
+        or not user.is_active
+        or user.session_version != payload.get("ver", 0)
+    ):
         raise UnauthorizedError(INVALID_SESSION)
     return user
 

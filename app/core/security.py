@@ -25,17 +25,19 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
         return False
 
 
-def create_access_token(user_id: int, role: str) -> str:
+def create_access_token(user_id: int, role: str, session_version: int = 0) -> str:
     lifetime = timedelta(minutes=get_settings().access_token_expire_minutes)
-    return _create_token(user_id, role, "access", lifetime)
+    return _create_token(user_id, role, "access", lifetime, session_version)
 
 
-def create_refresh_token(user_id: int, role: str) -> str:
+def create_refresh_token(user_id: int, role: str, session_version: int = 0) -> str:
     lifetime = timedelta(days=get_settings().refresh_token_expire_days)
-    return _create_token(user_id, role, "refresh", lifetime)
+    return _create_token(user_id, role, "refresh", lifetime, session_version)
 
 
-def _create_token(user_id: int, role: str, token_type: str, lifetime: timedelta) -> str:
+def _create_token(
+    user_id: int, role: str, token_type: str, lifetime: timedelta, session_version: int
+) -> str:
     settings = get_settings()
     payload = {
         "sub": str(user_id),
@@ -45,6 +47,7 @@ def _create_token(user_id: int, role: str, token_type: str, lifetime: timedelta)
         "aud": settings.jwt_audience,
         "jti": uuid4().hex,
         "type": token_type,
+        "ver": session_version,
     }
     return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
 
@@ -77,6 +80,9 @@ def _decode_token(
             "verify_exp": verify_exp,
         },
     )
+    version = payload.get("ver", 0)
+    if type(version) is not int or version < 0:
+        raise jwt.InvalidTokenError("Invalid session version")
     if payload["type"] != expected_type:
         raise jwt.InvalidTokenError("Unexpected token type")
     if not isinstance(payload["jti"], str) or not 1 <= len(payload["jti"]) <= 64:

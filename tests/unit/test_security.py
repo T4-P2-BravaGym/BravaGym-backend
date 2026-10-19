@@ -25,7 +25,7 @@ def test_token_has_sub_role_and_expires_in_60_minutes():
 def test_payload_only_has_the_allowed_claims():
     payload = decode_access_token(create_access_token(user_id=7, role="member"))
 
-    assert set(payload) == {"sub", "role", "exp", "iss", "aud", "jti", "type"}
+    assert set(payload) == {"sub", "role", "exp", "iss", "aud", "jti", "type", "ver"}
     assert payload["type"] == "access"
 
 

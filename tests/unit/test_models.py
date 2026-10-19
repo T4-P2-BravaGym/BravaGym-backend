@@ -28,6 +28,7 @@ EXPECTED_TABLES = {
     "payments",
     "refresh_tokens",
     "revoked_tokens",
+    "password_reset_tokens",
 }
 
 
