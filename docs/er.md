@@ -1,6 +1,6 @@
 ## Modelo de datos
 
-El esquema tiene **19 tablas en tercera forma normal (3FN)**: 11 entran en el sprint 1 (núcleo) y 8 en el sprint 2 (bajas, tienda y pagos). El bloque Mermaid se puede pegar tal cual en el README de GitHub, que lo renderiza como diagrama ER.
+El esquema tiene **19 tablas de negocio en tercera forma normal (3FN)**: 11 entran en el sprint 1 (núcleo) y 8 en el sprint 2 (bajas, tienda y pagos). Además hay 3 tablas de seguridad (`refresh_tokens`, `revoked_tokens` y `password_reset_tokens`) que no salen en el diagrama; se describen en `specs/ontology.md`. El bloque Mermaid se puede pegar tal cual en el README de GitHub, que lo renderiza como diagrama ER.
 
 ```mermaid
 erDiagram
