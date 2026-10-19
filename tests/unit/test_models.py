@@ -26,6 +26,7 @@ EXPECTED_TABLES = {
     "order_items",
     "discount_codes",
     "payments",
+    "payment_checkouts",
     "refresh_tokens",
     "revoked_tokens",
     "password_reset_tokens",
