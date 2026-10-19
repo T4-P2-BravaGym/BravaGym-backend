@@ -47,6 +47,10 @@ class ClassSession(Base):
     trainer: Mapped["User"] = relationship()
     bookings: Mapped[list["Booking"]] = relationship(back_populates="class_session")
 
+    @property
+    def trainer_name(self) -> str:
+        return self.trainer.full_name
+
 
 class Booking(Base):
     __tablename__ = "bookings"

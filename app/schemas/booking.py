@@ -17,6 +17,7 @@ BOOKING_EXAMPLE = {
     "class_session": {
         "id": 3,
         "trainer_id": 2,
+        "trainer_name": "Ana Torres",
         "starts_at": "2026-10-07T17:30:00Z",
         "ends_at": "2026-10-07T18:30:00Z",
         "duration_minutes": 60,
@@ -46,6 +47,7 @@ class BookingSessionOut(SessionTimeMixin):
 
     id: int
     trainer_id: int
+    trainer_name: str
     capacity: int = Field(ge=1)
     status: SessionStatus
     class_type: SessionClassTypeOut

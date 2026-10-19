@@ -92,6 +92,23 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Errores o alucinaciones:** nada inventado sobre el proyecto: antes de proponer leyó los modelos, el `AGENTS.md` y el código existente. Los errores fueron míos al copiar y los pillaron los tests: usé `RoutineUpdate` en vez de `RoutineCreate` en el `POST` (500 en todos los tests de crear), puse mal una llave en la ruta `/{routine_id}/exercises` (404) y escribí `firts_line` en un test. También tuve que ajustar el test de la HU-18, porque las líneas ahora devuelven su `id`.
 - **Cómo lo comprobé:** `pytest` (permisos, 409, 404, 422 y la desactivación de la rutina anterior), ruff y el flujo en Swagger: crear ejercicios, crear una rutina y repetir día y posición para ver el 409. En el frontend: npm run build y el flujo a mano (crear una rutina como entrenadora, verla como socia en “Mi rutina”, crear otra y comprobar que la anterior queda inactiva, y el error de carga con el backend apagado) PR del frontend (frontend#77).
 
+## HU-02 · Registro de socia — Viviana
+
+- **Herramienta y modelo:** Claude (claude-opus-5-5), en modo mentora, en el chat del proyecto. El código lo escribí y lo commiteé yo. Cubre el backend (PR #139), la validación del nombre (PR #145) y la pantalla de registro del frontend.
+- **Prompt de partida:** "Voy a hacer la siguiente tarea HU-02 · Registro de socia", con el texto de la issue #15 y sus sub-issues, y avisando de que `hash_password` y `verify_password` ya estaban hechas.
+- **Qué salió de la conversación y acepté:** `UserCreate` sin `role` ni `is_active`, para que nadie se asigne un rol desde fuera; el validador de 72 bytes para bcrypt; `UserOut` leyendo el nombre del rol con `AliasPath`; `normalize_email` en un solo sitio, compartida con el login de la HU-03; el 409 también con el `IntegrityError` del `UNIQUE`; y los tests unitarios del hash y de integración del endpoint. En el front, la validación en un archivo aparte (`validation.js`) para no mezclarla con la pantalla. Pasar Ruff solo a mis archivos y proponer al equipo usarlo en todo el repo por separado. El detalle está en `specs/HU-02-register.md`.
+- **Qué corregí o descarté:** quité el `max_length=80` que había puesto en la contraseña, porque el límite real ya lo pone el validador de 72 bytes. Me propuso añadir `max_length=72` y también lo descarté, por lo mismo. Al hacer la pantalla vi que el nombre aceptaba números; decidí arreglarlo primero en el backend, porque la seguridad tiene que estar en el servidor, en una rama y una PR aparte, y abrí una sub-issue nueva para que el Project reflejara ese trabajo.
+- **Errores o alucinaciones:** dio por hecho que la rama de integración se llamaba `develop`; es `dev`, y lo corregí yo. Dijo que las expresiones regulares de Python no admiten `\p{L}`; es cierto para `re`, pero no para Pydantic v2, y lo aclaramos. Al revisar mi repo con su herramienta dejó un `.git/index.lock` que tuve que borrar yo desde la terminal. Mis errores fueron al resolver mi primer conflicto con la HU-03: el `token_type` del login quedó dentro de `UserCreate`. En el front, las claves de los errores (`firstNameError`) no coincidían con las que leía la pantalla (`first_name`) y validaba `last_name` dos veces. En la validación del nombre, una constante dentro de la clase rompía Pydantic y la saqué fuera.
+- **Cómo lo comprobé:** `pytest` (71 tests al terminar el endpoint y 148 con la validación del nombre) y Ruff. En el navegador, registrar una socia nueva y repetir el email para ver el aviso del 409. El error "Role 'member' not found" que salió al probar era porque mi base de datos no tenía el seed; lo arreglé con `scripts/seed.py`.
+
+## HU-06 · Listado de usuarios para administración — Viviana
+
+- **Herramienta y modelo:** Claude (claude-opus-5-5), en modo mentora, en el chat del proyecto. El código lo escribí y lo commiteé yo. Cubre el backend (PR #153) y la tabla del panel de administración del frontend.
+- **Prompt de partida:** "vale pues me asigno la HU-06 y luego seguimos con HU-17", con el texto de la issue #34.
+- **Qué salió de la conversación y acepté:** hacer la HU-06 antes que la HU-17, porque `list_users` se iba a reutilizar después; `UserPage` sobre el `Page[T]` común que ya existía, así que cerré la HU-06.1 (#35) en vez de repetirla; escribir los tests antes del endpoint; un orden estable (apellido, nombre e `id`) para que la paginación no se mezcle; la búsqueda sin mayúsculas con `autoescape`; y límites de `size` hasta 100 y `q` hasta 60 caracteres. En el front, reutilizar `Table`, `Pagination`, `Field`, `Badge`, `Spinner`, `Alert` y `useDebouncedValue`, cancelar las peticiones viejas y volver a la página 1 al cambiar un filtro. Sin log, porque el endpoint solo lee. El detalle está en `specs/HU-06-users-list.md`.
+- **Qué corregí o descarté:** abrir `GET /users` a las entrenadoras para la HU-17, porque verían emails y teléfonos de todas; eso se resolvió después con `GET /users/members`. Tampoco arreglé avisos de Ruff en archivos de otras compañeras, para no salirme de la historia ni crearles conflictos. Dejé fuera el cambio de rol desde la tabla, que es de la HU-05.
+- **Errores o alucinaciones:** nada inventado sobre el proyecto: antes de proponer leyó los esquemas, el modelo y el router, y vio que la tabla del front estaba en Done en el Project pero no llamaba a la API. Su herramienta volvió a dejar un `.git/index.lock` que tuve que borrar yo. Mis errores: llamé al esquema `UsersPage` en un sitio y `UserPage` en otro (error de import), me faltaban imports en el router y Ruff marcó el espacio
+
 ## T-07 · Separar dependencias de test — Beste Özaydın
 
 - **Herramienta y modelo:** OpenAI Codex / GPT-6.
@@ -375,3 +392,47 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
   - No había visto la issue al proponer la primera versión, ni la línea de `api.md` que había que cambiar.
   - Al pegar, sustituí `_ensure_extra_class_payment` por la función nueva en vez de añadirla debajo (Ruff: F821). También se me borraron docstrings y quedaron dos `- ` sueltos en `business-rules.md`. Lo vimos revisando el diff antes del push.
 - **Cómo lo comprobé:** `ruff check` y `ruff format --check`, `pytest` con 770 tests (cobertura 96,76 %) y un último repaso del diff de las dos ramas para comprobar que cada una solo tenía sus archivos.
+
+## D-07 · README backend (#284) — Beste
+
+- **Herramienta y modelo:** OpenAI Codex / GPT-6.
+- **Trabajo y verificación:** README backend: instalación, configuración, Alembic, seed, uso de API y enlaces de entrega. Validación: 737 tests existentes, migraciones y seed en SQLite temporal, endpoints de documentación y login; lint y formato correctos.
+
+## D-07 · README frontend (#283) — Beste
+
+- **Herramienta y modelo:** OpenAI Codex / GPT-6.
+- **Trabajo y verificación:** README frontend del proyecto completo: instalación, configuración pública, áreas por rol, demo, build, preview y enlaces de entrega. Validación: 74 tests existentes, lint y build correctos; rutas y enlaces locales contrastados.
+
+## Frontend #93 · Menú lateral que se puede contraer — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código y los commits. Spec: `specs/T-93-sidebar-collapse.md` en el repo del frontend.
+- **Prompt clave:** "tengo la #239 (colapso del menú lateral opcional)"; la issue no tenía descripción.
+- **Qué me explicó o propuso:** contraer el menú a sus iconos solo en ordenador, el nombre como texto oculto y `title`, un botón con `aria-pressed` y guardar la elección en `localStorage`.
+- **Qué acepté:** todo lo anterior. No tenía opinión sobre el diseño y me explicó que el diseño no incluía una versión contraída, así que seguimos el patrón habitual y lo revisé en el navegador.
+- **Qué descarté:** cambiar el icono repetido (Entrenamiento personal y Mi perfil usan el mismo); lo dejé anotado en la PR.
+- **Errores o alucinaciones:** VS Code marcaba como error `@media (min-width: $breakpoint-md + 1px)`, que Sass compila bien; lo escribimos como `#{...}` y comprobamos que el CSS final era el mismo. Al probarlo vi que "Administración" pisaba el botón "Salir" (venía de antes) y lo arreglé en la misma PR.
+
+## T-291 · Foto de las entrenadoras — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código, ejecuté los comandos y hice los commits.
+- **Prompt clave:** "hace falta la foto de las entrenadoras" (no había issue; la abrimos juntas).
+- **Qué me explicó o propuso:** reutilizar la subida de fotos de la HU-30 y dos caminos: sacarla a un módulo común o copiarla. También comprobó si había ramas abiertas que tocaran esos archivos antes de decidir.
+- **Qué acepté:** el módulo común `image_files.py` (DRY), la columna `photo_path`, `PUT` y `DELETE /trainers/me/photo`, y tests que miran los archivos en disco.
+- **Qué descarté:** copiar el código para no tocar el archivo de otra compañera; como su única rama abierta se mezclaba sin conflictos (lo comprobamos), preferí no duplicar la validación de fotos.
+- **Errores o alucinaciones:** nada inventado. Al crear el archivo nuevo lo llamé `images_files.py` por error y lo renombré. Un test de la HU-15 comparaba la tarjeta entera y hubo que añadirle `photo_url`.
+
+## Frontend #101 · Mi perfil y contraseña para entrenadoras y administración — Esra
+
+- **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Yo escribí el código y los commits. Spec: `specs/T-101-account-all-roles.md` en el repo del frontend.
+- **Prompt clave:** "Mi perfil para todos los roles, ¿dónde lo hacemos?".
+- **Qué me explicó o propuso:** que el menú y la protección dependen de la ruta de cada área, sacar "Mis datos" y "Cambiar contraseña" a un bloque común (`pages/shared/Account`) y una página "Mi cuenta" para administración.
+- **Qué acepté:** el bloque común para los tres roles y la página de administración. Para las entrenadoras propuso una entrada de menú nueva; preferí no añadirla y poner el bloque en la misma página que su perfil público, bajo el título "Mi cuenta", y llamar al menú "Mi perfil y cuenta".
+- **Qué descarté:** renombrar la página a "Mi perfil" sin más (se perdía lo de "público", que hicimos en la HU-15) y un nombre de menú más largo que no cabía en una línea.
+- **Errores o alucinaciones:** nada inventado. Al copiar, tres archivos quedaron fuera de su carpeta, el `index.js` acabó pegado dentro de otro archivo y un import salió repetido (el build falló); lo vimos en la revisión y lo corregí.
+
+## HU-35 · Actualización con dev — Beste
+
+- **Herramienta y modelo:** OpenAI Codex / GPT-6.
+- **Prompt clave:** "okay can you do it" (actualizar la rama backend con dev).
+- **Trabajo:** integrar dev en feature/hu-35-recovery, conservar las entradas de ambas ramas en esta bitácora y añadir una migración de unión para las migraciones paralelas de recuperación y foto de entrenadoras.
+- **Verificación:** 794 tests, cobertura 97,07 %; Ruff lint/formato correctos; pip-audit sin vulnerabilidades conocidas; upgrade/check, downgrade explícito al ancestro común y nuevo upgrade/check en SQLite temporal.

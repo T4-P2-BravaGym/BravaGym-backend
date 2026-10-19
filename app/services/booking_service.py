@@ -475,7 +475,8 @@ def _my_bookings_stmt(
         select(Booking)
         .join(ClassSession, Booking.class_session_id == ClassSession.id)
         .options(
-            contains_eager(Booking.class_session).joinedload(ClassSession.class_type)
+            contains_eager(Booking.class_session).joinedload(ClassSession.class_type),
+            contains_eager(Booking.class_session).joinedload(ClassSession.trainer),
         )
         .where(Booking.user_id == user_id)
     )

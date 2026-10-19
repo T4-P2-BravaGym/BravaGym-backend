@@ -1,7 +1,7 @@
 import pytest
 from app.core.config import get_settings
 from app.models.enums import RoleName
-from app.services.product_image_service import (
+from app.services.image_files import (
     IMAGE_TOO_LARGE,
     INVALID_IMAGE,
     MAX_IMAGE_BYTES,

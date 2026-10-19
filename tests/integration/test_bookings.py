@@ -237,6 +237,27 @@ def test_get_my_bookings_returns_page_shape(
     assert body["items"][0]["class_session"]["id"] == session.id
 
 
+def test_get_my_bookings_includes_trainer_name(
+    client, db, make_user, make_plan, make_subscription
+):
+    # Socia con plan activo, para que pueda reservar (RN-01)
+    member = make_user()
+    make_subscription(member, make_plan())
+    session = _seed_session(db, make_user, name="Con entrenadora")
+    client.post(
+        BOOK_URL.format(session_id=session.id),
+        headers=auth_header_for(member),
+    )
+
+    response = client.get(MY_BOOKINGS_URL, headers=auth_header_for(member))
+
+    assert response.status_code == 200
+    class_session = response.json()["items"][0]["class_session"]
+    # La entrenadora la creó _seed_session; mismo formato que GET /trainers
+    trainer = session.trainer
+    assert class_session["trainer_name"] == f"{trainer.first_name} {trainer.last_name}"
+
+
 def test_get_my_bookings_filters_status_and_hides_others(
     client, make_user, make_plan, make_subscription, db
 ):

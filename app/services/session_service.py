@@ -127,7 +127,10 @@ def sessions_with_free_spots_stmt(
             confirmed_count.label("confirmed_count"),
             free_spots.label("free_spots"),
         )
-        .options(joinedload(ClassSession.class_type))
+        .options(
+            joinedload(ClassSession.class_type),
+            joinedload(ClassSession.trainer),
+        )
         .outerjoin(confirmed, confirmed.c.class_session_id == ClassSession.id)
     )
 

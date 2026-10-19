@@ -23,6 +23,7 @@ def test_list_trainers_shows_the_public_profile_without_contact_data(
             "name": f"{trainer.first_name} {trainer.last_name}",
             "specialty": "Powerlifting",
             "bio": "Fuerza desde cero.",
+            "photo_url": None,
         }
     ]
 
