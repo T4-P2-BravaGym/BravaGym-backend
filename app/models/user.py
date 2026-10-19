@@ -41,6 +41,11 @@ class User(Base):
         back_populates="user"
     )
 
+    @property
+    def full_name(self) -> str:
+        """Nombre y apellido, como se muestra en las fichas públicas."""
+        return f"{self.first_name} {self.last_name}"
+
 
 class TrainerProfile(Base):
     __tablename__ = "trainer_profiles"
