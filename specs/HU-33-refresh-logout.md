@@ -8,7 +8,7 @@ Issue: #182 · Entrega 2 · Tamaño L · Prioridad P2
 
 Actualmente el login devuelve solo un access token y el frontend lo guarda en `localStorage`. `AuthContext` cierra la sesión al caducar el token y `apiRequest` lo hace ante un 401. Esta historia añade renovación y revocación en el servidor. Depende de T-01 (Alembic).
 
-Esta spec comenzó antes de la implementación. Se acordó access token en memoria y refresh token en cookie HttpOnly. Se implementaron el backend local y la integración del frontend. Beste confirmó la comprobación manual básica de login, recarga y logout. La implementación usa el contrato de cookie descrito aquí y exige HTTPS y mismo sitio en producción. Quedan pendientes la revisión humana y el merge; no se afirma que haya un despliegue de producción verificado.
+Esta spec comenzó antes de la implementación. Se acordó access token en memoria y refresh token en cookie HttpOnly. Se implementaron el backend local y la integración del frontend. Se comprobó manualmente login, recarga y logout. La implementación usa el contrato de cookie descrito aquí y exige HTTPS y mismo sitio en producción. Quedan pendientes la revisión humana y el merge; no se afirma que haya un despliegue de producción verificado.
 
 ## Requisitos
 
@@ -84,7 +84,7 @@ Riesgos: HttpOnly dificulta la lectura directa del refresh por JavaScript, pero 
 
 ## Contrato y despliegue
 
-- Contrato adoptado con autorización de Beste: access en JSON y memoria; refresh exclusivamente en cookie HttpOnly. No se atribuye aprobación al resto del equipo.
+- Contrato de sesión: access en JSON y memoria; refresh exclusivamente en cookie HttpOnly.
 - Producción requiere HTTPS y frontend/API en el mismo sitio (mismo esquema y dominio registrable). Pueden ser subdominios; CORS debe permitir exactamente el origen del frontend y las credenciales. También puede usarse un proxy del mismo origen.
 - Configurar `ENVIRONMENT` con un valor distinto de `local`, `CORS_ORIGINS` con el origen HTTPS real y `VITE_API_URL` con la URL real de la API. Mantener SameSite=Lax, Secure, validación de Origin y X-Brava-CSRF.
 - El despliegue entre sitios diferentes no está soportado por este contrato: exige una revisión específica de cookies y CSRF. No se cambian estos controles para adaptar dominios desconocidos.
@@ -99,7 +99,7 @@ Riesgos: HttpOnly dificulta la lectura directa del refresh por JavaScript, pero 
 | Una spec para ambos repos | La renovación requiere backend y frontend coordinados. |
 | Hash del refresh y consumo atómico | Evitar guardar tokens reutilizables en claro y evitar doble rotación. |
 | Mantener formulario OAuth2 en login | Conservar Authorize de Swagger. |
-| Access en memoria y refresh en cookie HttpOnly | Decisión acordada con Beste; evitar persistir tokens accesibles por JavaScript. |
+| Access en memoria y refresh en cookie HttpOnly | Evitar persistir tokens accesibles por JavaScript. |
 | No devolver refresh también en JSON | Evitar que la misma respuesta vuelva a exponerlo a JavaScript. |
 | Limpieza al emitir, renovar y cerrar sesión | Eliminar revocaciones de access caducados dentro de la transacción, manteniendo los vigentes. |
 | Backend local primero | Avanzar sin asumir el dominio de producción; la integración del frontend sigue este contrato. |
