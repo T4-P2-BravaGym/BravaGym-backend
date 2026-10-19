@@ -29,6 +29,7 @@ class TrainerOut(BaseModel):
                 "name": "Ana Torres",
                 "specialty": "Powerlifting",
                 "bio": "Entrenadora de fuerza con 8 años de experiencia.",
+                "photo_url": "/media/trainers/3f2a9c.jpg",
             }
         }
     )
@@ -37,6 +38,7 @@ class TrainerOut(BaseModel):
     name: str
     specialty: str | None
     bio: str | None
+    photo_url: str | None = None  # T-291: null = show the initials
 
 
 class TrainerProfileUpdate(BaseModel):
