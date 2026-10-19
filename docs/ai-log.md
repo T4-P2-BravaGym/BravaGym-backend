@@ -483,3 +483,12 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** todo lo anterior, y sacar `RoutineDays` de "Mi rutina" para reutilizarlo en el historial. En el front, extraer RoutineDays, el historial como acordeón y mantener el editor montado al cambiar de pestaña.
 - **Qué descarté:** dejar para otras tareas que la socia vea su historial, duplicar rutinas como plantilla y que cada entrenadora vea solo sus rutinas. Tampoco hice un test que cuente consultas para el N+1: sería frágil. Desactivar y editar rutinas desde el historial: lo propuse yo a mitad de tarea, pero decidí dejarlo fuera para no ampliar el alcance
 - **Errores o alucinaciones:** al principio propuso llamarla HU-30, que ya existía (foto de producto); lo vio al revisar el backlog y la dejamos como T-12. en el servicio puse memberId y luego member_Id en vez de member_id; FastAPI ignora los parámetros que no conoce y habría devuelto las rutinas de todas las socias. Al extraer RoutineDays quedaron restos de currentDay en MyRoutine que rompían la pantalla, y una errata (lenght) que habría fallado con rutinas sin ejercicios. Lo detectamos revisando el código y con ESLint.
+
+## D-01 · Ontología completa — Damaris
+
+- **Herramienta y modelo:** Claude (Claude Opus 5.5, de pago), en modo mentora. Leyó los modelos y los docs con mi permiso, solo lectura; el texto lo revisé, lo pegué y lo commiteé yo.
+- **Prompt clave:** "¿Puedes revisar si quedan documentos con TODO?" y después "vamos con la ontología".
+- **Qué me explicó o propuso:** rellenar las entidades de `specs/ontology.md` con la plantilla que ya tenía, sacándolas de `app/models/` en vez de `docs/er.md`, porque el diagrama no tenía `session_version`, la auditoría (T-03), la foto de entrenadora (T-291) ni `applies_to` (T-240); añadir las tres tablas de seguridad (HU-33, HU-35); ampliar el glosario por áreas y avisar de que "sesión" significa clase y también sesión de login.
+- **Qué acepté:** todo lo anterior y corregir en `er.md` que son 19 tablas de negocio más 3 de seguridad.
+- **Qué descarté:** actualizar el diagrama Mermaid entero; con el tiempo de la entrega, la ontología queda como referencia de los campos nuevos.
+- **Cómo lo comprobé:** contrasté cada entidad con su modelo (`__tablename__`, columnas, `CheckConstraint` y `UniqueConstraint`) y cada RN citada con `docs/business-rules.md`.
