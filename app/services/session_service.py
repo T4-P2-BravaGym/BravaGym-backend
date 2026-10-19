@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.exc import IntegrityError
@@ -61,6 +62,9 @@ TRAINER_OVERLAP = "Ya tienes una sesión en ese horario."
 
 PERSONAL_TRAINING_DURATION_MINUTES = 60
 PERSONAL_TRAINING_CAPACITY = 1
+GYM_TIMEZONE = ZoneInfo("Europe/Madrid")
+SKIP_REASON_OVERLAP = "overlap"
+SKIP_REASON_PAST = "past"
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,6 +74,18 @@ class SessionWithFreeSpots:
     session: ClassSession
     confirmed_count: int
     free_spots: int
+
+
+@dataclass(frozen=True, slots=True)
+class SkippedSlot:
+    starts_at: datetime
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class BulkSlotsResult:
+    created: list[SessionWithFreeSpots]
+    skipped: list[SkippedSlot]
 
 
 def free_spots_from_capacity(capacity: int, confirmed_count: int) -> int:
@@ -337,6 +353,31 @@ def _resolve_personal_training_class_type(
     return class_type
 
 
+def _trainer_busy_intervals(
+    db: Session, *, trainer_id: int
+) -> list[tuple[datetime, datetime]]:
+    existing = db.scalars(
+        select(ClassSession).where(
+            ClassSession.trainer_id == trainer_id,
+            ClassSession.status == SessionStatus.SCHEDULED,
+        )
+    ).all()
+    intervals = []
+    for session in existing:
+        start = _as_naive_utc(session.starts_at)
+        intervals.append((start, _session_end(start, session.duration_minutes)))
+    return intervals
+
+
+def _overlaps_any(
+    intervals: list[tuple[datetime, datetime]], starts_at: datetime, ends_at: datetime
+) -> bool:
+    return any(
+        other_start < ends_at and starts_at < other_end
+        for other_start, other_end in intervals
+    )
+
+
 def _trainer_has_overlap(
     db: Session,
     *,
@@ -344,20 +385,11 @@ def _trainer_has_overlap(
     starts_at: datetime,
     duration_minutes: int,
 ) -> bool:
-    """RN-09: any scheduled session for the trainer that overlaps [start, end)."""
-    ends_at = starts_at + timedelta(minutes=duration_minutes)
-    existing = db.scalars(
-        select(ClassSession).where(
-            ClassSession.trainer_id == trainer_id,
-            ClassSession.status == SessionStatus.SCHEDULED,
-        )
-    ).all()
-    for session in existing:
-        other_start = _as_naive_utc(session.starts_at)
-        other_end = other_start + timedelta(minutes=session.duration_minutes)
-        if other_start < ends_at and starts_at < other_end:
-            return True
-    return False
+    return _overlaps_any(
+        _trainer_busy_intervals(db, trainer_id=trainer_id),
+        starts_at,
+        _session_end(starts_at, duration_minutes),
+    )
 
 
 def create_personal_training_slot(
@@ -408,6 +440,94 @@ def create_personal_training_slot(
         session=session,
         confirmed_count=0,
         free_spots=PERSONAL_TRAINING_CAPACITY,
+    )
+
+
+def _weekly_local_starts(
+    *, start_date: date, weeks: int, weekdays: list[int], times: list[time]
+):
+    for offset in range(weeks * 7):
+        day = start_date + timedelta(days=offset)
+        if day.weekday() not in weekdays:
+            continue
+        for slot_time in times:
+            yield datetime.combine(day, slot_time, tzinfo=GYM_TIMEZONE)
+
+
+def create_personal_training_slots_bulk(
+    db: Session,
+    *,
+    trainer_id: int,
+    weekdays: list[int],
+    times: list[time],
+    start_date: date,
+    weeks: int,
+    class_type_id: int | None = None,
+) -> BulkSlotsResult:
+    class_type = _resolve_personal_training_class_type(db, class_type_id)
+    now = utc_now()
+    busy = _trainer_busy_intervals(db, trainer_id=trainer_id)
+
+    new_sessions: list[ClassSession] = []
+    skipped: list[SkippedSlot] = []
+
+    for local_start in _weekly_local_starts(
+        start_date=start_date, weeks=weeks, weekdays=weekdays, times=times
+    ):
+        start = _as_naive_utc(local_start)
+        end = _session_end(start, PERSONAL_TRAINING_DURATION_MINUTES)
+
+        if start <= now:
+            skipped.append(SkippedSlot(starts_at=start, reason=SKIP_REASON_PAST))
+            continue
+        if _overlaps_any(busy, start, end):
+            skipped.append(SkippedSlot(starts_at=start, reason=SKIP_REASON_OVERLAP))
+            continue
+
+        session = ClassSession(
+            class_type_id=class_type.id,
+            trainer_id=trainer_id,
+            starts_at=start,
+            duration_minutes=PERSONAL_TRAINING_DURATION_MINUTES,
+            capacity=PERSONAL_TRAINING_CAPACITY,
+            status=SessionStatus.SCHEDULED,
+        )
+        db.add(session)
+        new_sessions.append(session)
+        busy.append((start, end))
+
+    db.commit()
+
+    created_ids = [session.id for session in new_sessions]
+    created = (
+        db.scalars(
+            select(ClassSession)
+            .options(
+                joinedload(ClassSession.class_type), joinedload(ClassSession.trainer)
+            )
+            .where(ClassSession.id.in_(created_ids))
+            .order_by(ClassSession.starts_at)
+        ).all()
+        if created_ids
+        else []
+    )
+
+    logger.info(
+        "Trainer %s opened %s personal-training slots in bulk (%s skipped)",
+        trainer_id,
+        len(created),
+        len(skipped),
+    )
+    return BulkSlotsResult(
+        created=[
+            SessionWithFreeSpots(
+                session=session,
+                confirmed_count=0,
+                free_spots=PERSONAL_TRAINING_CAPACITY,
+            )
+            for session in created
+        ],
+        skipped=skipped,
     )
 
 

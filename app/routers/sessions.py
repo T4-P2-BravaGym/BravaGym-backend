@@ -20,6 +20,8 @@ from app.models import User
 from app.models.enums import RoleName
 from app.schemas.booking import BookingOut
 from app.schemas.classes import (
+    PersonalTrainingSlotBulkCreate,
+    PersonalTrainingSlotBulkOut,
     PersonalTrainingSlotCreate,
     SessionBookingOut,
     SessionBookingUserOut,
@@ -28,6 +30,7 @@ from app.schemas.classes import (
     SessionOut,
     SessionPage,
     SessionUpdate,
+    SkippedSlotOut,
 )
 from app.services import booking_service, session_service
 from app.services.session_service import SessionWithFreeSpots
@@ -139,6 +142,49 @@ def create_personal_training_slot(
         class_type_id=body.class_type_id,
     )
     return _to_session_out(row)
+
+
+@router.post(
+    "/personal-training/bulk",
+    response_model=PersonalTrainingSlotBulkOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Open weekly personal-training slots",
+    description=(
+        "Trainer opens 60-minute, capacity-1 personal-training slots (RN-08) on the "
+        "chosen weekdays and local times (Europe/Madrid) for a number of weeks. "
+        "Slots in the past or overlapping another scheduled session of the trainer "
+        "(RN-09) are not created and are returned in `skipped`."
+    ),
+    responses={
+        401: error("Missing, invalid or expired token"),
+        403: error("Only trainers can create personal-training slots"),
+        404: error("No active personal-training class type"),
+        422: {
+            "description": "Invalid weekdays, times, weeks or a non-PT class_type_id"
+        },
+    },
+)
+def create_personal_training_slots_bulk(
+    body: PersonalTrainingSlotBulkCreate,
+    trainer: CurrentTrainer,
+    db: DbSession,
+) -> PersonalTrainingSlotBulkOut:
+    result = session_service.create_personal_training_slots_bulk(
+        db,
+        trainer_id=trainer.id,
+        weekdays=body.weekdays,
+        times=body.times,
+        start_date=body.start_date,
+        weeks=body.weeks,
+        class_type_id=body.class_type_id,
+    )
+    return PersonalTrainingSlotBulkOut(
+        created=[_to_session_out(row) for row in result.created],
+        skipped=[
+            SkippedSlotOut(starts_at=slot.starts_at, reason=slot.reason)
+            for slot in result.skipped
+        ],
+    )
 
 
 @router.post(

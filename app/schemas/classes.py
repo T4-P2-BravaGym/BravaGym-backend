@@ -1,8 +1,9 @@
 """Class type and session schemas (HU-10 schedule, HU-11 trainer management, HU-14 PT)."""
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 from app.models.enums import BookingStatus, SessionStatus
 from app.schemas.common import Page
@@ -121,6 +122,62 @@ class PersonalTrainingSlotCreate(BaseModel):
             "When omitted, the first active PT class type is used."
         ),
     )
+
+
+class PersonalTrainingSlotBulkCreate(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "weekdays": [0, 2, 4],
+                "times": ["11:00"],
+                "start_date": "2026-10-19",
+                "weeks": 4,
+            }
+        }
+    )
+
+    weekdays: list[Annotated[int, Field(ge=0, le=6)]] = Field(
+        min_length=1,
+        max_length=7,
+        description="Days of the week: 0 = Monday … 6 = Sunday.",
+    )
+    times: list[time] = Field(
+        min_length=1,
+        max_length=4,
+        description="Local start times in Europe/Madrid (HH:MM). Each slot lasts 60 minutes.",
+    )
+    start_date: date = Field(description="First day of the period (Europe/Madrid).")
+    weeks: int = Field(ge=1, le=8, description="Number of weeks from start_date.")
+    class_type_id: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Optional personal-training class type. "
+            "When omitted, the first active PT class type is used."
+        ),
+    )
+
+    @field_validator("weekdays")
+    @classmethod
+    def _unique_weekdays(cls, values: list[int]) -> list[int]:
+        return sorted(set(values))
+
+    @field_validator("times")
+    @classmethod
+    def _unique_local_times(cls, values: list[time]) -> list[time]:
+        return sorted(
+            {value.replace(second=0, microsecond=0, tzinfo=None) for value in values}
+        )
+
+
+class SkippedSlotOut(BaseModel):
+    starts_at: datetime
+    reason: Literal["overlap", "past"]
+
+
+class PersonalTrainingSlotBulkOut(BaseModel):
+    created: list[SessionOut]
+    skipped: list[SkippedSlotOut]
 
 
 class SessionCreate(BaseModel):

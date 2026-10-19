@@ -49,6 +49,8 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | POST / PATCH / DELETE | `/class-types`, `/class-types/{id}` | Trainer, superadmin | DELETE = desactivar (`is_active=false`) |
 | GET | `/sessions` | Público | Filtros `from`, `to`, `class_type_id`, `trainer_id`, `only_available`; incluye plazas libres |
 | POST / PATCH | `/sessions`, `/sessions/{id}` | Trainer, superadmin | RN-09, RN-10; el trainer es dueña; superadmin pasa `trainer_id` al crear |
+| POST | `/sessions/personal-training` | Trainer | RN-08, RN-09; franja de 60 min y aforo 1 |
+| POST | `/sessions/personal-training/bulk` | Trainer | RN-08, RN-09; días (0 = lunes), horas en Madrid, `start_date` y `weeks` (máx. 8); devuelve `created` y `skipped` (`overlap` / `past`) |
 | POST | `/sessions/{id}/cancel` | Trainer (propia), superadmin | RN-10; cancela reservas; pagos de clase extra `pending` → `cancelled` y `paid` → `refunded` (RN-16) |
 | GET | `/sessions/{id}/bookings` | Trainer (propia), admin, superadmin | Confirmadas y lista de espera (con datos de la socia) |
 | POST | `/sessions/{id}/bookings` | Member | RN-01 a RN-04, RN-07, RN-08 |
