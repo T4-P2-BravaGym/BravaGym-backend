@@ -1,4 +1,5 @@
 """Serialize payment changes and safely retire an active hosted checkout."""
+
 import logging
 
 from sqlalchemy import update
@@ -9,7 +10,9 @@ from app.models import Payment, PaymentCheckout
 from app.models.enums import PaymentStatus
 
 logger = logging.getLogger(__name__)
-CHECKOUT_BUSY = "Hay un pago con tarjeta en curso. Espera su confirmación antes de continuar."
+CHECKOUT_BUSY = (
+    "Hay un pago con tarjeta en curso. Espera su confirmación antes de continuar."
+)
 
 
 def lock_payment(db: Session, payment: Payment) -> None:

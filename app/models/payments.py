@@ -92,6 +92,7 @@ class Payment(Base):
 
 class PaymentCheckout(Base):
     """One durable Stripe attempt per payment; its request remains immutable."""
+
     __tablename__ = "payment_checkouts"
 
     payment_id: Mapped[int] = mapped_column(ForeignKey("payments.id"), primary_key=True)

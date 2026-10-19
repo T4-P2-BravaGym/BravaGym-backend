@@ -71,12 +71,8 @@ def enable_stripe(monkeypatch, *, secret="sk_test_fake", webhook=WEBHOOK_SECRET)
     monkeypatch.setattr(settings, "stripe_secret_key", secret)
     monkeypatch.setattr(settings, "stripe_publishable_key", "pk_test_fake")
     monkeypatch.setattr(settings, "stripe_webhook_secret", webhook)
-    monkeypatch.setattr(
-        settings, "stripe_success_url", "http://localhost:5173/ok"
-    )
-    monkeypatch.setattr(
-        settings, "stripe_cancel_url", "http://localhost:5173/cancel"
-    )
+    monkeypatch.setattr(settings, "stripe_success_url", "http://localhost:5173/ok")
+    monkeypatch.setattr(settings, "stripe_cancel_url", "http://localhost:5173/cancel")
 
 
 def sign_payload(payload: bytes, secret: str = WEBHOOK_SECRET) -> str:
@@ -179,7 +175,9 @@ def test_checkout_creates_session_with_discount(
     body = response.json()
     assert body["session_id"] == "cs_test_integration"
     assert body["checkout_url"].startswith("https://checkout.stripe.com/")
-    assert _FakeSessions.last_params["line_items"][0]["price_data"]["unit_amount"] == 4000
+    assert (
+        _FakeSessions.last_params["line_items"][0]["price_data"]["unit_amount"] == 4000
+    )
     db.refresh(payment)
     assert payment.status == PaymentStatus.PENDING
     assert payment.final_amount_cents == 4000
@@ -193,28 +191,39 @@ def test_webhook_invalid_signature_returns_400(client, db, make_user, monkeypatc
     response = client.post(
         WEBHOOK_URL,
         content=payload,
-        headers={"Stripe-Signature": "t=1,v1=deadbeef", "Content-Type": "application/json"},
+        headers={
+            "Stripe-Signature": "t=1,v1=deadbeef",
+            "Content-Type": "application/json",
+        },
     )
 
     assert response.status_code == 400
 
 
 @freeze_time(TODAY)
-def test_webhook_marks_payment_paid_and_order(
-    client, db, make_user, monkeypatch
-):
+def test_webhook_marks_payment_paid_and_order(client, db, make_user, monkeypatch):
     enable_stripe(monkeypatch)
     member = make_user(RoleName.MEMBER)
     payment, order = add_order_payment(db, member, base_cents=2500)
 
     from app.models import PaymentCheckout
-    db.add(PaymentCheckout(payment_id=payment.id, attempt_key="test-attempt",
-        session_id="cs_test_webhook_1", request={"line_items": [{"price_data": {"unit_amount": 2500, "currency": "eur"}}]}))
+
+    db.add(
+        PaymentCheckout(
+            payment_id=payment.id,
+            attempt_key="test-attempt",
+            session_id="cs_test_webhook_1",
+            request={
+                "line_items": [{"price_data": {"unit_amount": 2500, "currency": "eur"}}]
+            },
+        )
+    )
     db.commit()
 
     session_obj = {
         "id": "cs_test_webhook_1",
-        "amount_total": 2500, "currency": "eur",
+        "amount_total": 2500,
+        "currency": "eur",
         "object": "checkout.session",
         "payment_status": "paid",
         "client_reference_id": str(payment.id),
