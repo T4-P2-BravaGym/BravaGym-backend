@@ -395,3 +395,12 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 
 - **Herramienta y modelo:** OpenAI Codex / GPT-6.
 - **Trabajo y verificación:** README frontend del proyecto completo: instalación, configuración pública, áreas por rol, demo, build, preview y enlaces de entrega. Validación: 74 tests existentes, lint y build correctos; rutas y enlaces locales contrastados.
+
+## HU-29 · Stripe frontend and smoke — Mariana
+
+- **Herramienta y modelo:** Codex (GPT-6), implementación y verificación autorizadas por la usuaria; modalidad de suscripción no comprobada.
+- **Prompt clave:** «Brava Gym HU-29 Stripe. Termina FE + smoke. NO merges.» «CRÍTICO: STRIPE_SUCCESS/CANCEL_URL → http://localhost:5173/mi-area/pagos?stripe=… (no /member/payments).»
+- **Qué me explicó o propuso:** añadió checkout en Mis pagos conservando el pago simulado, retorno que consulta el estado de la API y manejo de 503. Preparó pruebas con una base aislada y Stripe test.
+- **Qué acepté:** alcance autorizado en el prompt: rama frontend, PR draft, smoke y corrección de URLs de retorno; no equivale a aprobación humana del código.
+- **Qué descarté:** merges y Stripe Refunds API, excluidos expresamente por la usuaria.
+- **Errores o alucinaciones:** la suite completa detectó errores OpenAPI sin `ErrorOut` en la implementación existente de HU-29; se corrigieron con el helper común. Tras la corrección: 754 tests pasan y cobertura 96,51 %. El checkout real se creó (200) y continuó pending; firma inválida (400). La prueba de tarjeta alojada se documenta en la PR frontend, separada de los tests con mocks.
