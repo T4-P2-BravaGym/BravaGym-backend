@@ -475,11 +475,11 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
   - Al revisarlo, la IA leyó mal el commit: creyó que `session.js` era un archivo nuevo y me dijo que lo borrara. Era el que usa `AuthContext`, así que se quedó en blanco toda la app y fallaron 2 suites de tests. Lo recuperé desde `dev` con `git checkout dev -- src/services/session.js`.
 - **Cómo lo comprobé:** `ruff check`, `ruff format`, `pytest` con [N] tests, `npm run lint` y `npm test` (16 suites), y el flujo a mano. Abrí franjas lunes, miércoles y viernes a las 11:00 durante 2 semanas, comprobé que la semana del 26 de octubre seguían a las 11:00, repetí el lote para ver los avisos de solape y reservé una franja como socia para verla como "Reservada".
 
-## T-12 · Historial de rutinas de una socia — Viviana (backend hecho, frontend en curso)
+## T-12 · Historial de rutinas de una socia — Viviana
 
 - **Herramienta y modelo:** Claude Code (Claude Opus 5.5), en modo mentora. Leyó el código con mi permiso; yo escribí el código, ejecuté los tests y hice los commits.
 - **Prompt clave:** "una entrenadora hace las rutinas de una socia, pero jamás las puede ver como historial; dime cómo podemos desarrollar esta solución juntos".
 - **Qué me explicó o propuso:** que el backend ya tenía casi todo (`GET /routines?member_id=` y la baja lógica que guarda el historial) y que faltaba sobre todo la pantalla; ordenar por `start_date` con el `id` como desempate; `selectinload` para evitar el N+1 del listado; tests primero, con uno en rojo antes de tocar el servicio.
-- **Qué acepté:** todo lo anterior, y sacar `RoutineDays` de "Mi rutina" para reutilizarlo en el historial.
-- **Qué descarté:** dejar para otras tareas que la socia vea su historial, duplicar rutinas como plantilla y que cada entrenadora vea solo sus rutinas. Tampoco hice un test que cuente consultas para el N+1: sería frágil.
-- **Errores o alucinaciones:** al principio propuso llamarla HU-30, que ya existía (foto de producto); lo vio al revisar el backlog y la dejamos como T-12.
+- **Qué acepté:** todo lo anterior, y sacar `RoutineDays` de "Mi rutina" para reutilizarlo en el historial. En el front, extraer RoutineDays, el historial como acordeón y mantener el editor montado al cambiar de pestaña.
+- **Qué descarté:** dejar para otras tareas que la socia vea su historial, duplicar rutinas como plantilla y que cada entrenadora vea solo sus rutinas. Tampoco hice un test que cuente consultas para el N+1: sería frágil. Desactivar y editar rutinas desde el historial: lo propuse yo a mitad de tarea, pero decidí dejarlo fuera para no ampliar el alcance
+- **Errores o alucinaciones:** al principio propuso llamarla HU-30, que ya existía (foto de producto); lo vio al revisar el backlog y la dejamos como T-12. en el servicio puse memberId y luego member_Id en vez de member_id; FastAPI ignora los parámetros que no conoce y habría devuelto las rutinas de todas las socias. Al extraer RoutineDays quedaron restos de currentDay en MyRoutine que rompían la pantalla, y una errata (lenght) que habría fallado con rutinas sin ejercicios. Lo detectamos revisando el código y con ESLint.
