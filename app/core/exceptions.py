@@ -1,26 +1,38 @@
-"""Domain errors and their translation to HTTP responses.
-
-Services raise these errors (they know nothing about HTTP). The handlers below turn
-them into JSON responses with the right status code. Unexpected errors return a
-generic message; the details go to the log only.
-"""
 import logging
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.responses import Response
 
 logger = logging.getLogger(__name__)
 
+INTERNAL_ERROR = {
+    "detail": "Ha ocurrido un error inesperado.",
+    "code": "internal_error",
+}
+
 
 class AppError(Exception):
-    """Base class for expected errors. Message in Spanish: the user may see it."""
-
     status_code = 400
     code = "bad_request"
+    headers: dict[str, str] | None = None
 
     def __init__(self, detail: str):
         super().__init__(detail)
         self.detail = detail
+
+
+class PasswordResetError(AppError):
+    """Invalid recovery links must not be cached."""
+
+    headers = {"Cache-Control": "no-store"}
+
+
+class UnauthorizedError(AppError):
+    status_code = 401
+    code = "unauthorized"
+    headers = {"WWW-Authenticate": "Bearer"}
 
 
 class NotFoundError(AppError):
@@ -34,22 +46,66 @@ class PermissionDeniedError(AppError):
 
 
 class ConflictError(AppError):
-    """The request clashes with the current state: capacity, duplicates, 1-hour limit, stock…"""
-
     status_code = 409
     code = "conflict"
+
+
+class BadRequestError(AppError):
+    """Malformed request (HTTP 400), e.g. invalid Stripe webhook signature."""
+
+    status_code = 400
+    code = "bad_request"
+
+
+class ValidationAppError(AppError):
+    """Business/input validation that should surface as HTTP 422."""
+
+    status_code = 422
+    code = "validation_error"
+
+
+class RateLimitError(AppError):
+    """Too many attempts within the configured window (HTTP 429)."""
+
+    status_code = 429
+    code = "rate_limited"
+
+    def __init__(self, detail: str, *, retry_after: int):
+        super().__init__(detail)
+        self.headers = {"Retry-After": str(retry_after)}
+
+
+class ServiceUnavailableError(AppError):
+    """Feature not configured or temporarily unavailable (HTTP 503)."""
+
+    status_code = 503
+    code = "service_unavailable"
+
+
+class UnexpectedErrorMiddleware(BaseHTTPMiddleware):
+    """Turns any unhandled error into the generic 500, inside CORSMiddleware.
+
+    An exception handler for `Exception` runs outside every middleware, so its 500
+    had no CORS headers: the browser hid it and the front showed a network error.
+    """
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        try:
+            return await call_next(request)
+        except Exception:
+            logger.exception(
+                "Unexpected error on %s %s", request.method, request.url.path
+            )
+            return JSONResponse(status_code=500, content=INTERNAL_ERROR)
 
 
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def handle_app_error(_request: Request, exc: AppError) -> JSONResponse:
-        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail, "code": exc.code})
-
-    @app.exception_handler(Exception)
-    async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
-        # Full details only in the log, never in the response (fail closed, no stack traces).
-        logger.exception("Unexpected error on %s %s", request.method, request.url.path)
         return JSONResponse(
-            status_code=500,
-            content={"detail": "Ha ocurrido un error inesperado.", "code": "internal_error"},
+            status_code=exc.status_code,
+            content={"detail": exc.detail, "code": exc.code},
+            headers=exc.headers,
         )

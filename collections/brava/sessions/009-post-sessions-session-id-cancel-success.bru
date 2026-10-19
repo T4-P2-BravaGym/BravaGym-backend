@@ -1,0 +1,26 @@
+meta {
+  name: post-sessions-session-id-cancel-success
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/sessions/{{personalSessionId}}/cancel
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenTrainer}}
+}
+
+tests {
+  test("Expected HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Operation: POST /api/v1/sessions/{session_id}/cancel. Expected HTTP 200. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

@@ -1,0 +1,26 @@
+meta {
+  name: delete-routines-routine-id-exercises-item-id-error
+  type: http
+  seq: 14
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/routines/{{managedRoutineId}}/exercises/{{managedItemId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for DELETE /api/v1/routines/{routine_id}/exercises/{item_id}: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

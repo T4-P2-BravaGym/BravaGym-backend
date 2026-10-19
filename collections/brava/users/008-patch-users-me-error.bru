@@ -1,0 +1,32 @@
+meta {
+  name: patch-users-me-error
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/users/me
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+body:json {
+  {
+    "first_name": "Lucía"
+  }
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for PATCH /api/v1/users/me: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

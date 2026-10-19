@@ -1,0 +1,35 @@
+meta {
+  name: post-products-error
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/products
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+body:json {
+  {
+    "category_id": "{{seedCategoryId}}",
+    "name": "Bruno product {{runId}}",
+    "price_cents": 1000,
+    "stock": 10
+  }
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for POST /api/v1/products: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

@@ -1,6 +1,6 @@
 ## Modelo de datos
 
-El esquema tiene **18 tablas en tercera forma normal (3FN)**: 11 entran en el sprint 1 (núcleo) y 7 en el sprint 2 (bajas, tienda y pagos). El bloque Mermaid se puede pegar tal cual en el README de GitHub, que lo renderiza como diagrama ER.
+El esquema tiene **19 tablas de negocio en tercera forma normal (3FN)**: 11 entran en el sprint 1 (núcleo) y 8 en el sprint 2 (bajas, tienda y pagos). Además hay 3 tablas de seguridad (`refresh_tokens`, `revoked_tokens` y `password_reset_tokens`) que no salen en el diagrama; se describen en `specs/ontology.md`. El bloque Mermaid se puede pegar tal cual en el README de GitHub, que lo renderiza como diagrama ER.
 
 ```mermaid
 erDiagram
@@ -22,6 +22,8 @@ erDiagram
     USERS ||--o{ ORDERS : compra
     ORDERS ||--|{ ORDER_ITEMS : incluye
     PRODUCTS ||--o{ ORDER_ITEMS : vendido_en
+    PRODUCTS ||--o{ PRODUCT_VARIANTS : tallas
+    PRODUCT_VARIANTS |o--o{ ORDER_ITEMS : talla_vendida
     USERS ||--o{ PAYMENTS : paga
     SUBSCRIPTIONS ||--o{ PAYMENTS : cuota
     BOOKINGS ||--o| PAYMENTS : clase_extra
@@ -135,9 +137,17 @@ erDiagram
         int category_id FK
         string name
         text description
+        string image_path
         int price_cents
         int stock
         bool is_active
+    }
+     PRODUCT_VARIANTS {
+     int id PK
+     int product_id FK
+     string size "XS | S | M | L | XL"
+     int stock
+     bool is_active
     }
     ORDERS {
         int id PK
@@ -151,6 +161,8 @@ erDiagram
         int product_id FK
         int quantity
         int unit_price_cents "precio en el momento"
+        int variant_id FK "nullable"
+        string size "nullable, foto de la talla"
     }
     DISCOUNT_CODES {
         int id PK
@@ -171,7 +183,7 @@ erDiagram
         int discount_code_id FK "nullable"
         int base_amount_cents
         int final_amount_cents
-        string status "pending | paid | failed | refunded"
+        string status "pending | paid | failed | refunded | cancelled"
         string method "simulated | stripe"
         string provider_ref "nullable"
         datetime created_at
@@ -181,15 +193,15 @@ erDiagram
 
 ### Qué tablas entran en cada sprint
 
-| Sprint | Tablas |
-| --- | --- |
+| Sprint | Tablas                                                                                                                                         |
+| --- |------------------------------------------------------------------------------------------------------------------------------------------------|
 | 1 — núcleo | roles, users, trainer_profiles, membership_plans, subscriptions, class_types, class_sessions, bookings, exercises, routines, routine_exercises |
-| 2 — negocio | cancellation_requests, product_categories, products, orders, order_items, discount_codes, payments |
+| 2 — negocio | cancellation_requests, product_categories, products, orders, order_items, discount_codes, payments, product_variants |
 
 ### Decisiones de normalización
 
 - **1FN, valores atómicos:** los ejercicios de una rutina no van en un campo de texto separado por comas, sino en `routine_exercises`, una fila por ejercicio, día y posición.
-- **2FN, dependencia de la clave completa:** en las tablas puente (`order_items`, `routine_exercises`) cada atributo depende del par completo. Se usa un `id` propio más una restricción `UNIQUE` sobre el par: `UNIQUE(order_id, product_id)` y `UNIQUE(routine_id, day_number, position)`.
+- **2FN, dependencia de la clave completa:** en las tablas puente (`order_items`, `routine_exercises`) cada atributo depende del par completo. Se usa un `id` propio más una restricción `UNIQUE` sobre el par: `UNIQUE(order_id, product_id, variant_id)`, `UNIQUE(routine_id, day_number, position)` y `UNIQUE(product_id, size)`.
 - **3FN, sin dependencias transitivas:** los nombres de rol viven en `roles` y las categorías en `product_categories`, no repetidos como texto.
 - **No se guarda nada derivable:** las plazas ocupadas se cuentan (`bookings` confirmadas), la posición en la lista de espera sale de ordenar por `created_at`, el total de un pedido es la suma de sus líneas y los usos de un código se cuentan en `payments`. Guardarlos sería duplicar datos que pueden desincronizarse.
 - **La baja cuelga de la suscripción, no del usuario:** el socio se obtiene a través de `subscriptions.user_id`, así que `cancellation_requests` no repite `user_id`.
@@ -201,5 +213,6 @@ erDiagram
 
 - Activar las claves foráneas en cada conexión (`PRAGMA foreign_keys = ON`); SQLite las ignora por defecto.
 - El dinero en **céntimos enteros** (`*_cents`): SQLite no tiene tipo decimal y los `float` dan errores de redondeo.
-- Los estados como texto con `CHECK (status IN (...))`, o `Enum` de SQLAlchemy, que genera ese `CHECK`.
+- Los estados como `Enum` de SQLAlchemy con `create_constraint=True` (desde la 1.4 no crea el `CHECK (status IN (...))` por defecto). Está centralizado en `db_enum()` de `app/models/common.py`.
+- RN-11 y RN-12 también se garantizan en la BD con índices únicos parciales: una sola suscripción `active` por usuario y una sola baja `pending` por suscripción.
 - Fechas siempre en UTC; la conversión a hora de Madrid se hace en el frontend.

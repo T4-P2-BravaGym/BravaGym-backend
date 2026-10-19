@@ -1,4 +1,88 @@
-"""TODO(HU-02, HU-03): UserCreate (email, password min 8), LoginResponse (access_token, token_type).
+from typing import Literal
 
-Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
-"""
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
+
+NAME_PATTERN = r"^[^\W\d_]+(?:[ '\-][^\W\d_]+)*$"
+PASSWORD_TOO_LONG = "La contraseña es demasiado larga."
+SAME_PASSWORD = "La contraseña nueva tiene que ser distinta de la actual."
+
+
+def check_fits_bcrypt(value: str) -> str:
+    """bcrypt only accepts up to 72 bytes; "ñ" or emojis use more than one byte each."""
+    if len(value.encode("utf-8")) > 72:
+        raise ValueError(PASSWORD_TOO_LONG)
+    return value
+
+
+class UserCreate(BaseModel):
+    """Body for POST /auth/register. No role or is_active: the server decides them."""
+
+    email: EmailStr
+    password: str = Field(min_length=8)
+    first_name: str = Field(min_length=1, max_length=80, pattern=NAME_PATTERN)
+    last_name: str = Field(min_length=1, max_length=80, pattern=NAME_PATTERN)
+    phone: str | None = Field(default=None, max_length=20)
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "email": "lucia@example.com",
+                    "password": "BravaDemo2026!",
+                    "first_name": "Lucía",
+                    "last_name": "Gil",
+                    "phone": "600123123",
+                }
+            ]
+        }
+    )
+
+    @field_validator("password")
+    @classmethod
+    def password_fits_bcrypt(cls, value: str) -> str:
+        return check_fits_bcrypt(value)
+
+
+class PasswordChange(BaseModel):
+    """Body for POST /users/me/password (HU-32). Passwords are never returned or logged."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "current_password": "BravaDemo2026!",
+                "new_password": "OtraClave2026!",
+            }
+        }
+    )
+
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=8)
+
+    @field_validator("new_password")
+    @classmethod
+    def new_password_fits_bcrypt(cls, value: str) -> str:
+        return check_fits_bcrypt(value)
+
+    @model_validator(mode="after")
+    def check_new_is_different(self) -> "PasswordChange":
+        if self.new_password == self.current_password:
+            raise ValueError(SAME_PASSWORD)
+        return self
+
+
+class LoginResponse(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"access_token": "eyJhbGciOi...", "token_type": "bearer"}
+        }
+    )
+
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"

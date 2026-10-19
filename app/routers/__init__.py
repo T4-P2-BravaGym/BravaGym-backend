@@ -1,4 +1,3 @@
-"""All API routers (the Controllers in MVC), mounted under /api/v1 in app/main.py."""
 from app.routers import (
     auth,
     bookings,
@@ -7,18 +6,22 @@ from app.routers import (
     discount_codes,
     exercises,
     orders,
+    password_reset,
     payments,
     plans,
     products,
+    realtime,
     routines,
     sessions,
     subscriptions,
     trainers,
     users,
+    webhooks,
 )
 
 api_routers = [
     auth.router,
+    password_reset.router,
     users.router,
     trainers.router,
     plans.router,
@@ -30,7 +33,10 @@ api_routers = [
     routines.router,
     cancellation_requests.router,
     products.router,
+    products.categories_router,
     orders.router,
     discount_codes.router,
     payments.router,
+    webhooks.router,
+    realtime.router,
 ]

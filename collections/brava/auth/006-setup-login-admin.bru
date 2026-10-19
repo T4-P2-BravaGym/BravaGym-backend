@@ -1,0 +1,31 @@
+meta {
+  name: setup-login-admin
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  username: {{adminEmail}}
+  password: {{demoPassword}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) bru.setVar("tokenAdmin", res.getBody().access_token);
+}
+
+tests {
+  test("Expected HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Run auth and earlier requests in collection order against a fresh local seed. See the repository README.
+}
+

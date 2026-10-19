@@ -1,0 +1,39 @@
+meta {
+  name: post-class-types-success
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/class-types
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenTrainer}}
+}
+
+body:json {
+  {
+    "name": "Bruno class {{runId}}",
+    "description": "Demo",
+    "extra_price_cents": 0,
+    "is_personal_training": false
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) bru.setVar("managedClassTypeId", res.getBody().id);
+}
+
+tests {
+  test("Expected HTTP 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}
+
+docs {
+  Operation: POST /api/v1/class-types. Expected HTTP 201. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

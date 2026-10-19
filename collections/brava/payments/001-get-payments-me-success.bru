@@ -1,0 +1,30 @@
+meta {
+  name: get-payments-me-success
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/payments/me
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenNewMember}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) { const pending = res.getBody().items.find(p => p.status === "pending"); if (!pending) throw new Error("Run subscriptions success first"); bru.setVar("pendingPaymentId", pending.id); }
+}
+
+tests {
+  test("Expected HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Operation: GET /api/v1/payments/me. Expected HTTP 200. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

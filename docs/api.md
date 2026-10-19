@@ -32,25 +32,30 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | --- | --- | --- | --- |
 | GET | `/health` | Público | Comprobación para Docker |
 | POST | `/auth/register` | Público | Crea siempre un `member` |
-| POST | `/auth/login` | Público | Devuelve el JWT |
+| POST | `/auth/login` | Público | Formulario OAuth2; access en JSON y refresh en cookie HttpOnly |
+| POST | `/auth/refresh` | Cookie refresh | Rota ambos tokens; exige `X-Brava-CSRF: 1`; 401 si no es válido |
+| POST | `/auth/logout` | Bearer y cookie de la misma usuaria | Revoca ambos; 204 sin cuerpo; exige `X-Brava-CSRF: 1` |
 | GET / PATCH | `/users/me` | Autenticado | Perfil propio |
 | GET | `/users` | Admin, superadmin | Filtros `role`, `is_active`, `q` |
 | PATCH | `/users/{id}/role` | Admin, superadmin | RN-18, RN-19 |
 | GET | `/trainers` | Público | Con perfil y especialidad |
 | PATCH | `/trainers/me/profile` | Trainer | Bio y especialidad |
 | GET | `/plans` | Público | Página de pricing; solo activos |
+| GET | `/plans/admin` | Admin, superadmin | Activos y desactivados, con `is_active`; paginado con `page` y `size` (máximo 100) |
 | POST / PATCH / DELETE | `/plans`, `/plans/{id}` | Admin, superadmin | DELETE = desactivar |
 | POST | `/subscriptions` | Member | RN-11; crea el pago `pending` de la cuota |
 | GET | `/subscriptions/me` | Member | Suscripción actual e historial |
-| GET | `/class-types` | Público | Incluye `extra_price_cents` |
-| POST / PATCH / DELETE | `/class-types`, `/class-types/{id}` | Trainer, superadmin | DELETE = desactivar |
+| GET | `/class-types` | Público | Página `{items,total,page,size}`; por defecto solo activos; incluye `extra_price_cents` |
+| POST / PATCH / DELETE | `/class-types`, `/class-types/{id}` | Trainer, superadmin | DELETE = desactivar (`is_active=false`) |
 | GET | `/sessions` | Público | Filtros `from`, `to`, `class_type_id`, `trainer_id`, `only_available`; incluye plazas libres |
-| POST / PATCH | `/sessions`, `/sessions/{id}` | Trainer, superadmin | RN-09, RN-10 |
-| POST | `/sessions/{id}/cancel` | Trainer (propia), superadmin | RN-10 |
-| GET | `/sessions/{id}/bookings` | Trainer (propia), admin, superadmin | Confirmadas y lista de espera |
+| POST / PATCH | `/sessions`, `/sessions/{id}` | Trainer, superadmin | RN-09, RN-10; el trainer es dueña; superadmin pasa `trainer_id` al crear |
+| POST | `/sessions/personal-training` | Trainer | RN-08, RN-09; franja de 60 min y aforo 1 |
+| POST | `/sessions/personal-training/bulk` | Trainer | RN-08, RN-09; días (0 = lunes), horas en Madrid, `start_date` y `weeks` (máx. 8); devuelve `created` y `skipped` (`overlap` / `past`) |
+| POST | `/sessions/{id}/cancel` | Trainer (propia), superadmin | RN-10; cancela reservas; pagos de clase extra `pending` → `cancelled` y `paid` → `refunded` (RN-16) |
+| GET | `/sessions/{id}/bookings` | Trainer (propia), admin, superadmin | Confirmadas y lista de espera (con datos de la socia) |
 | POST | `/sessions/{id}/bookings` | Member | RN-01 a RN-04, RN-07, RN-08 |
 | GET | `/bookings/me` | Member | Filtro `status`, próximas o pasadas |
-| POST | `/bookings/{id}/cancel` | Member (propia) | RN-05, RN-06 |
+| POST | `/bookings/{id}/cancel` | Member (propia) | RN-05, RN-06; su pago de clase extra `pending` → `cancelled` y `paid` → `refunded` (RN-16) |
 | WS | `/ws/sessions/{id}` | Público | Emite plazas libres al cambiar |
 | CRUD | `/exercises` | Trainer, superadmin | Catálogo de ejercicios |
 | POST / GET | `/routines` | Trainer, superadmin | GET filtra por `member_id` |
@@ -61,15 +66,31 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | GET | `/cancellation-requests/me` | Member | Estado de su solicitud |
 | GET | `/cancellation-requests` | Admin, superadmin | Filtro `status` |
 | POST | `/cancellation-requests/{id}/approve`, `/reject` | Admin, superadmin | RN-13 |
-| GET | `/products`, `/product-categories` | Público | Filtros `category_id`, `min_price`, `max_price`, `q` |
-| POST / PATCH / DELETE | `/products[/{id}]`, `/product-categories[/{id}]` | Admin, superadmin | DELETE de producto = desactivar |
-| POST | `/orders` | Member | RN-17; crea el pago `pending` |
-| GET | `/orders/me` | Member | Con sus líneas |
-| POST | `/orders/{id}/cancel` | Member (propio, `pending`) | Repone stock |
+| GET | `/products`, `/product-categories` | Público | Filtros `category_id`, `min_price`, `max_price` (en céntimos, límites incluidos) y `q`; orden `sort`: `name` (por defecto), `price_asc` o `price_desc` |
+| GET | `/products/admin` | Admin, superadmin | Listado del panel: incluye inactivos (siempre al final) y `is_active`; filtros `category_id`, `q`, `status` (`active`, `inactive`, `out_of_stock`) y `sort`|
+| POST / PATCH / DELETE | `/products[/{id}]`, `/product-categories[/{id}]` | Admin, superadmin | DELETE de producto = desactivar siempre (PATCH `is_active=true` lo reactiva); DELETE de categoría con productos → 409; la ropa lleva `sizes: [{size, stock}]` en lugar de `stock` (RN-20) |
+| PUT | `/products/{id}/image` | Admin, superadmin | Foto del producto (HU-30, RN-21): multipart con el campo `file`; JPEG, PNG o WebP de hasta 2 MB, con el tipo comprobado por el contenido (si no → 422 `invalid_image` o `image_too_large`); sustituye la anterior y borra su archivo; devuelve el producto con `image_url` |
+| DELETE | `/products/{id}/image` | Admin, superadmin | Quita la foto y borra su archivo; sin foto no cambia nada (200) |
+| POST | `/orders` | Member | RN-17; cuerpo `{items: [{product_id, size?, quantity}]}` (los precios salen siempre de la BD); descuenta stock y crea el pago `pending`; sin stock o producto no disponible → 409; la ropa con tallas exige `size` (RN-20, si falta o no se vende → 422) |
+| GET | `/orders/me` | Member | Paginado, los más recientes primero; con sus líneas, total y estado del pago |
+| POST | `/orders/{id}/cancel` | Member (propio, `pending`) | Repone el stock y pasa el pago a `cancelled`; ajeno → 404; ya no `pending` → 409 |
 | CRUD | `/discount-codes` | Admin, superadmin |  |
 | GET | `/discount-codes/{code}/validate` | Member | RN-14; devuelve el porcentaje |
 | GET | `/payments/me` | Member | Filtro `status` |
-| POST | `/payments/{id}/pay` | Member (propio) | Cuerpo opcional `{discount_code}`; RN-14 a RN-16 |
+| POST | `/payments/{id}/pay` | Member (propio) | Cuerpo opcional `{discount_code}`; RN-14 a RN-16 (simulado) |
+| POST | `/payments/{id}/checkout` | Member (propio) | Stripe Checkout (HU-29); sin `STRIPE_SECRET_KEY` → 503 |
+| POST | `/webhooks/stripe` | Stripe (firma) | Marca `paid` + `provider_ref` (HU-29) |
 | GET | `/payments` | Admin, superadmin | Filtros `status`, `from`, `to`, `user_id`, `concept` |
 | GET | `/payments/export` | Admin, superadmin | CSV con los mismos filtros |
 | POST | `/payments/{id}/refund` | Admin, superadmin | RN-16 |
+
+Excepción a `/api/v1`: las fotos se sirven en `/media/products/{archivo}` (público), que es la ruta que devuelve `image_url`. Son archivos, no API.
+
+## Recuperación de contraseña (HU-35)
+
+| Método | Ruta (prefijo `/api/v1`) | Quién | Resultado |
+| --- | --- | --- | --- |
+| POST | `/auth/password-reset` | Público | 202 genérico para emails válidos; 422 entrada inválida |
+| POST | `/auth/password-reset/confirm` | Público con token en el body | 204 al cambiar; 400 enlace inválido/caducado/usado; 422 entrada inválida |
+
+Solicitud: `{"email":"lucia@example.com"}`. Respuesta: `{"detail":"Si existe una cuenta activa con ese email, recibirás un enlace para recuperar tu contraseña."}`. Confirmación: `{"token":"<opaque reset token>","new_password":"OtraClave2026!"}`. La contraseña y los tokens no se reflejan en errores ni logs. Ambos endpoints llevan `Cache-Control: no-store`; el token no es un access ni refresh. Se invalidan todas las sesiones y enlaces anteriores y se exige un nuevo login. En desarrollo, el enlace solo está en el mensaje privado de outbox (ver README); no hay SMTP de producción en esta entrega.

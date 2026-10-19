@@ -1,4 +1,129 @@
-"""TODO(HU-02, HU-04, HU-05, HU-15): UserOut (never password_hash), UserUpdate (no role, no is_active), RoleUpdate, TrainerOut.
+"""User schemas: profile, trainer profile, the admin user list and role changes (HU-04, HU-05, HU-06, HU-15)
 
 Rules: limits on every field (max_length, ge, le); output schemas list only safe fields.
 """
+
+from pydantic import AliasPath, BaseModel, ConfigDict, EmailStr, Field
+
+from app.models.enums import RoleName
+from app.schemas.common import Page
+
+USER_EXAMPLE = {
+    "id": 7,
+    "email": "lucia@example.com",
+    "first_name": "Lucía",
+    "last_name": "García",
+    "phone": "600123456",
+    "is_active": True,
+    "role": "member",
+}
+
+
+class TrainerOut(BaseModel):
+    """Public trainer card. Never includes email or phone."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": 3,
+                "name": "Ana Torres",
+                "specialty": "Powerlifting",
+                "bio": "Entrenadora de fuerza con 8 años de experiencia.",
+                "photo_url": "/media/trainers/3f2a9c.jpg",
+            }
+        }
+    )
+
+    id: int
+    name: str
+    specialty: str | None
+    bio: str | None
+    photo_url: str | None = None  # T-291: null = show the initials
+
+
+class TrainerProfileUpdate(BaseModel):
+    """What a trainer can change in her public profile. Fields left out are not changed."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"specialty": "Powerlifting", "bio": "Fuerza desde cero."}
+        }
+    )
+
+    specialty: str | None = Field(default=None, max_length=120)
+    bio: str | None = Field(default=None, max_length=1000)
+
+
+class UserOut(BaseModel):
+    """Public view of a user. Never includes password_hash."""
+
+    model_config = ConfigDict(
+        from_attributes=True, json_schema_extra={"example": USER_EXAMPLE}
+    )
+
+    id: int
+    email: str
+    first_name: str
+    last_name: str
+    phone: str | None
+    is_active: bool
+    role: RoleName = Field(validation_alias=AliasPath("role", "name"))
+
+
+class UserPage(Page[UserOut]):
+    """Paginated user list for administration."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"items": [USER_EXAMPLE], "total": 1, "page": 1, "size": 20}
+        }
+    )
+
+
+class MemberOption(BaseModel):
+    """A member as trainers see her in a picker: only id and name, no contact data."""
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {"id": 7, "first name": "Lucía", "last name": "García"}
+        },
+    )
+
+    id: int
+    first_name: str
+    last_name: str
+
+
+class UserUpdate(BaseModel):
+    """What a user can change in her own profile. Never role or is_active."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "first_name": "Lucía",
+                "last_name": "García",
+                "phone": "600123456",
+                "email": "lucia@example.com",
+            }
+        }
+    )
+
+    # Names can be left out, but never sent as null: the database requires them
+    first_name: str = Field(default=None, min_length=1, max_length=80)
+    last_name: str = Field(default=None, min_length=1, max_length=80)
+    phone: str | None = Field(default=None, max_length=20)
+    email: EmailStr = Field(default=None, max_length=255)
+
+
+class RoleUpdate(BaseModel):
+    """Body for PATCH /users/{id}/role."""
+
+    model_config = ConfigDict(json_schema_extra={"example": {"role": "trainer"}})
+
+    role: RoleName
+
+
+class UserAdminUpdate(UserUpdate):
+    """What an admin can change in another user's profile (HU-31): the same fields as her own
+    profile. Never role (that is PATCH /users/{id}/role), is_active (that is DELETE) or password."""

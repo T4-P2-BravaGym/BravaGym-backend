@@ -1,9 +1,263 @@
-"""Controller for shop: receives the request, checks permissions, calls the service, returns a schema.
+from typing import Annotated
 
-TODO(HU-21, HU-22): GET /products, GET /product-categories, admin CRUD
-Keep endpoints thin: no business rules and no complex queries here.
-Every endpoint: response_model, summary, and require_roles(...) when it is not public.
-"""
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.core.deps import CurrentAdmin
+from app.core.openapi import error
+from app.schemas.shop import (
+    MAX_PRICE_CENTS,
+    CategoryIn,
+    CategoryOut,
+    ProductAdminOut,
+    ProductAdminPage,
+    ProductCreate,
+    ProductPage,
+    ProductUpdate,
+)
+from app.services import product_image_service, shop_service
+from app.services.shop_service import ProductSort, ProductStatus
 
 router = APIRouter(prefix="/products", tags=["shop"])
+categories_router = APIRouter(prefix="/product-categories", tags=["shop"])
+
+DbSession = Annotated[Session, Depends(get_db)]
+
+AUTH_ERRORS = {
+    401: error("Missing, invalid or expired token"),
+    403: error("Caller is not admin or superadmin"),
+}
+
+
+@router.get(
+    "",
+    response_model=ProductPage,
+    summary="List shop products",
+    description=(
+            "Public list of active products. Filters: category, price range in cents "
+            "(both limits inclusive) and a search in the name. Sort by name (default) "
+            "or price. Sold-out products are included with in_stock=false."
+    ),
+    responses={
+        422: {"description": "min_price greater than max_price, or invalid query parameters"},
+    },
+)
+def list_products(
+        db: DbSession,
+        category_id: Annotated[int | None, Query(ge=1)] = None,
+        min_price: Annotated[
+            int | None,
+            Query(ge=0, le=MAX_PRICE_CENTS, description="Minimum price in cents (inclusive)"),
+        ] = None,
+        max_price: Annotated[
+            int | None,
+            Query(ge=0, le=MAX_PRICE_CENTS, description="Maximum price in cents (inclusive)"),
+        ] = None,
+        q: Annotated[
+            str | None,
+            Query(max_length=60, description="Case-insensitive search in the product name"),
+        ] = None,
+        sort: Annotated[ProductSort, Query(description="Order of the results")] = ProductSort.NAME,
+        page: Annotated[int, Query(ge=1)] = 1,
+        size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> ProductPage:
+    return shop_service.list_public_products(
+        db,
+        category_id=category_id,
+        min_price=min_price,
+        max_price=max_price,
+        q=q,
+        sort=sort,
+        page=page,
+        size=size,
+    )
+
+
+@categories_router.get(
+    "",
+    response_model=list[CategoryOut],
+    summary="List product categories",
+    description="Public list of categories, in alphabetical order, for the shop filters.",
+)
+def list_categories(db: DbSession) -> list[CategoryOut]:
+    return [CategoryOut.model_validate(category) for category in shop_service.list_categories(db)]
+
+
+@router.get(
+    "/admin",
+    response_model=ProductAdminPage,
+    summary="List all products for the admin panel",
+    description=(
+            "Same filters as the public list, but inactive products are included, "
+            "every item has is_active and deactivated products always go last. "
+            "Extra filter: status (active, inactive or out_of_stock)."
+    ),
+    responses=AUTH_ERRORS,
+)
+def list_products_for_admin(
+        _: CurrentAdmin,
+        db: DbSession,
+        category_id: Annotated[int | None, Query(ge=1)] = None,
+        q: Annotated[
+            str | None,
+            Query(max_length=60, description="Case-insensitive search in the product name"),
+        ] = None,
+        status: Annotated[
+            ProductStatus | None,
+            Query(description="active, inactive or out_of_stock (stock 0, active or not)"),
+        ] = None,
+        sort: Annotated[ProductSort, Query(description="Order of the results")] = ProductSort.NAME,
+        page: Annotated[int, Query(ge=1)] = 1,
+        size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> ProductAdminPage:
+    products, total = shop_service.list_products(
+        db,
+        category_id=category_id,
+        q=q,
+        sort=sort,
+        page=page,
+        size=size,
+        include_inactive=True,
+        status=status,
+    )
+    return ProductAdminPage(
+        items=[ProductAdminOut.from_product(product) for product in products],
+        total=total,
+        page=page,
+        size=size,
+    )
+
+
+@router.post(
+    "",
+    response_model=ProductAdminOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a product",
+    description=(
+            "Clothing can have sizes: send sizes with the stock of each one and leave stock "
+            "out (RN-20). The stock shown is then the total of the sizes."
+    ),
+    responses={
+        **AUTH_ERRORS,
+        422: {"description": "Negative price or stock, empty name, unknown category, repeated size or stock sent together with sizes"},
+    },
+)
+def create_product(body: ProductCreate, _: CurrentAdmin, db: DbSession) -> ProductAdminOut:
+    return ProductAdminOut.from_product(shop_service.create_product(db, body))
+
+
+@router.patch(
+    "/{product_id}",
+    response_model=ProductAdminOut,
+    summary="Update a product",
+    description=(
+            "Partial update. Send is_active=true to reactivate a product. "
+            "sizes replaces the sizes: a size left out is hidden, not deleted, and [] removes them all. "
+            "A product with sizes does not accept stock (422)."
+    ),
+    responses={
+        **AUTH_ERRORS,
+        404: error("Product not found"),
+        422: {"description": "Invalid values, null in a required field, unknown category, repeated size or stock on a product with sizes"},
+    },
+)
+def update_product(
+        product_id: int, body: ProductUpdate, _: CurrentAdmin, db: DbSession
+) -> ProductAdminOut:
+    return ProductAdminOut.from_product(shop_service.update_product(db, product_id, body))
+
+
+@router.delete(
+    "/{product_id}",
+    response_model=ProductAdminOut,
+    summary="Deactivate a product",
+    description=(
+            "Soft delete: sets is_active=false, also when the product has orders. "
+            "It disappears from the shop and can be reactivated with PATCH."
+    ),
+    responses={**AUTH_ERRORS, 404: error("Product not found")},
+)
+def deactivate_product(product_id: int, _: CurrentAdmin, db: DbSession) -> ProductAdminOut:
+    return ProductAdminOut.from_product(shop_service.deactivate_product(db, product_id))
+
+@router.put(
+    "/{product_id}/image",
+    response_model=ProductAdminOut,
+    summary="Upload or replace the product photo",
+    description=(
+            "Multipart form with a file field. JPEG, PNG or WebP up to 2 MB: the type is "
+            "read from the file content, not from its name. Replaces the previous photo "
+            "and deletes its file. The response has image_url (/media/...)."
+    ),
+    responses={
+        **AUTH_ERRORS,
+        404: error("Product not found"),
+        422: {"description": "Not a JPEG, PNG or WebP image (code invalid_image) or larger than 2 MB (code image_too_large)"},
+    },
+)
+def upload_product_image(
+        product_id: int,
+        file: Annotated[UploadFile, File(description="JPEG, PNG or WebP, up to 2 MB")],
+        _: CurrentAdmin,
+        db: DbSession,
+) -> ProductAdminOut:
+    product = product_image_service.set_product_image(db, product_id, file.file)
+    return ProductAdminOut.from_product(product)
+
+
+@router.delete(
+    "/{product_id}/image",
+    response_model=ProductAdminOut,
+    summary="Remove the product photo",
+    description="Deletes the photo and its file. Without a photo it changes nothing (200).",
+    responses={**AUTH_ERRORS, 404: error("Product not found")},
+)
+def delete_product_image(product_id: int, _: CurrentAdmin, db: DbSession) -> ProductAdminOut:
+    product = product_image_service.remove_product_image(db, product_id)
+    return ProductAdminOut.from_product(product)
+
+
+@categories_router.post(
+    "",
+    response_model=CategoryOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a product category",
+    responses={
+        **AUTH_ERRORS,
+        409: error("A category with that name already exists"),
+    },
+)
+def create_category(body: CategoryIn, _: CurrentAdmin, db: DbSession) -> CategoryOut:
+    return CategoryOut.model_validate(shop_service.create_category(db, body))
+
+
+@categories_router.patch(
+    "/{category_id}",
+    response_model=CategoryOut,
+    summary="Rename a product category",
+    responses={
+        **AUTH_ERRORS,
+        404: error("Category not found"),
+        409: error("A category with that name already exists"),
+    },
+)
+def update_category(
+        category_id: int, body: CategoryIn, _: CurrentAdmin, db: DbSession
+) -> CategoryOut:
+    return CategoryOut.model_validate(shop_service.update_category(db, category_id, body))
+
+
+@categories_router.delete(
+    "/{category_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a product category",
+    description="Only possible when no product, active or inactive, belongs to it.",
+    responses={
+        **AUTH_ERRORS,
+        404: error("Category not found"),
+        409: error("The category still has products"),
+    },
+)
+def delete_category(category_id: int, _: CurrentAdmin, db: DbSession) -> None:
+    shop_service.delete_category(db, category_id)

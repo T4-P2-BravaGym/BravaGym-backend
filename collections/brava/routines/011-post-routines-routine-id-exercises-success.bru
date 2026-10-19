@@ -1,0 +1,41 @@
+meta {
+  name: post-routines-routine-id-exercises-success
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/routines/{{managedRoutineId}}/exercises
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenTrainer}}
+}
+
+body:json {
+  {
+    "exercise_id": "{{seedExerciseId}}",
+    "day_number": 2,
+    "position": 1,
+    "sets": 3,
+    "reps": 8,
+    "rest_seconds": 60
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) { const day = res.getBody().days.find(d => d.day_number === 2); bru.setVar("managedItemId", day.lines.find(l => l.position === 1).id); }
+}
+
+tests {
+  test("Expected HTTP 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}
+
+docs {
+  Operation: POST /api/v1/routines/{routine_id}/exercises. Expected HTTP 201. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

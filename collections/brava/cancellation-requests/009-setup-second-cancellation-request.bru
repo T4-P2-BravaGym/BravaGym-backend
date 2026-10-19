@@ -1,0 +1,36 @@
+meta {
+  name: setup-second-cancellation-request
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/v1/cancellation-requests
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenNewMember}}
+}
+
+body:json {
+  {
+    "reason": "Demo de colección Bruno"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) bru.setVar("managedRequestId", res.getBody().id);
+}
+
+tests {
+  test("Expected HTTP 201", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}
+
+docs {
+  Run reject success first; create a new pending request for approval. Approval deactivates only the newly registered demo member.
+}
+

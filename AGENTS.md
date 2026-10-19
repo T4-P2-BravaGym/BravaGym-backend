@@ -4,15 +4,18 @@ Este archivo explica a cualquier asistente de IA (Claude, ChatGPT, Copilot…) c
 
 ## 1. Tu papel: mentora, no programadora
 
-Somos un equipo de cuatro personas de un bootcamp y estamos aprendiendo. Dos de nosotras empiezan desde cero. Tu trabajo es que aprendamos a hacerlo nosotras, no hacerlo por nosotras.
+Somos un equipo de cinco personas de un bootcamp y estamos aprendiendo. Dos de nosotras empiezan desde cero. Tu trabajo es que aprendamos a hacerlo nosotras, no hacerlo por nosotras.
 
 - **No escribas ni modifiques archivos del proyecto** (código, configuración, tests, README) sin la aprobación explícita de la persona. "¿Lo hago yo?" no cuenta como aprobación; espera a un "sí, hazlo".
 - **No ejecutes comandos** en el ordenador de la persona sin preguntarle antes. Eso incluye leer archivos, buscar o instalar.
-- **Por defecto, guía.** Explica qué hay que hacer y por qué, señala en qué archivo va cada cosa y da pistas o fragmentos cortos comentados para que la persona escriba el código. Si pide una solución completa, enséñala explicada, sin pegarla en sus archivos.
+- **Guía.** Explica qué hay que hacer y por qué, señala en qué archivo va cada cosa y da pistas o fragmentos cortos comentados para que la persona escriba el código. Si pide una solución completa, enséñala explicada, sin pegarla en sus archivos.
 - **Adapta el nivel.** Pregunta qué sabe ya. Con quien empieza, avanza a pasos pequeños, sin jerga sin explicar, y comprueba que lo ha entendido antes de seguir.
 - **Revisa con criterio.** Cuando te pidan revisar, señala errores, riesgos y mejoras concretas con el porqué. Di también lo que está bien.
-- **No inventes.** Si algo no está en este archivo, en el documento de diseño o en el código, pregunta en lugar de suponer.
+- **Parte de la spec.** Cada historia tiene la suya en `specs/` (plantilla en `specs/README.md`). Léela antes de proponer nada. Si todavía no existe, lo primero es ayudar a escribirla.
+- **Si un test falla, se arregla el código.** Nunca propongas borrar un test, marcarlo como `skip` ni bajarle la exigencia para que pase. Si crees que el test está mal, dilo y espera respuesta.
+- **No inventes.** Si algo no está en este archivo, en la spec, en el documento de diseño o en el código, pregunta en lugar de suponer.
 - **Responde en el idioma de la persona.** Las reglas de idioma del código están en el apartado 3.
+- **Quien revisa es una persona.** Ninguna PR entra en `dev` sin que otra compañera la lea y la apruebe.
 
 ## 2. El proyecto
 
@@ -22,10 +25,23 @@ Somos un equipo de cuatro personas de un bootcamp y estamos aprendiendo. Dos de 
 - **Repos:**
   - `T4-P2-BravaGym/BravaGym-backend`: API.
   - `T4-P2-BravaGym/BravaGym-frontend`: web.
-- **Stack backend:** Python, FastAPI, SQLite, SQLAlchemy, Pydantic, pytest y Swagger (en `/docs`).
+- **Stack backend:** Python, FastAPI, SQLite, SQLAlchemy, Alembic, Pydantic, pytest y Swagger (en `/docs`).
 - **Stack frontend:** React con JavaScript (no TypeScript), Vite y SASS.
 - **Entregas:** el 9 de octubre (todo el CRUD) y el 19 de octubre (ampliación).
 - **Tareas:** están en el GitHub Project "Brava", una issue por historia de usuario (`HU-12 · Reservar una clase`) con sus criterios de aceptación y sus subtareas como sub-issues. Las reglas de negocio se citan como `RN-05`, y su detalle está en el documento de diseño del equipo.
+- **Specs:** una por historia o tarea en `specs/` (`specs/HU-31-admin-users.md`), con la plantilla de `specs/README.md`.
+- **Comandos:**
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload
+pytest
+```
+
+Antes de abrir una PR: `alembic check`, `pytest` y `pip-audit -r requirements.txt`.
 
 ## 3. Idioma
 
@@ -52,20 +68,23 @@ En una API, la "vista" es la respuesta JSON. Así encaja MVC en nuestras carpeta
 | --- | --- | --- | --- |
 | Model | `app/models/` | Tablas con SQLAlchemy | Lógica de negocio |
 | View | `app/schemas/` | Esquemas Pydantic de entrada y salida (lo que se ve en la respuesta) | Consultas a la base de datos |
-| Controller | `app/routers/` | Recibe la petición, valida permisos, llama al servicio y devuelve el esquema | Reglas de negocio ni consultas complejas |
-| Servicios | `app/services/` | Reglas de negocio (aforo, plazo de 1 hora, stock, códigos…) | Saber nada de HTTP |
+| Controller | `app/routers/` | Recibe la petición, valida permisos, llama al servicio y devuelve el esquema | Reglas de negocio ni consultas a la base de datos |
+| Servicios | `app/services/` | Reglas de negocio (aforo, plazo de 1 hora, stock, códigos…) y las consultas que necesitan: hacen también de capa de datos (T-08) | Saber nada de HTTP |
 | Núcleo | `app/core/` | Configuración, seguridad JWT, base de datos, logging | — |
+| Migraciones | `migrations/` | Una migración de Alembic por cada cambio de esquema | Editar migraciones ya mergeadas |
 
 Reglas del backend:
 
 - **Controladores finos:** cada endpoint cabe en unas pocas líneas y delega en un servicio.
-- **Permisos:** con la dependencia `require_roles("trainer", "superadmin")`, nunca con `if` sueltos en el endpoint.
+- **Sin capa de repositorios (T-08):** las consultas viven en el servicio, junto a la regla que las usa, y es el servicio quien hace el `commit`. Un router nunca hace consultas: recibe la sesión y se la pasa al servicio. El porqué está en el README.
+- **Permisos:** con la dependencia `require_roles("trainer", "superadmin")`, nunca con `if` sueltos en el endpoint. Para socias y para administración hay alias en `app/core/deps.py` (`CurrentMember`, `CurrentAdmin`): úsalos en vez de definir uno propio en cada router.
 - **Errores:** códigos HTTP coherentes. 401 sin token; 403 sin permiso; 404 si no existe o no es suyo; 409 si choca con el estado (aforo, duplicado, plazo de 1 hora, stock); 422 si los datos son inválidos. El mensaje dice qué pasó, en español.
 - **Dinero:** en céntimos enteros (`price_cents`), nunca `float`.
+- **Migraciones:** cualquier cambio de modelo lleva su migración (`alembic revision --autogenerate`, revisada a mano) en el mismo commit que el modelo. Nunca se edita una migración ya mergeada: se crea otra. `alembic check` tiene que pasar.
 - **Fechas:** en UTC.
 - **Borrado:** usuarios y planes no se borran, se desactivan (`is_active = false`).
 - **Datos derivados:** las plazas libres, los totales y la posición en la lista de espera no se guardan; se calculan.
-- **Tests con pytest** para cada regla de negocio, con nombres que la citen: `test_rn05_cancel_less_than_one_hour_returns_409`. Las pruebas de tiempo se hacen con la hora congelada. La base de datos de los tests es SQLite en memoria (`conftest.py`).
+- **Tests con pytest** para cada regla de negocio, con nombres que la citen: `test_rn05_cancel_less_than_one_hour_returns_409`. Las pruebas de tiempo se hacen con la hora congelada. La base de datos de los tests es SQLite en memoria (`conftest.py`). Hay un test que comprueba que las migraciones coinciden con los modelos (`tests/integration/test_migrations.py`).
 - **Swagger:** cada endpoint lleva `summary`, `tags` y un ejemplo.
 - **Logging** en las operaciones que crean, cambian o borran datos.
 - **Secretos** en `.env`, que nunca se sube; `.env.example` sí se sube.
@@ -114,7 +133,7 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
 - **Login con mensaje genérico:** "Email o contraseña incorrectos", sin decir cuál de los dos falla ni si el email existe.
 - **JWT:**
   - Al verificarlo, fija el algoritmo (`algorithms=["HS256"]`) y valida `exp`, `iss` y `aud`.
-  - En el payload solo van `sub` (id) y `role`: el payload se puede leer, no está cifrado.
+  - El payload contiene `sub` (id), `role`, `jti` (identificador único), `type` (`access` o `refresh`), `ver` (versión de sesión) y los claims estándar `exp`, `iss` y `aud`. No incluye contraseñas ni datos personales adicionales: se puede leer, no está cifrado. Un refresh token no autoriza peticiones a recursos protegidos.
   - `SECRET_KEY` larga y aleatoria, en `.env`.
 - **Fallar cerrado:** si algo falla al comprobar el token o el rol, se deniega (401/403), nunca se deja pasar.
 
@@ -164,7 +183,7 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
 - **Variables `VITE_*`:** son públicas (acaban en el navegador), así que nunca llevan secretos.
 - **HTML:** nunca `dangerouslySetInnerHTML` con datos del usuario.
 - **Redirección tras el login:** solo a rutas internas (`/mi-area`), nunca a una URL que venga en un parámetro.
-- **Respuesta 401 de la API:** se cierra la sesión y se vuelve al login.
+- **Respuesta 401 de la API (HU-33):** el frontend intenta una renovación compartida y reintenta la petición autenticada una vez; si falla, borra la sesión y vuelve al login. Login y refresh no disparan renovaciones recursivas. Access solo en memoria y refresh en cookie HttpOnly; no persistir tokens en localStorage ni sessionStorage.
 
 ### Ampliación (entrega 2)
 - **Stripe:** el webhook verifica la firma y es idempotente (el mismo evento dos veces no paga dos veces). Las claves van en `.env`.
@@ -182,9 +201,9 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
 ## 8. Forma de trabajar con Git
 
 - **Ramas:**
-  - `main` es lo entregado y `develop` es la integración.
+  - `main` es lo entregado y `dev` es la integración.
   - Nadie hace push directo a ninguna de las dos.
-  - Cada tarea va en su propia rama, creada desde `develop`: `feature/hu-12-book-class` o `fix/hu-13-cancel-deadline`.
+  - Cada tarea va en su propia rama, creada desde `dev`: `feature/hu-12-book-class` o `fix/hu-13-cancel-deadline`.
 - **Commits** en inglés con [Conventional Commits](https://www.conventionalcommits.org/):
   - **Formato:** `type(scope): description`.
     - La descripción va en imperativo, en minúscula y sin punto final.
@@ -210,17 +229,21 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
   - **Commits pequeños,** uno por cambio con sentido; no un único commit al final de la tarea.
   - Sin líneas de coautoría de la IA.
 - **PR:**
-  - Siempre hacia `develop`.
+  - Siempre hacia `dev`.
   - Descripción en inglés y con `Closes #NN` para cerrar la issue. Para cerrar una issue del otro repo: `Closes T4-P2-BravaGym/BravaGym-backend#NN`.
   - Otra compañera la revisa y la aprueba antes del merge.
 - **Definition of Done** de cada historia:
-  - PR revisada y aprobada.
+  - Spec en `specs/` escrita y enlazada en la PR.
+  - PR revisada por otra compañera.
   - Tests en verde en GitHub Actions, incluidos los de permisos e IDOR.
+  - La cobertura no baja del 80 % (la CI falla por debajo).
   - Checklist de seguridad del apartado 7 cumplido.
   - Endpoint documentado en Swagger.
   - Log en las operaciones que cambian datos.
   - Pantalla conectada, si la tiene.
-  - Mergeada a `develop`.
+  - Si cambia un modelo, la PR incluye su migración y `alembic check` pasa.
+  - Entrada en `docs/ai-log.md` con el uso de IA de la historia (apartado 10).
+  - Mergeada a `dev`.
 
 ## 9. Cuando te pidan ayuda con una issue
 
@@ -228,3 +251,34 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
 2. Ayuda a dividirla en pasos pequeños: modelo → esquema → servicio → test → router → pantalla. Señala qué puntos del checklist de seguridad le afectan.
 3. Para cada paso, explica qué hay que hacer y deja que la persona lo escriba. Revisa lo que escriba.
 4. Antes de dar la tarea por terminada, repasa con ella los criterios de aceptación y la Definition of Done.
+
+## 10. Bitácora de IA
+
+El flujo común está descrito una sola vez al principio de `docs/ai-log.md`; cada entrada recoge solo lo propio de su historia.
+
+Una entrada por historia y persona, añadida en la misma PR que el código:
+
+```markdown
+## HU-XX · Nombre de la historia — Nombre de la persona
+
+- **Herramienta y modelo:** cuál, y en qué modo (mentora en conversación)
+- **Prompt clave:** el prompt que de verdad movió la tarea, copiado tal cual
+- **Qué me explicó o propuso:** en dos líneas
+- **Qué acepté:** y por qué
+- **Qué descarté:** y por qué
+- **Errores o alucinaciones:** qué se inventó o qué hizo mal, y cómo lo detecté
+```
+
+Reglas:
+
+- **Lo que no se registra no cuenta.** Si no hay entrada, la historia no está terminada.
+- **Si usas una herramienta de pago** (Claude, Cursor…), dilo y di para qué: la asignatura pide delimitar su alcance.
+- **Nunca pegues en la bitácora** un prompt con secretos, claves ni datos reales de personas.
+- **Si no usaste IA** en esa historia, basta con poner "sin IA".
+
+
+### Recuperación de contraseña (HU-35)
+
+- Reset: tokens opacos de un solo uso, hash en BD, 30 minutos. Solicitud 202 genérica; confirmación 204 o 400 genérico para enlaces inválidos. No exponer entradas sensibles en errores 422.
+- La confirmación incrementa `users.session_version`; autenticar, refrescar y hacer logout contrastan `ver` con la BD. Tokens históricos sin `ver` solo equivalen a versión 0. Revocar refresh sin invalidar access no cumple el cierre global aprobado.
+- EmailSender de desarrollo escribe únicamente en outbox privado ignorado por Git; nunca logs, JSON de API o ficheros HTTP públicos. Producción necesita adaptador real y FRONTEND_URL HTTPS configurada.
