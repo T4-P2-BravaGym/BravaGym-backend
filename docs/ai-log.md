@@ -445,3 +445,12 @@ El alcance está delimitado en el apartado 1 de `AGENTS.md`.
 - **Qué acepté:** alcance autorizado en el prompt: rama frontend, PR draft, smoke y corrección de URLs de retorno; no equivale a aprobación humana del código.
 - **Qué descarté:** merges y Stripe Refunds API, excluidos expresamente por la usuaria.
 - **Errores o alucinaciones:** la suite completa detectó errores OpenAPI sin `ErrorOut` en la implementación existente de HU-29; se corrigieron con el helper común. Tras la corrección: 754 tests pasan y cobertura 96,51 %. El checkout real se creó (200) y continuó pending; firma inválida (400). La prueba de tarjeta alojada se documenta en la PR frontend, separada de los tests con mocks.
+
+## HU-29 · Corrección de consistencia y flujos — Mariana
+
+- **Herramienta y modelo:** Codex / GPT-6, implementación autorizada; plan de pago no comprobado.
+- **Prompt clave:** «arreglalo respetando la forma de trabajo», seguido de «sigue».
+- **Qué me explicó o propuso:** persistir un intento inmutable por pago, reutilizar sesiones, verificar importes y expirar checkout antes de cancelar o simular. Rama nueva desde dev conserva recuperación y fotos. En frontend: retorno completo por login, entrada admin operativa y carga paginada completa.
+- **Qué acepté:** alcance autorizado por la usuaria; aprobación humana del código pendiente en PR draft.
+- **Qué descarté:** merges y Stripe Refunds API, fuera de alcance.
+- **Errores o alucinaciones:** la revisión anterior no detectó los problemas hasta añadir escenarios adversos; se incorporan regresiones y concurrencia. No se considera aprobado el smoke visual 4242 mientras el navegador esté bloqueado.

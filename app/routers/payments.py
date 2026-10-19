@@ -228,6 +228,7 @@ def create_checkout(
         **MEMBER_AUTH_RESPONSES,
         404: error("Payment does not exist or is not yours"),
         409: error("Payment is not pending (already paid or refunded)"),
+        503: error("Active Stripe checkout could not be safely expired"),
         422: error("Discount code unknown, inactive, out of dates or used up"),
     },
 )

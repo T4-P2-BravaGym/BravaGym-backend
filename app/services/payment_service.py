@@ -18,6 +18,7 @@ from app.models.enums import OrderStatus, PaymentMethod, PaymentStatus
 from app.models.types import utc_now
 from app.schemas.payment import PaymentConcept
 from app.services import discount_service
+from app.services.checkout_guard import lock_payment, retire_checkout
 
 logger = logging.getLogger(__name__)
 
@@ -294,10 +295,13 @@ def pay_payment(
     """
     payment = get_own_payment_or_404(db, member.id, payment_id)
 
+    lock_payment(db, payment)
+
     # Includes cancelled, paid, failed, refunded — same 409 as any non-pending.
     if payment.status != PaymentStatus.PENDING:
         raise ConflictError(PAYMENT_NOT_PENDING)
 
+    retire_checkout(db, payment)
     apply_optional_discount(db, payment, discount_code_text)
     payment = mark_payment_paid(db, payment, method=PaymentMethod.SIMULATED)
 

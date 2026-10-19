@@ -87,3 +87,25 @@ Ninguna para el slice BE: Checkout hosted + webhook cubren los ACs del padre.
 | Fulfill solo con `payment_status=paid` | Evita marcar pagado con métodos asíncronos a medias |
 | 503 si no hay secret key | Mensaje claro en español; FE puede ocultar el botón |
 | Tests con mock del cliente Stripe | Issue #123; sin red ni claves reales en CI |
+
+## Checkout consistency follow-up
+
+- Persist one immutable request and random idempotency key per payment before
+  contacting Stripe. Repeated requests reuse the open session and original amount.
+- Serialize local payment transitions with a database write lock. Cancel and
+  simulated pay expire any open hosted session first; if Stripe is complete,
+  unavailable or the create response is unknown, do not release stock or settle locally.
+- Match session, member, amount and currency before fulfillment. Only the same
+  already-recorded Stripe session is an idempotent replay.
+- Process expiration only for the current attempt; ignore stale expiration events.
+- Unknown attempts older than 23 hours require reconciliation rather than reusing
+  a potentially pruned Stripe idempotency key.
+- Migration `a291c0ffee01` adds the durable attempt table. Preserve existing paid
+  records. Before using this revision against an existing Stripe environment,
+  reconcile/expire pending sessions created by the old revision: they have no
+  durable attempt and must not be silently accepted by the new webhook.
+- Acceptance tests include retries, concurrent requests, discounted checkout
+  reopening, mismatched webhooks, cancellation and expiration failures.
+
+Implementation references: https://docs.stripe.com/api/idempotent_requests and
+https://docs.stripe.com/api/checkout/sessions/expire . Refund API remains out of scope.

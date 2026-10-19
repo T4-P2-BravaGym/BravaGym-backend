@@ -4,9 +4,9 @@ from datetime import date
 from types import SimpleNamespace
 
 import pytest
+from app.core.exceptions import ConflictError, ServiceUnavailableError
 from app.models import MembershipPlan, Payment, Subscription
 from app.models.enums import PaymentMethod, PaymentStatus, RoleName
-from app.core.exceptions import ConflictError, ServiceUnavailableError
 from app.services import payment_service, stripe_service
 
 
@@ -115,8 +115,14 @@ def test_fulfill_checkout_marks_paid_and_idempotent(db, make_user):
     member = make_user(RoleName.MEMBER)
     payment = _pending_payment(db, member, base_cents=4000)
 
+    from app.models import PaymentCheckout
+    db.add(PaymentCheckout(payment_id=payment.id, attempt_key="test-attempt",
+        session_id="cs_test_paid", request={"line_items": [{"price_data": {"unit_amount": 4000, "currency": "eur"}}]}))
+    db.commit()
+
     session = SimpleNamespace(
         id="cs_test_paid",
+        amount_total=4000, currency="eur",
         payment_status="paid",
         metadata={"payment_id": str(payment.id), "user_id": str(member.id)},
         client_reference_id=str(payment.id),

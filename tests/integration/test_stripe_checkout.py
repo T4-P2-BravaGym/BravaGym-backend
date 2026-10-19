@@ -207,8 +207,14 @@ def test_webhook_marks_payment_paid_and_order(
     member = make_user(RoleName.MEMBER)
     payment, order = add_order_payment(db, member, base_cents=2500)
 
+    from app.models import PaymentCheckout
+    db.add(PaymentCheckout(payment_id=payment.id, attempt_key="test-attempt",
+        session_id="cs_test_webhook_1", request={"line_items": [{"price_data": {"unit_amount": 2500, "currency": "eur"}}]}))
+    db.commit()
+
     session_obj = {
         "id": "cs_test_webhook_1",
+        "amount_total": 2500, "currency": "eur",
         "object": "checkout.session",
         "payment_status": "paid",
         "client_reference_id": str(payment.id),

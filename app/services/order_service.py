@@ -10,6 +10,7 @@ from app.core.exceptions import ConflictError, NotFoundError, ValidationAppError
 from app.models import Order, OrderItem, Payment, Product, ProductVariant
 from app.models.enums import OrderStatus, PaymentStatus, ProductSize
 from app.schemas.order import OrderCreate, OrderLineIn
+from app.services.checkout_guard import lock_payment, retire_checkout
 
 logger = logging.getLogger(__name__)
 
@@ -262,6 +263,10 @@ def list_my_orders(
 def cancel_order(db: Session, *, user_id: int, order_id: int) -> OrderWithPayment:
     current = _get_my_order(db, user_id, order_id)
     order, payment = current.order, current.payment
+    if payment is not None:
+        lock_payment(db, payment)
+        retire_checkout(db, payment)
+        db.refresh(order)
     if order.status != OrderStatus.PENDING or (
         payment is not None and payment.status != PaymentStatus.PENDING
     ):

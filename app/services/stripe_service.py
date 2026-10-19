@@ -7,7 +7,9 @@ falls back to simulated pay (HU-24). Business rules: docs/business-rules.md.
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any
+from uuid import uuid4
 
 import stripe
 from sqlalchemy.orm import Session
@@ -19,10 +21,12 @@ from app.core.exceptions import (
     ServiceUnavailableError,
     ValidationAppError,
 )
-from app.models import Payment, User
+from app.models import Payment, PaymentCheckout, User
 from app.models.enums import PaymentMethod, PaymentStatus
+from app.models.types import utc_now
 from app.schemas.payment import CheckoutSessionOut, PaymentConcept
 from app.services import payment_service
+from app.services.checkout_guard import lock_payment
 
 logger = logging.getLogger(__name__)
 
@@ -71,49 +75,80 @@ def create_checkout_session(
     if payment.status != PaymentStatus.PENDING:
         raise ConflictError(payment_service.PAYMENT_NOT_PENDING)
 
-    payment_service.apply_optional_discount(db, payment, discount_code_text)
-    db.commit()
-    db.refresh(payment)
-
-    concept = payment_service.payment_concept(payment)
-    product_name = f"Brava · {CONCEPT_LABELS[concept]}"
-    amount = payment.final_amount_cents
-
-    client = _stripe_client()
-    session = client.v1.checkout.sessions.create(
-        params={
+    lock_payment(db, payment)
+    if payment.status != PaymentStatus.PENDING:
+        raise ConflictError(payment_service.PAYMENT_NOT_PENDING)
+    attempt = db.get(PaymentCheckout, payment.id)
+    if attempt is None:
+        payment_service.apply_optional_discount(db, payment, discount_code_text)
+        concept = payment_service.payment_concept(payment)
+        params = {
             "mode": "payment",
             "success_url": settings.stripe_success_url,
             "cancel_url": settings.stripe_cancel_url,
             "client_reference_id": str(payment.id),
-            "line_items": [
-                {
-                    "quantity": 1,
-                    "price_data": {
-                        "currency": "eur",
-                        "unit_amount": amount,
-                        "product_data": {"name": product_name},
-                    },
-                }
-            ],
-            "metadata": {
-                "payment_id": str(payment.id),
-                "user_id": str(member.id),
-            },
+            "line_items": [{
+                "quantity": 1,
+                "price_data": {
+                    "currency": "eur",
+                    "unit_amount": payment.final_amount_cents,
+                    "product_data": {"name": f"Brava · {CONCEPT_LABELS[concept]}"},
+                },
+            }],
+            "metadata": {"payment_id": str(payment.id), "user_id": str(member.id)},
         }
-    )
+        attempt = PaymentCheckout(payment_id=payment.id, attempt_key=uuid4().hex, request=params)
+        db.add(attempt)
+        # Persist before the network call: retries reuse the same key and payload.
+        db.commit()
+    elif attempt.session_id and attempt.checkout_url:
+        try:
+            remote = _stripe_client().v1.checkout.sessions.retrieve(attempt.session_id)
+        except stripe.StripeError as exc:
+            raise ServiceUnavailableError("No se ha podido consultar Stripe. Inténtalo de nuevo.") from exc
+        if remote.status == "expired":
+            db.delete(attempt)
+            db.flush()
+            return create_checkout_session(db, member, payment_id, discount_code_text)
+        if remote.status != "open":
+            raise ConflictError("Stripe está confirmando este pago. Actualiza tus pagos en unos instantes.")
+        db.commit()
+        return CheckoutSessionOut(checkout_url=attempt.checkout_url, session_id=attempt.session_id)
+    else:
+        db.commit()
+
+    # Stripe can prune idempotency keys after 24 hours. An uncertain old attempt
+    # needs reconciliation, never a new charge under a possibly pruned key.
+    if utc_now() - attempt.created_at > timedelta(hours=23):
+        raise ServiceUnavailableError("El intento de pago requiere revisión. Contacta con administración.")
+    try:
+        session = _stripe_client().v1.checkout.sessions.create(
+            params=attempt.request, options={"idempotency_key": attempt.attempt_key}
+        )
+    except stripe.StripeError as exc:
+        logger.warning("Stripe checkout request failed for payment %s", payment.id)
+        raise ServiceUnavailableError("No se ha podido abrir Stripe. Inténtalo de nuevo.") from exc
 
     checkout_url = getattr(session, "url", None)
     session_id = getattr(session, "id", None)
     if not checkout_url or not session_id:
         raise ValidationAppError(CHECKOUT_NO_URL)
 
+    key = attempt.attempt_key
+    lock_payment(db, payment)
+    db.expire_all()
+    attempt = db.get(PaymentCheckout, payment.id)
+    if attempt is None or attempt.attempt_key != key or payment.status != PaymentStatus.PENDING:
+        raise ConflictError("El intento de pago ha cambiado. Actualiza tus pagos.")
+    attempt.session_id = session_id
+    attempt.checkout_url = checkout_url
+    db.commit()
     logger.info(
         "User %s started Stripe Checkout for payment %s (session_id=%s, amount_cents=%s)",
         member.id,
         payment.id,
         session_id,
-        amount,
+        payment.final_amount_cents,
     )
     return CheckoutSessionOut(checkout_url=checkout_url, session_id=session_id)
 
@@ -173,18 +208,28 @@ def fulfill_checkout_session(db: Session, session: Any) -> Payment | None:
     payment_id = _session_payment_id(session)
     payment = payment_service.get_payment_or_404(db, payment_id)
 
-    if payment.status == PaymentStatus.PAID:
-        logger.info(
-            "Stripe webhook idempotent: payment %s already paid (session=%s)",
-            payment.id,
-            getattr(session, "id", None),
-        )
-        return payment
-
+    lock_payment(db, payment)
+    session_id = getattr(session, "id", None)
+    if payment.status in (PaymentStatus.PAID, PaymentStatus.REFUNDED):
+        if payment.method == PaymentMethod.STRIPE and payment.provider_ref == session_id:
+            return payment
+        raise ConflictError("La sesión de Stripe no corresponde al pago registrado.")
+    attempt = db.get(PaymentCheckout, payment.id)
+    if attempt is None:
+        raise ConflictError("No existe un intento de Stripe para este pago.")
+    # Stripe retries early webhooks after the create response binds the session.
+    if attempt.session_id is None:
+        raise ConflictError("El intento de Stripe todavía se está preparando. Reintenta el evento.")
+    expected = attempt.request["line_items"][0]["price_data"]
+    metadata = getattr(session, "metadata", {}) or {}
+    if (session_id != attempt.session_id
+            or getattr(session, "amount_total", None) != expected["unit_amount"]
+            or getattr(session, "currency", None) != expected["currency"]
+            or str(metadata.get("user_id")) != str(payment.user_id)):
+        raise ConflictError("La sesión o el importe de Stripe no coincide con el pago.")
     if payment.status != PaymentStatus.PENDING:
         raise ConflictError(payment_service.PAYMENT_NOT_PENDING)
-
-    session_id = getattr(session, "id", None)
+    payment.final_amount_cents = expected["unit_amount"]
     payment = payment_service.mark_payment_paid(
         db,
         payment,
@@ -216,4 +261,13 @@ def handle_webhook_event(db: Session, event: stripe.Event) -> None:
         fulfill_checkout_session(db, data_object)
         return
 
+    if event_type == "checkout.session.expired":
+        payment = payment_service.get_payment_or_404(db, _session_payment_id(data_object))
+        lock_payment(db, payment)
+        attempt = db.get(PaymentCheckout, payment.id)
+        if (attempt and attempt.session_id == getattr(data_object, "id", None)
+                and payment.status == PaymentStatus.PENDING):
+            db.delete(attempt)
+            db.commit()
+        return
     logger.debug("Ignoring Stripe event type %s", event_type)

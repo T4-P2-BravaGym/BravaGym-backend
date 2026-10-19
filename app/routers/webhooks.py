@@ -30,6 +30,7 @@ DbSession = Annotated[Session, Depends(get_db)]
             },
         },
         400: error("Invalid payload or signature"),
+        409: error("Checkout is not ready or session details do not match the payment"),
         503: error("STRIPE_WEBHOOK_SECRET not configured"),
     },
 )
