@@ -41,8 +41,8 @@ class Settings(BaseSettings):
     stripe_secret_key: str | None = None
     stripe_publishable_key: str | None = None
     stripe_webhook_secret: str | None = None
-    stripe_success_url: str = "http://localhost:5173/member/payments?stripe=success"
-    stripe_cancel_url: str = "http://localhost:5173/member/payments?stripe=cancel"
+    stripe_success_url: str = "http://localhost:5173/mi-area/pagos?stripe=success"
+    stripe_cancel_url: str = "http://localhost:5173/mi-area/pagos?stripe=cancel"
 
     @property
     def stripe_enabled(self) -> bool:
