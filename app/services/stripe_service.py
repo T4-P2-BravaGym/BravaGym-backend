@@ -118,7 +118,9 @@ def create_checkout_session(
     return CheckoutSessionOut(checkout_url=checkout_url, session_id=session_id)
 
 
-def construct_webhook_event(payload: bytes, signature_header: str | None) -> stripe.Event:
+def construct_webhook_event(
+    payload: bytes, signature_header: str | None
+) -> stripe.Event:
     """Verify Stripe-Signature and return the Event. Invalid → 400."""
     settings = get_settings()
     secret = (settings.stripe_webhook_secret or "").strip()
@@ -204,9 +206,7 @@ def handle_webhook_event(db: Session, event: stripe.Event) -> None:
     """Dispatch supported Checkout events. Unknown types are ignored (ACK 200)."""
     event_type = event["type"] if isinstance(event, dict) else event.type
     data_object = (
-        event["data"]["object"]
-        if isinstance(event, dict)
-        else event.data.object
+        event["data"]["object"] if isinstance(event, dict) else event.data.object
     )
 
     if event_type in (

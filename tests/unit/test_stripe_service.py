@@ -11,7 +11,12 @@ from app.services import payment_service, stripe_service
 
 
 class _FakeSession:
-    def __init__(self, *, session_id="cs_test_abc", url="https://checkout.stripe.com/pay/cs_test_abc"):
+    def __init__(
+        self,
+        *,
+        session_id="cs_test_abc",
+        url="https://checkout.stripe.com/pay/cs_test_abc",
+    ):
         self.id = session_id
         self.url = url
 
@@ -26,13 +31,13 @@ class _FakeSessions:
 
 class _FakeClient:
     def __init__(self):
-        self.v1 = SimpleNamespace(
-            checkout=SimpleNamespace(sessions=_FakeSessions())
-        )
+        self.v1 = SimpleNamespace(checkout=SimpleNamespace(sessions=_FakeSessions()))
 
 
 def _pending_payment(db, user, *, base_cents=5000):
-    plan = MembershipPlan(name=f"Plan-{user.id}-{base_cents}", monthly_price_cents=base_cents)
+    plan = MembershipPlan(
+        name=f"Plan-{user.id}-{base_cents}", monthly_price_cents=base_cents
+    )
     subscription = Subscription(user=user, plan=plan, start_date=date(2026, 10, 1))
     db.add(subscription)
     db.flush()
@@ -64,7 +69,9 @@ def test_create_checkout_session_builds_line_item(db, make_user, monkeypatch):
     payment = _pending_payment(db, member, base_cents=5900)
     _FakeSessions.last_params = None
 
-    monkeypatch.setattr(stripe_service, "_require_stripe_secret", lambda: "sk_test_fake")
+    monkeypatch.setattr(
+        stripe_service, "_require_stripe_secret", lambda: "sk_test_fake"
+    )
     monkeypatch.setattr(
         stripe_service,
         "get_settings",
@@ -95,7 +102,9 @@ def test_create_checkout_non_pending_raises_409(db, make_user, monkeypatch):
     payment.paid_at = payment.created_at
     db.commit()
 
-    monkeypatch.setattr(stripe_service, "_require_stripe_secret", lambda: "sk_test_fake")
+    monkeypatch.setattr(
+        stripe_service, "_require_stripe_secret", lambda: "sk_test_fake"
+    )
     monkeypatch.setattr(
         stripe_service,
         "get_settings",
