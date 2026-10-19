@@ -190,7 +190,7 @@ Cada ejercicio de una rutina, en su día y su orden.
 
 ### `product_categories` — categorías
 
-Cómo se agrupan los productos en la tienda (ropa, suplementos…).
+Cómo se agrupan los productos en la tienda.
 
 - **Atributos clave:** `name` único.
 - **Relaciones:** una categoría agrupa muchos productos.
@@ -243,7 +243,7 @@ Cada cobro a una socia: la cuota de su plan, una clase con precio extra o un ped
 - **Atributos clave:** `base_amount_cents` y `final_amount_cents` (foto del importe, con `final ≤ base`), `status`, `method` (`simulated` o `stripe`), `provider_ref` (id de la Checkout Session de Stripe), `created_at`, `paid_at` (obligatorio si está `paid`).
 - **Relaciones:** pertenece a una usuaria y a **exactamente un** concepto: suscripción, reserva o pedido (`CHECK` en la BD). Puede llevar un código de descuento. `user_id` es una desnormalización consciente para listar "mis pagos"; el servicio comprueba que coincide con la dueña del concepto.
 - **Reglas:** RN-07 (pago de clase extra), RN-10 y RN-13 (qué pasa con los pagos al cancelar una clase o aprobar una baja), RN-14 y RN-15 (códigos), RN-16 (ciclo de vida, Stripe y reembolsos) y RN-17 (pedidos).
-- **Estados:** `pending` → `paid` → `refunded`; `pending` → `cancelled` (se canceló lo que iba a cobrar) o `failed` (el cobro no salió).
+- **Estados:** `pending` → `paid` → `refunded`, o `pending` → `cancelled` (se canceló lo que iba a cobrar). El enum también tiene `failed`, pero hoy ningún flujo lo usa.
 
 ### Seguridad y sesión de login
 
