@@ -32,7 +32,9 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | --- | --- | --- | --- |
 | GET | `/health` | Público | Comprobación para Docker |
 | POST | `/auth/register` | Público | Crea siempre un `member` |
-| POST | `/auth/login` | Público | Devuelve el JWT |
+| POST | `/auth/login` | Público | Formulario OAuth2; access en JSON y refresh en cookie HttpOnly |
+| POST | `/auth/refresh` | Cookie refresh | Rota ambos tokens; exige `X-Brava-CSRF: 1`; 401 si no es válido |
+| POST | `/auth/logout` | Bearer y cookie de la misma usuaria | Revoca ambos; 204 sin cuerpo; exige `X-Brava-CSRF: 1` |
 | GET / PATCH | `/users/me` | Autenticado | Perfil propio |
 | GET | `/users` | Admin, superadmin | Filtros `role`, `is_active`, `q` |
 | PATCH | `/users/{id}/role` | Admin, superadmin | RN-18, RN-19 |
@@ -47,11 +49,11 @@ Todas las rutas cuelgan de `/api/v1`. Cada grupo es un `APIRouter` con su `tag` 
 | POST / PATCH / DELETE | `/class-types`, `/class-types/{id}` | Trainer, superadmin | DELETE = desactivar (`is_active=false`) |
 | GET | `/sessions` | Público | Filtros `from`, `to`, `class_type_id`, `trainer_id`, `only_available`; incluye plazas libres |
 | POST / PATCH | `/sessions`, `/sessions/{id}` | Trainer, superadmin | RN-09, RN-10; el trainer es dueña; superadmin pasa `trainer_id` al crear |
-| POST | `/sessions/{id}/cancel` | Trainer (propia), superadmin | RN-10; cancela reservas y marca pagos de clase extra como `refunded` |
+| POST | `/sessions/{id}/cancel` | Trainer (propia), superadmin | RN-10; cancela reservas; pagos de clase extra `pending` → `cancelled` y `paid` → `refunded` (RN-16) |
 | GET | `/sessions/{id}/bookings` | Trainer (propia), admin, superadmin | Confirmadas y lista de espera (con datos de la socia) |
 | POST | `/sessions/{id}/bookings` | Member | RN-01 a RN-04, RN-07, RN-08 |
 | GET | `/bookings/me` | Member | Filtro `status`, próximas o pasadas |
-| POST | `/bookings/{id}/cancel` | Member (propia) | RN-05, RN-06 |
+| POST | `/bookings/{id}/cancel` | Member (propia) | RN-05, RN-06; su pago de clase extra `pending` → `cancelled` y `paid` → `refunded` (RN-16) |
 | WS | `/ws/sessions/{id}` | Público | Emite plazas libres al cambiar |
 | CRUD | `/exercises` | Trainer, superadmin | Catálogo de ejercicios |
 | POST / GET | `/routines` | Trainer, superadmin | GET filtra por `member_id` |

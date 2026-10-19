@@ -1,0 +1,32 @@
+meta {
+  name: post-cancellation-requests-request-id-approve-error
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/cancellation-requests/{{managedRequestId}}/approve
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+body:json {
+  {
+    "admin_notes": "Solicitud de prueba aprobada"
+  }
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for POST /api/v1/cancellation-requests/{request_id}/approve: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.exceptions import PermissionDeniedError, UnauthorizedError
 from app.core.security import decode_access_token
-from app.models import User
+from app.models import RevokedToken, User
 from app.models.enums import RoleName
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
@@ -28,6 +28,9 @@ def get_current_user(
         user_id = int(payload["sub"])
     except (jwt.InvalidTokenError, ValueError):
         raise UnauthorizedError(INVALID_SESSION) from None
+
+    if db.get(RevokedToken, payload["jti"]) is not None:
+        raise UnauthorizedError(INVALID_SESSION)
 
     user = db.get(User, user_id)
     if user is None or not user.is_active:
@@ -49,3 +52,7 @@ def require_roles(*roles: RoleName) -> Callable[[User], User]:
 
 
 CurrentMember = Annotated[User, Depends(require_roles(RoleName.MEMBER))]
+
+CurrentAdmin = Annotated[
+    User, Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN))
+]

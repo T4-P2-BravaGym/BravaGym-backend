@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,7 +19,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_issuer: str = "brava-api"
     jwt_audience: str = "brava-web"
-    access_token_expire_minutes: int = 60
+    access_token_expire_minutes: int = Field(default=60, gt=0)
+    refresh_token_expire_days: int = Field(default=7, gt=0)
 
     # Only the frontend origin may call the API from a browser (never "*").
     cors_origins: list[str] = ["http://localhost:5173"]

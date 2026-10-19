@@ -1,5 +1,4 @@
 import pytest
-
 from app.core.config import get_settings
 from app.models.enums import RoleName
 from app.services.product_image_service import (
@@ -7,6 +6,7 @@ from app.services.product_image_service import (
     INVALID_IMAGE,
     MAX_IMAGE_BYTES,
 )
+
 from tests.image_samples import EXE, JPEG, PDF, PNG, SVG, WEBP
 
 PRODUCTS_URL = "/api/v1/products"
@@ -245,9 +245,10 @@ def test_a_failed_save_leaves_no_file_behind(
 
     monkeypatch.setattr(db, "commit", broken_commit)
 
-    with pytest.raises(RuntimeError):
-        _upload(client, product.id, JPEG, admin_headers)
+    response = _upload(client, product.id, JPEG, admin_headers)
 
+    assert response.status_code == 500
+    assert response.json()["code"] == "internal_error"
     assert _stored(images_dir) == []
 
 

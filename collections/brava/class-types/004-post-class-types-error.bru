@@ -1,0 +1,35 @@
+meta {
+  name: post-class-types-error
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/class-types
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer invalid-demo-token
+}
+
+body:json {
+  {
+    "name": "Bruno class {{runId}}",
+    "description": "Demo",
+    "extra_price_cents": 0,
+    "is_personal_training": false
+  }
+}
+
+tests {
+  test("Expected HTTP 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+}
+
+docs {
+  Error example for POST /api/v1/class-types: Missing/invalid authentication. Expected HTTP 401. A passing assertion confirms this intentional error. 
+}
+

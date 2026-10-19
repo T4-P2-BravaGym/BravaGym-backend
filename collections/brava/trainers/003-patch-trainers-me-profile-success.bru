@@ -1,0 +1,33 @@
+meta {
+  name: patch-trainers-me-profile-success
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/trainers/me/profile
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenTrainer}}
+}
+
+body:json {
+  {
+    "bio": "Demo de colección Bruno",
+    "specialty": "Fuerza"
+  }
+}
+
+tests {
+  test("Expected HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Operation: PATCH /api/v1/trainers/me/profile. Expected HTTP 200. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

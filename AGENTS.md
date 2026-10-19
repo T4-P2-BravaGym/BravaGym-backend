@@ -68,15 +68,16 @@ En una API, la "vista" es la respuesta JSON. Así encaja MVC en nuestras carpeta
 | --- | --- | --- | --- |
 | Model | `app/models/` | Tablas con SQLAlchemy | Lógica de negocio |
 | View | `app/schemas/` | Esquemas Pydantic de entrada y salida (lo que se ve en la respuesta) | Consultas a la base de datos |
-| Controller | `app/routers/` | Recibe la petición, valida permisos, llama al servicio y devuelve el esquema | Reglas de negocio ni consultas complejas |
-| Servicios | `app/services/` | Reglas de negocio (aforo, plazo de 1 hora, stock, códigos…) | Saber nada de HTTP |
+| Controller | `app/routers/` | Recibe la petición, valida permisos, llama al servicio y devuelve el esquema | Reglas de negocio ni consultas a la base de datos |
+| Servicios | `app/services/` | Reglas de negocio (aforo, plazo de 1 hora, stock, códigos…) y las consultas que necesitan: hacen también de capa de datos (T-08) | Saber nada de HTTP |
 | Núcleo | `app/core/` | Configuración, seguridad JWT, base de datos, logging | — |
 | Migraciones | `migrations/` | Una migración de Alembic por cada cambio de esquema | Editar migraciones ya mergeadas |
 
 Reglas del backend:
 
 - **Controladores finos:** cada endpoint cabe en unas pocas líneas y delega en un servicio.
-- **Permisos:** con la dependencia `require_roles("trainer", "superadmin")`, nunca con `if` sueltos en el endpoint.
+- **Sin capa de repositorios (T-08):** las consultas viven en el servicio, junto a la regla que las usa, y es el servicio quien hace el `commit`. Un router nunca hace consultas: recibe la sesión y se la pasa al servicio. El porqué está en el README.
+- **Permisos:** con la dependencia `require_roles("trainer", "superadmin")`, nunca con `if` sueltos en el endpoint. Para socias y para administración hay alias en `app/core/deps.py` (`CurrentMember`, `CurrentAdmin`): úsalos en vez de definir uno propio en cada router.
 - **Errores:** códigos HTTP coherentes. 401 sin token; 403 sin permiso; 404 si no existe o no es suyo; 409 si choca con el estado (aforo, duplicado, plazo de 1 hora, stock); 422 si los datos son inválidos. El mensaje dice qué pasó, en español.
 - **Dinero:** en céntimos enteros (`price_cents`), nunca `float`.
 - **Migraciones:** cualquier cambio de modelo lleva su migración (`alembic revision --autogenerate`, revisada a mano) en el mismo commit que el modelo. Nunca se edita una migración ya mergeada: se crea otra. `alembic check` tiene que pasar.
@@ -132,7 +133,7 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
 - **Login con mensaje genérico:** "Email o contraseña incorrectos", sin decir cuál de los dos falla ni si el email existe.
 - **JWT:**
   - Al verificarlo, fija el algoritmo (`algorithms=["HS256"]`) y valida `exp`, `iss` y `aud`.
-  - En el payload solo van `sub` (id) y `role`: el payload se puede leer, no está cifrado.
+  - El payload contiene `sub` (id), `role`, `jti` (identificador único), `type` (`access` o `refresh`) y los claims estándar `exp`, `iss` y `aud`. No incluye contraseñas ni datos personales adicionales: se puede leer, no está cifrado. Un refresh token no autoriza peticiones a recursos protegidos.
   - `SECRET_KEY` larga y aleatoria, en `.env`.
 - **Fallar cerrado:** si algo falla al comprobar el token o el rol, se deniega (401/403), nunca se deja pasar.
 
@@ -182,7 +183,7 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
 - **Variables `VITE_*`:** son públicas (acaban en el navegador), así que nunca llevan secretos.
 - **HTML:** nunca `dangerouslySetInnerHTML` con datos del usuario.
 - **Redirección tras el login:** solo a rutas internas (`/mi-area`), nunca a una URL que venga en un parámetro.
-- **Respuesta 401 de la API:** se cierra la sesión y se vuelve al login.
+- **Respuesta 401 de la API (HU-33):** el frontend intenta una renovación compartida y reintenta la petición autenticada una vez; si falla, borra la sesión y vuelve al login. Login y refresh no disparan renovaciones recursivas. Access solo en memoria y refresh en cookie HttpOnly; no persistir tokens en localStorage ni sessionStorage.
 
 ### Ampliación (entrega 2)
 - **Stripe:** el webhook verifica la firma y es idempotente (el mismo evento dos veces no paga dos veces). Las claves van en `.env`.
@@ -235,6 +236,7 @@ Sacado de un checklist de ciberseguridad (OWASP Top 10:2025) y adaptado a Brava.
   - Spec en `specs/` escrita y enlazada en la PR.
   - PR revisada por otra compañera.
   - Tests en verde en GitHub Actions, incluidos los de permisos e IDOR.
+  - La cobertura no baja del 80 % (la CI falla por debajo).
   - Checklist de seguridad del apartado 7 cumplido.
   - Endpoint documentado en Swagger.
   - Log en las operaciones que cambian datos.

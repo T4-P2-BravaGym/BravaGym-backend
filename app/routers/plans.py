@@ -1,16 +1,9 @@
-"""Controller for plans: receives the request, checks permissions, calls the service, returns a schema.
-
-TODO(HU-07, HU-08): GET /plans, POST/PATCH/DELETE /plans
-Keep endpoints thin: no business rules and no complex queries here.
-Every endpoint: response_model, summary, and require_roles(...) when it is not public.
-"""
-
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import require_roles
-from app.models.enums import RoleName
+from app.core.deps import CurrentAdmin
+from app.core.openapi import error
 from app.schemas.plan import (
     AdminPlanOut,
     AdminPlanPage,
@@ -61,8 +54,8 @@ def get_plans(db: Session = Depends(get_db)):
     response_model=AdminPlanPage,
     summary="List active and retired membership plans for administration",
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Caller is not an admin or superadmin"},
+        401: error("Missing, invalid or expired token"),
+        403: error("Caller is not an admin or superadmin"),
         200: {
             "content": {
                 "application/json": {
@@ -88,8 +81,8 @@ def get_plans(db: Session = Depends(get_db)):
     },
 )
 def get_admin_plans(
+    _: CurrentAdmin,
     db: Session = Depends(get_db),
-    _=Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN)),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
 ):
@@ -108,15 +101,15 @@ def get_admin_plans(
     status_code=201,
     summary="Create a membership plan",
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Caller is not an admin or superadmin"},
-        409: {"description": "A plan with that name already exists"},
+        401: error("Missing, invalid or expired token"),
+        403: error("Caller is not an admin or superadmin"),
+        409: error("A plan with that name already exists"),
     },
 )
 def post_plan(
     body: PlanCreate,
+    _: CurrentAdmin,
     db: Session = Depends(get_db),
-    _=Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN)),
 ):
     return create_plan(db, body)
 
@@ -126,17 +119,17 @@ def post_plan(
     response_model=PlanOut,
     summary="Update a membership plan",
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Caller is not an admin or superadmin"},
-        404: {"description": "Plan not found"},
-        409: {"description": "A plan with that name already exists"},
+        401: error("Missing, invalid or expired token"),
+        403: error("Caller is not an admin or superadmin"),
+        404: error("Plan not found"),
+        409: error("A plan with that name already exists"),
     },
 )
 def patch_plan(
     plan_id: int,
     body: PlanUpdate,
+    _: CurrentAdmin,
     db: Session = Depends(get_db),
-    _=Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN)),
 ):
     return update_plan(db, plan_id, body)
 
@@ -149,14 +142,14 @@ def patch_plan(
         "Soft delete: sets is_active=false. Existing subscriptions remain unchanged."
     ),
     responses={
-        401: {"description": "Missing, invalid or expired token"},
-        403: {"description": "Caller is not an admin or superadmin"},
-        404: {"description": "Plan not found"},
+        401: error("Missing, invalid or expired token"),
+        403: error("Caller is not an admin or superadmin"),
+        404: error("Plan not found"),
     },
 )
 def delete_plan(
     plan_id: int,
+    _: CurrentAdmin,
     db: Session = Depends(get_db),
-    _=Depends(require_roles(RoleName.ADMIN, RoleName.SUPERADMIN)),
 ):
     return deactivate_plan(db, plan_id)

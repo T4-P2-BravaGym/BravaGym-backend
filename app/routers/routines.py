@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_roles
+from app.core.openapi import error, errors
 from app.models import User
 from app.models.enums import RoleName
 from app.schemas.routine import (
@@ -18,7 +19,8 @@ from app.schemas.routine import (
 )
 from app.services import routine_service
 
-router = APIRouter(prefix="/routines", tags=["routines"])
+# Every endpoint needs a login and a role, so 401 and 403 are documented for all of them
+router = APIRouter(prefix="/routines", tags=["routines"], responses=errors(401, 403))
 
 
 CurrentTrainer = Annotated[
@@ -31,7 +33,7 @@ DbSession = Annotated[Session, Depends(get_db)]
     "/me",
     response_model=RoutineOut,
     summary="Get my active routine with its exercises grouped by day",
-    responses={404: {"description": "The member has no active routine"}},
+    responses={404: error("The member has no active routine")},
 )
 def get_my_routine(
     member: Annotated[User, Depends(require_roles(RoleName.MEMBER))],
@@ -46,8 +48,8 @@ def get_my_routine(
     status_code=status.HTTP_201_CREATED,
     summary="Create a routine for a member (her previous routine becones inactive)",
     responses={
-        404: {"description": "The member or an exercise does not exist"},
-        409: {"description": "Two lines share the same day and position"},
+        404: error("The member or an exercise does not exist"),
+        409: error("Two lines share the same day and position"),
     },
 )
 def create_routine(data: RoutineCreate, trainer: CurrentTrainer, db: DbSession):
@@ -71,7 +73,7 @@ def list_routines(
     "/{routine_id}",
     response_model=TrainerRoutineOut,
     summary="Get one routine",
-    responses={404: {"description": "The routine does not exist"}},
+    responses={404: error("The routine does not exist")},
 )
 def get_routine(routine_id: int, _trainer: CurrentTrainer, db: DbSession):
     return routine_service.get_routine(db, routine_id)
@@ -81,7 +83,7 @@ def get_routine(routine_id: int, _trainer: CurrentTrainer, db: DbSession):
     "/{routine_id}",
     response_model=TrainerRoutineOut,
     summary="Update the name, start date or notes of a routine",
-    responses={404: {"description": "The routine does not exist"}},
+    responses={404: error("The routine does not exist")},
 )
 def update_routine(
     routine_id: int, data: RoutineUpdate, _trainer: CurrentTrainer, db: DbSession
@@ -93,7 +95,7 @@ def update_routine(
     "/{routine_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Deactivate a routine (it is not deleted)",
-    responses={404: {"description": "The routine does not exist"}},
+    responses={404: error("The routine does not exist")},
 )
 def deactivate_routine(
     routine_id: int, _trainer: CurrentTrainer, db: DbSession
@@ -107,8 +109,8 @@ def deactivate_routine(
     status_code=status.HTTP_201_CREATED,
     summary="Add an exercise line to a routine",
     responses={
-        404: {"description": "The routine or the exercise does not exist"},
-        409: {"description": "That day and position are already taken"},
+        404: error("The routine or the exercise does not exist"),
+        409: error("That day and position are already taken"),
     },
 )
 def add_line(
@@ -121,7 +123,7 @@ def add_line(
     "/{routine_id}/exercises/{item_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Remove an exercise line from a routine",
-    responses={404: {"description": "The line is not in that routine"}},
+    responses={404: error("The line is not in that routine")},
 )
 def delete_line(
     routine_id: int, item_id: int, _trainer: CurrentTrainer, db: DbSession

@@ -26,6 +26,8 @@ EXPECTED_TABLES = {
     "order_items",
     "discount_codes",
     "payments",
+    "refresh_tokens",
+    "revoked_tokens",
 }
 
 
@@ -42,7 +44,7 @@ def make_member(db) -> User:
     return member
 
 
-def test_schema_has_the_19_tables(db):
+def test_schema_has_all_expected_tables(db):
     assert set(inspect(db.get_bind()).get_table_names()) == EXPECTED_TABLES
 
 

@@ -86,6 +86,8 @@ class AttemptWindowLimiter:
 # Module singletons — reconfigured from settings in main; replaceable in tests.
 login_attempt_limiter = AttemptWindowLimiter(max_attempts=5, window_seconds=900.0)
 register_attempt_limiter = AttemptWindowLimiter(max_attempts=10, window_seconds=3600.0)
+# HU-32: wrong current passwords when changing it, counted per user
+password_change_limiter = AttemptWindowLimiter(max_attempts=5, window_seconds=900.0)
 
 
 def configure_auth_rate_limits(
@@ -124,3 +126,7 @@ def login_rate_key(email: str, ip: str) -> str:
 
 def register_rate_key(ip: str) -> str:
     return f"register:{ip}"
+
+
+def password_change_rate_key(user_id: int) -> str:
+    return f"password:{user_id}"

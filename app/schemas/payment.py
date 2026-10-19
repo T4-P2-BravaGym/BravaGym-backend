@@ -49,6 +49,7 @@ class DiscountCodeCreate(BaseModel):
                 "valid_from": "2026-06-01",
                 "valid_until": "2026-08-31",
                 "max_uses": 50,
+                "applies_to": "booking",
             }
         }
     )
@@ -58,6 +59,7 @@ class DiscountCodeCreate(BaseModel):
     valid_from: date
     valid_until: date
     max_uses: int | None = Field(default=None, ge=1)
+    applies_to: PaymentConcept | None = None  # T-240: empty = every concept
 
     @field_validator("code")
     @classmethod
@@ -82,6 +84,7 @@ class DiscountCodeUpdate(BaseModel):
     valid_from: date = None
     valid_until: date = None
     max_uses: int | None = Field(default=None, ge=1)
+    applies_to: PaymentConcept | None = None  # null = valid for every concept again
     is_active: bool = None
 
 
@@ -94,6 +97,7 @@ class DiscountCodeOut(BaseModel):
     valid_from: date
     valid_until: date
     max_uses: int | None
+    applies_to: PaymentConcept | None
     is_active: bool
     uses: int
 
@@ -106,11 +110,14 @@ class DiscountValidationOut(BaseModel):
     """What a member gets when her code is valid (RN-14)."""
 
     model_config = ConfigDict(
-        json_schema_extra={"example": {"code": "VERANO20", "percent_off": 20}}
+        json_schema_extra={
+            "example": {"code": "VERANO20", "percent_off": 20, "applies_to": None}
+        }
     )
 
     code: str
     percent_off: int
+    applies_to: PaymentConcept | None
 
 
 class PayRequest(BaseModel):

@@ -244,7 +244,9 @@ def apply_optional_discount(
 ) -> None:
     """RN-14 / RN-15: set discount_code_id and final_amount_cents on a pending payment."""
     if discount_code_text:
-        code = discount_service.get_valid_code(db, discount_code_text)
+        code = discount_service.get_valid_code(
+            db, discount_code_text, payment_concept(payment)
+        )
         payment.discount_code_id = code.id
         payment.final_amount_cents = apply_discount_cents(
             payment.base_amount_cents, code.percent_off

@@ -1,0 +1,31 @@
+meta {
+  name: login-success
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  username: {{memberEmail}}
+  password: {{demoPassword}}
+}
+
+script:post-response {
+  if (res.getStatus() === 200) { bru.setVar("token", res.getBody().access_token); bru.setVar("tokenMember", res.getBody().access_token); }
+}
+
+tests {
+  test("Expected HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Run auth and earlier requests in collection order against a fresh local seed. See the repository README.
+}
+

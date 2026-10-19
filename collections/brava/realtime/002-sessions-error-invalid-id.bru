@@ -1,0 +1,16 @@
+meta {
+  name: sessions-error-invalid-id
+  type: ws
+  seq: 2
+}
+
+ws {
+  url: {{wsBaseUrl}}/api/v1/ws/sessions/not-an-integer
+  body: none
+  auth: none
+}
+
+docs {
+  Connect: the server rejects the handshake because session_id is not an integer. There is no HTTP JSON response to assert.
+  Manual Bruno desktop examples. HTTP CLI skips WebSocket requests.
+}

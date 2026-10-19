@@ -1,0 +1,26 @@
+meta {
+  name: get-plans-admin-success
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/plans/admin
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenAdmin}}
+}
+
+tests {
+  test("Expected HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Operation: GET /api/v1/plans/admin. Expected HTTP 200. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+

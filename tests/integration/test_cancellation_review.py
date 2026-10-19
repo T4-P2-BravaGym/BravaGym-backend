@@ -3,10 +3,11 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from app.models import Booking, CancellationRequest, ClassSession, ClassType
+from app.models import Booking, CancellationRequest, ClassSession, ClassType, Payment
 from app.models.enums import (
     BookingStatus,
     CancellationStatus,
+    PaymentStatus,
     RoleName,
     SessionStatus,
     SubscriptionStatus,
@@ -35,12 +36,13 @@ def _make_class_session(
     capacity: int = 2,
     starts_at: datetime | None = None,
     name: str = "Clase admin baja",
+    extra_price_cents: int = 0,
 ) -> ClassSession:
     trainer = make_user(RoleName.TRAINER)
     class_type = ClassType(
         name=name,
         description="Sesión de prueba HU-20.",
-        extra_price_cents=0,
+        extra_price_cents=extra_price_cents,
     )
     db.add(class_type)
     db.flush()
@@ -113,6 +115,56 @@ def test_rn13_admin_approves_pending_request_chain_effect(
         LOGIN_URL, data={"username": member.email, "password": TEST_PASSWORD}
     )
     assert login.status_code == 401
+
+
+def test_rn13_approve_settles_extra_class_payments(
+    client, db, make_user, make_plan, make_subscription
+):
+    member = make_user()
+    waiter = make_user()
+    plan = make_plan()
+    make_subscription(member, plan)
+    make_subscription(waiter, plan)
+    admin = make_user(RoleName.ADMIN)
+    created = _pending_via_api(client, member)
+
+    owed = _make_class_session(
+        db, make_user, capacity=1, name="Baja debe", extra_price_cents=1500
+    )
+    owed_booking = booking_service.book_session(
+        db, user_id=member.id, class_session_id=owed.id
+    ).booking
+    booking_service.book_session(db, user_id=waiter.id, class_session_id=owed.id)
+
+    paid_session = _make_class_session(
+        db, make_user, name="Baja pagada", extra_price_cents=1500
+    )
+    paid_booking = booking_service.book_session(
+        db, user_id=member.id, class_session_id=paid_session.id
+    ).booking
+    paid = db.scalar(select(Payment).where(Payment.booking_id == paid_booking.id))
+    paid.status = PaymentStatus.PAID
+    paid.paid_at = datetime(2026, 10, 1, 10, 0)
+    db.commit()
+
+    response = client.post(
+        f"{CANCEL_URL}/{created['id']}/approve",
+        json={"admin_notes": "Baja con clases extra."},
+        headers=auth_header_for(admin),
+    )
+
+    assert response.status_code == 200
+    db.expire_all()
+    owed_payment = db.scalar(
+        select(Payment).where(Payment.booking_id == owed_booking.id)
+    )
+    paid_payment = db.scalar(
+        select(Payment).where(Payment.booking_id == paid_booking.id)
+    )
+    waiter_payment = db.scalar(select(Payment).where(Payment.user_id == waiter.id))
+    assert owed_payment.status == PaymentStatus.CANCELLED
+    assert paid_payment.status == PaymentStatus.REFUNDED
+    assert waiter_payment.status == PaymentStatus.PENDING
 
 
 def test_rn13_reject_without_admin_notes_returns_422(

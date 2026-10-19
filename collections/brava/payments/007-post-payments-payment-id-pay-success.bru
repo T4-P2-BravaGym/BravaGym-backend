@@ -1,0 +1,30 @@
+meta {
+  name: post-payments-payment-id-pay-success
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/payments/{{pendingPaymentId}}/pay
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenNewMember}}
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("Expected HTTP 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Operation: POST /api/v1/payments/{payment_id}/pay. Expected HTTP 200. Run auth and previous folders/requests first. Uses only the local seed and newly captured demo resources; mutations are intentional. Reset a temporary demo database before repeating the whole collection.
+}
+
