@@ -1,6 +1,6 @@
 # Runtime dependencies. After the first working install, pin exact versions with:
 #   pip freeze > requirements.lock
-fastapi>=0.143.2,<1.0
+fastapi>=0.161.1,<1.0
 uvicorn[standard]>=0.54.0
 sqlalchemy>=2.1.4,<2.2
 pydantic>=2.14.1,<3
